@@ -135,7 +135,7 @@ Hooks.VideoRecorder = {
       }
 
       this.state = 'previewing'
-      this.pushEvent('preview_started', {})
+      // Don't push event here - the area has phx-update="ignore"
 
       // Start countdown after 1 second
       setTimeout(() => this.startCountdown(), 1000)
@@ -214,7 +214,7 @@ Hooks.VideoRecorder = {
     }
 
     this.mediaRecorder.start(100) // Collect data every 100ms
-    this.pushEvent('recording_started', {})
+    // Don't push event - area has phx-update="ignore"
   },
 
   stopRecording() {
@@ -252,10 +252,7 @@ Hooks.VideoRecorder = {
 
     // Show playback controls
     if (els.playbackControls) els.playbackControls.classList.remove('hidden')
-    if (els.retakeBtn) els.retakeBtn.classList.remove('hidden')
-    if (els.confirmBtn) els.confirmBtn.classList.remove('hidden')
-
-    this.pushEvent('recording_complete', {})
+    // Don't push event - area has phx-update="ignore"
   },
 
   retake() {
@@ -279,8 +276,7 @@ Hooks.VideoRecorder = {
     // Show idle state
     if (els.idleState) els.idleState.classList.remove('hidden')
     if (els.startBtn) els.startBtn.classList.remove('hidden')
-
-    this.pushEvent('retake', {})
+    // Don't push event - area has phx-update="ignore"
   },
 
   confirmRecording() {

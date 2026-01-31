@@ -522,84 +522,90 @@ defmodule ScriptVoiceWeb.VerifyLive do
                     </button>
                   </div>
                 <% else %>
-                  <!-- Video Preview/Recording Area -->
-                  <div class="relative bg-gray-900 aspect-video">
-                    <!-- Live Preview -->
-                    <video
-                      id="video-preview"
-                      autoplay
-                      muted
-                      playsinline
-                      class="hidden w-full h-full object-cover"
-                    ></video>
+                  <!-- Video Preview/Recording Area - phx-update="ignore" prevents LiveView from touching this -->
+                  <div id="video-recording-area" phx-update="ignore">
+                    <div class="relative bg-gray-900 aspect-video">
+                      <!-- Live Preview -->
+                      <video
+                        id="video-preview"
+                        autoplay
+                        muted
+                        playsinline
+                        class="hidden w-full h-full object-cover"
+                      ></video>
 
-                    <!-- Playback -->
-                    <video
-                      id="video-playback"
-                      controls
-                      playsinline
-                      class="hidden w-full h-full object-cover"
-                    ></video>
+                      <!-- Playback -->
+                      <video
+                        id="video-playback"
+                        controls
+                        playsinline
+                        class="hidden w-full h-full object-cover"
+                      ></video>
 
-                    <!-- Idle State -->
-                    <div id="idle-state" class={[@video_state != :idle && "hidden", "absolute inset-0 flex flex-col items-center justify-center text-white p-4"]}>
-                      <.icon name="hero-video-camera" class="w-12 h-12 mb-3 text-gray-400" />
-                      <p class="text-sm text-gray-300 text-center mb-4">
-                        Position yourself in frame and click to start
-                      </p>
-                      <button
-                        id="start-recording-btn"
-                        type="button"
-                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 transition"
+                      <!-- Idle State -->
+                      <div id="idle-state" class="absolute inset-0 flex flex-col items-center justify-center text-white p-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mb-3 text-gray-400">
+                          <path stroke-linecap="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+                        </svg>
+                        <p class="text-sm text-gray-300 text-center mb-4">
+                          Position yourself in frame and click to start
+                        </p>
+                        <button
+                          id="start-recording-btn"
+                          type="button"
+                          class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 transition"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+                          </svg>
+                          Start Recording
+                        </button>
+                      </div>
+
+                      <!-- Countdown Overlay -->
+                      <div
+                        id="countdown"
+                        class="hidden absolute inset-0 flex items-center justify-center bg-black/50"
                       >
-                        <.icon name="hero-video-camera" class="w-5 h-5" />
-                        Start Recording
+                        <span class="text-6xl font-bold text-white">3</span>
+                      </div>
+
+                      <!-- Recording Indicator -->
+                      <div
+                        id="recording-indicator"
+                        class="hidden absolute top-4 left-4 flex items-center gap-2 bg-red-600 text-white px-3 py-1.5 rounded-full text-sm font-medium"
+                      >
+                        <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                        Recording <span id="recording-timer">0s</span>
+                      </div>
+
+                      <!-- Stop Button -->
+                      <button
+                        id="stop-recording-btn"
+                        type="button"
+                        class="hidden absolute bottom-4 left-1/2 -translate-x-1/2 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition"
+                      >
+                        Stop Recording
                       </button>
                     </div>
 
-                    <!-- Countdown Overlay -->
-                    <div
-                      id="countdown"
-                      class="hidden absolute inset-0 flex items-center justify-center bg-black/50"
-                    >
-                      <span class="text-6xl font-bold text-white">3</span>
+                    <!-- Playback Controls -->
+                    <div id="playback-controls" class="hidden p-4 bg-gray-50 border-t flex justify-center gap-3">
+                      <button
+                        id="retake-btn"
+                        type="button"
+                        class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 transition"
+                      >
+                        Retake
+                      </button>
+                      <button
+                        id="confirm-btn"
+                        type="button"
+                        class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition"
+                      >
+                        Confirm & Use This Video
+                      </button>
                     </div>
-
-                    <!-- Recording Indicator -->
-                    <div
-                      id="recording-indicator"
-                      class="hidden absolute top-4 left-4 flex items-center gap-2 bg-red-600 text-white px-3 py-1.5 rounded-full text-sm font-medium"
-                    >
-                      <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                      Recording <span id="recording-timer">0s</span>
-                    </div>
-
-                    <!-- Stop Button -->
-                    <button
-                      id="stop-recording-btn"
-                      type="button"
-                      class="hidden absolute bottom-4 left-1/2 -translate-x-1/2 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition"
-                    >
-                      Stop Recording
-                    </button>
-                  </div>
-
-                  <!-- Playback Controls -->
-                  <div id="playback-controls" class="hidden p-4 bg-gray-50 border-t flex justify-center gap-3">
-                    <button
-                      id="retake-btn"
-                      type="button"
-                      class="hidden px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 transition"
-                    >
-                      Retake
-                    </button>
-                    <button
-                      id="confirm-btn"
-                      type="button"
-                      class="hidden px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition"
-                    >
-                      Confirm & Use This Video
-                    </button>
                   </div>
                 <% end %>
               </div>
