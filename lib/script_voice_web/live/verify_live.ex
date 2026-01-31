@@ -178,9 +178,7 @@ defmodule ScriptVoiceWeb.VerifyLive do
           {:ok, user} ->
             {:noreply,
              socket
-             |> put_session(:user_id, user.id)
-             |> put_flash(:info, "Welcome to ScriptVoice!")
-             |> push_navigate(to: ~p"/browse")}
+             |> redirect(to: ~p"/session/login/#{user.id}")}
 
           {:error, changeset} ->
             {:noreply, assign(socket, :error, format_errors(changeset))}

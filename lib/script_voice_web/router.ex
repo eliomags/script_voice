@@ -25,6 +25,9 @@ defmodule ScriptVoiceWeb.Router do
 
     # Auth routes
     live "/verify", VerifyLive, :index
+    get "/session/login/:user_id", SessionController, :create
+    post "/session", SessionController, :create
+    delete "/session", SessionController, :delete
   end
 
   # Enable LiveDashboard in development

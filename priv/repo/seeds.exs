@@ -24,7 +24,7 @@ sarah = Repo.insert!(%User{
   user_type: "writer",
   verification_status: "verified",
   verified_via: "email",
-  verified_at: DateTime.utc_now()
+  verified_at: DateTime.utc_now() |> DateTime.truncate(:second)
 })
 
 marcus = Repo.insert!(%User{
@@ -33,7 +33,7 @@ marcus = Repo.insert!(%User{
   user_type: "writer",
   verification_status: "verified",
   verified_via: "email",
-  verified_at: DateTime.utc_now()
+  verified_at: DateTime.utc_now() |> DateTime.truncate(:second)
 })
 
 aisha = Repo.insert!(%User{
@@ -42,7 +42,7 @@ aisha = Repo.insert!(%User{
   user_type: "writer",
   verification_status: "verified",
   verified_via: "phone",
-  verified_at: DateTime.utc_now()
+  verified_at: DateTime.utc_now() |> DateTime.truncate(:second)
 })
 
 jake = Repo.insert!(%User{
@@ -52,7 +52,7 @@ jake = Repo.insert!(%User{
   performer_type: "solo",
   verification_status: "verified",
   verified_via: "email",
-  verified_at: DateTime.utc_now()
+  verified_at: DateTime.utc_now() |> DateTime.truncate(:second)
 })
 
 emma = Repo.insert!(%User{
@@ -62,7 +62,7 @@ emma = Repo.insert!(%User{
   performer_type: "solo",
   verification_status: "verified",
   verified_via: "phone",
-  verified_at: DateTime.utc_now()
+  verified_at: DateTime.utc_now() |> DateTime.truncate(:second)
 })
 
 # Create sample screenplays
