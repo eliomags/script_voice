@@ -565,10 +565,8 @@ defmodule ScriptVoiceWeb.VerifyLive do
                       <!-- Countdown Overlay -->
                       <div
                         id="countdown"
-                        class="hidden absolute inset-0 flex items-center justify-center bg-black/50"
-                      >
-                        <span class="text-6xl font-bold text-white">3</span>
-                      </div>
+                        class="hidden absolute inset-0 flex items-center justify-center bg-black/50 text-8xl font-bold text-white"
+                      >3</div>
 
                       <!-- Recording Indicator -->
                       <div
