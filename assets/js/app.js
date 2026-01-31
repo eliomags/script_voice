@@ -97,10 +97,7 @@ Hooks.VideoRecorder = {
         this.confirmRecording()
       } else if (target.id === 'settings-btn') {
         e.preventDefault()
-        this.openSettings()
-      } else if (target.id === 'close-settings-btn' || target.id === 'apply-settings-btn') {
-        e.preventDefault()
-        this.closeSettings()
+        this.toggleSettings()
       }
     })
 
@@ -108,10 +105,11 @@ Hooks.VideoRecorder = {
     this.el.addEventListener('change', (e) => {
       if (e.target.id === 'camera-select') {
         this.selectedCamera = e.target.value
-        this.updatePreviewStream()
       } else if (e.target.id === 'mic-select') {
         this.selectedMic = e.target.value
-        this.updatePreviewStream()
+        // Restart audio monitoring with new mic
+        this.stopAudioLevelMonitor()
+        this.startSettingsAudioMonitor()
       }
     })
   },
@@ -131,77 +129,84 @@ Hooks.VideoRecorder = {
       idleState: this.el.querySelector('#idle-state'),
       playbackControls: this.el.querySelector('#playback-controls'),
       settingsPanel: this.el.querySelector('#settings-panel'),
+      settingsChevron: this.el.querySelector('#settings-chevron'),
       cameraSelect: this.el.querySelector('#camera-select'),
       micSelect: this.el.querySelector('#mic-select'),
       audioLevel: this.el.querySelector('#audio-level')
     }
   },
 
-  async openSettings() {
+  async toggleSettings() {
     const els = this.getElements()
+    const isOpen = els.settingsPanel && !els.settingsPanel.classList.contains('hidden')
 
-    // First, request permission to access devices (needed to get device labels)
-    try {
-      const tempStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      tempStream.getTracks().forEach(track => track.stop())
-    } catch (err) {
-      console.warn('Could not get permission for device enumeration')
-    }
+    if (isOpen) {
+      // Close settings
+      if (els.settingsPanel) els.settingsPanel.classList.add('hidden')
+      if (els.settingsChevron) els.settingsChevron.classList.remove('rotate-180')
+      this.stopAudioLevelMonitor()
+    } else {
+      // Open settings
 
-    // Enumerate devices
-    const devices = await navigator.mediaDevices.enumerateDevices()
-    const cameras = devices.filter(d => d.kind === 'videoinput')
-    const mics = devices.filter(d => d.kind === 'audioinput')
-
-    // Populate camera dropdown
-    if (els.cameraSelect) {
-      els.cameraSelect.innerHTML = cameras.map((cam, i) =>
-        `<option value="${cam.deviceId}" ${cam.deviceId === this.selectedCamera ? 'selected' : ''}>
-          ${cam.label || `Camera ${i + 1}`}
-        </option>`
-      ).join('')
-      if (!this.selectedCamera && cameras.length > 0) {
-        this.selectedCamera = cameras[0].deviceId
+      // First, request permission to access devices (needed to get device labels)
+      try {
+        const tempStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        tempStream.getTracks().forEach(track => track.stop())
+      } catch (err) {
+        console.warn('Could not get permission for device enumeration')
       }
-    }
 
-    // Populate mic dropdown
-    if (els.micSelect) {
-      els.micSelect.innerHTML = mics.map((mic, i) =>
-        `<option value="${mic.deviceId}" ${mic.deviceId === this.selectedMic ? 'selected' : ''}>
-          ${mic.label || `Microphone ${i + 1}`}
-        </option>`
-      ).join('')
-      if (!this.selectedMic && mics.length > 0) {
-        this.selectedMic = mics[0].deviceId
+      // Enumerate devices
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      const cameras = devices.filter(d => d.kind === 'videoinput')
+      const mics = devices.filter(d => d.kind === 'audioinput')
+
+      // Populate camera dropdown
+      if (els.cameraSelect) {
+        els.cameraSelect.innerHTML = cameras.map((cam, i) =>
+          `<option value="${cam.deviceId}" ${cam.deviceId === this.selectedCamera ? 'selected' : ''}>
+            ${cam.label || `Camera ${i + 1}`}
+          </option>`
+        ).join('')
+        if (!this.selectedCamera && cameras.length > 0) {
+          this.selectedCamera = cameras[0].deviceId
+        }
       }
+
+      // Populate mic dropdown
+      if (els.micSelect) {
+        els.micSelect.innerHTML = mics.map((mic, i) =>
+          `<option value="${mic.deviceId}" ${mic.deviceId === this.selectedMic ? 'selected' : ''}>
+            ${mic.label || `Microphone ${i + 1}`}
+          </option>`
+        ).join('')
+        if (!this.selectedMic && mics.length > 0) {
+          this.selectedMic = mics[0].deviceId
+        }
+      }
+
+      // Show settings panel and rotate chevron
+      if (els.settingsPanel) els.settingsPanel.classList.remove('hidden')
+      if (els.settingsChevron) els.settingsChevron.classList.add('rotate-180')
+
+      // Start audio monitoring for level indicator
+      await this.startSettingsAudioMonitor()
     }
-
-    // Show settings panel
-    if (els.settingsPanel) els.settingsPanel.classList.remove('hidden')
-    if (els.idleState) els.idleState.classList.add('hidden')
-
-    // Start preview with current settings
-    await this.updatePreviewStream()
-    this.startAudioLevelMonitor()
   },
 
-  closeSettings() {
-    const els = this.getElements()
-    if (els.settingsPanel) els.settingsPanel.classList.add('hidden')
-    if (els.idleState) els.idleState.classList.remove('hidden')
-
-    // Stop preview stream
-    if (this.stream) {
-      this.stream.getTracks().forEach(track => track.stop())
-      this.stream = null
+  async startSettingsAudioMonitor() {
+    // Get a temporary audio stream just for level monitoring
+    try {
+      const constraints = {
+        audio: this.selectedMic ? { deviceId: { exact: this.selectedMic } } : true,
+        video: false
+      }
+      this.settingsStream = await navigator.mediaDevices.getUserMedia(constraints)
+      this.setupAudioAnalyser(this.settingsStream)
+      this.startAudioLevelMonitor()
+    } catch (err) {
+      console.warn('Could not start audio monitoring:', err)
     }
-    if (els.videoPreview) {
-      els.videoPreview.classList.add('hidden')
-      els.videoPreview.srcObject = null
-    }
-
-    this.stopAudioLevelMonitor()
   },
 
   async updatePreviewStream() {
@@ -238,17 +243,18 @@ Hooks.VideoRecorder = {
     }
   },
 
-  setupAudioAnalyser() {
-    if (!this.stream) return
+  setupAudioAnalyser(stream) {
+    const audioStream = stream || this.stream
+    if (!audioStream) return
 
-    const audioTrack = this.stream.getAudioTracks()[0]
+    const audioTrack = audioStream.getAudioTracks()[0]
     if (!audioTrack) return
 
     if (!this.audioContext) {
       this.audioContext = new (window.AudioContext || window.webkitAudioContext)()
     }
 
-    const source = this.audioContext.createMediaStreamSource(this.stream)
+    const source = this.audioContext.createMediaStreamSource(audioStream)
     this.audioAnalyser = this.audioContext.createAnalyser()
     this.audioAnalyser.fftSize = 256
     source.connect(this.audioAnalyser)
@@ -276,6 +282,11 @@ Hooks.VideoRecorder = {
     if (this.audioLevelInterval) {
       clearInterval(this.audioLevelInterval)
       this.audioLevelInterval = null
+    }
+    // Stop settings audio stream if exists
+    if (this.settingsStream) {
+      this.settingsStream.getTracks().forEach(track => track.stop())
+      this.settingsStream = null
     }
   },
 
@@ -473,6 +484,9 @@ Hooks.VideoRecorder = {
   destroyed() {
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop())
+    }
+    if (this.settingsStream) {
+      this.settingsStream.getTracks().forEach(track => track.stop())
     }
     if (this.timerInterval) {
       clearInterval(this.timerInterval)
