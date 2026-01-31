@@ -291,50 +291,48 @@ defmodule ScriptVoiceWeb.VerifyLive do
 
         <!-- Verification Card -->
         <div class="bg-white rounded-2xl shadow-sm border p-6">
-          <!-- User Type Selection (if not pre-selected) -->
-          <%= if @user_type == "visitor" and @step == :contact_info do %>
-            <div class="mb-6 pb-6 border-b">
-              <p class="text-sm font-medium text-gray-700 mb-3">I want to:</p>
-              <div class="grid grid-cols-3 gap-2">
-                <button
-                  phx-click="select_user_type"
-                  phx-value-type="visitor"
-                  class={[
-                    "border-2 rounded-lg p-3 text-center transition touch-manipulation",
-                    @user_type == "visitor" && "border-emerald-500 bg-emerald-50",
-                    @user_type != "visitor" && "border-gray-200 hover:border-gray-300"
-                  ]}
-                >
-                  <.icon name="hero-eye" class="w-6 h-6 mx-auto mb-1 text-gray-600" />
-                  <p class="text-xs font-medium">Browse</p>
-                </button>
-                <button
-                  phx-click="select_user_type"
-                  phx-value-type="writer"
-                  class={[
-                    "border-2 rounded-lg p-3 text-center transition touch-manipulation",
-                    @user_type == "writer" && "border-emerald-500 bg-emerald-50",
-                    @user_type != "writer" && "border-gray-200 hover:border-gray-300"
-                  ]}
-                >
-                  <.icon name="hero-document-text" class="w-6 h-6 mx-auto mb-1 text-gray-600" />
-                  <p class="text-xs font-medium">Write</p>
-                </button>
-                <button
-                  phx-click="select_user_type"
-                  phx-value-type="voice_artist"
-                  class={[
-                    "border-2 rounded-lg p-3 text-center transition touch-manipulation",
-                    @user_type == "voice_artist" && "border-emerald-500 bg-emerald-50",
-                    @user_type != "voice_artist" && "border-gray-200 hover:border-gray-300"
-                  ]}
-                >
-                  <.icon name="hero-microphone" class="w-6 h-6 mx-auto mb-1 text-gray-600" />
-                  <p class="text-xs font-medium">Perform</p>
-                </button>
-              </div>
+          <!-- User Type Selection - Always visible for switching -->
+          <div class="mb-6 pb-6 border-b">
+            <p class="text-sm font-medium text-gray-700 mb-3">I want to:</p>
+            <div class="grid grid-cols-3 gap-2">
+              <button
+                phx-click="select_user_type"
+                phx-value-type="visitor"
+                class={[
+                  "border-2 rounded-lg p-3 text-center transition touch-manipulation",
+                  @user_type == "visitor" && "border-emerald-500 bg-emerald-50",
+                  @user_type != "visitor" && "border-gray-200 hover:border-gray-300"
+                ]}
+              >
+                <.icon name="hero-eye" class={["w-6 h-6 mx-auto mb-1", @user_type == "visitor" && "text-emerald-600", @user_type != "visitor" && "text-gray-600"]} />
+                <p class="text-xs font-medium">Browse</p>
+              </button>
+              <button
+                phx-click="select_user_type"
+                phx-value-type="writer"
+                class={[
+                  "border-2 rounded-lg p-3 text-center transition touch-manipulation",
+                  @user_type == "writer" && "border-emerald-500 bg-emerald-50",
+                  @user_type != "writer" && "border-gray-200 hover:border-gray-300"
+                ]}
+              >
+                <.icon name="hero-document-text" class={["w-6 h-6 mx-auto mb-1", @user_type == "writer" && "text-emerald-600", @user_type != "writer" && "text-gray-600"]} />
+                <p class="text-xs font-medium">Write</p>
+              </button>
+              <button
+                phx-click="select_user_type"
+                phx-value-type="voice_artist"
+                class={[
+                  "border-2 rounded-lg p-3 text-center transition touch-manipulation",
+                  @user_type == "voice_artist" && "border-emerald-500 bg-emerald-50",
+                  @user_type != "voice_artist" && "border-gray-200 hover:border-gray-300"
+                ]}
+              >
+                <.icon name="hero-microphone" class={["w-6 h-6 mx-auto mb-1", @user_type == "voice_artist" && "text-emerald-600", @user_type != "voice_artist" && "text-gray-600"]} />
+                <p class="text-xs font-medium">Perform</p>
+              </button>
             </div>
-          <% end %>
+          </div>
 
           <!-- Error Display -->
           <%= if @error do %>
