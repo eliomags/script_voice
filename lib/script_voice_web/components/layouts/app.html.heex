@@ -15,13 +15,83 @@
         </.link>
 
         <%= if assigns[:current_user] do %>
-          <div class="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full">
-            <%= if @current_user.verified do %>
-              <.verified_badge />
-            <% end %>
-            <span class="text-sm font-medium truncate max-w-[100px] sm:max-w-none">
-              <%= @current_user.name %>
-            </span>
+          <!-- User Menu with Dropdown -->
+          <div class="relative" id="user-menu">
+            <button
+              type="button"
+              class="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-full transition"
+              onclick="document.getElementById('user-dropdown').classList.toggle('hidden')"
+            >
+              <%= if @current_user.verified do %>
+                <.verified_badge />
+              <% end %>
+              <span class="text-sm font-medium truncate max-w-[100px] sm:max-w-none">
+                <%= @current_user.name %>
+              </span>
+              <.icon name="hero-chevron-down" class="w-4 h-4 text-gray-500" />
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border py-2 z-50">
+              <!-- Current Role -->
+              <div class="px-4 py-2 border-b">
+                <p class="text-xs text-gray-500">Signed in as</p>
+                <p class="font-medium text-sm">
+                  <%= case @current_user.user_type do
+                    "writer" -> "Writer"
+                    "voice_artist" -> "Voice Artist"
+                    _ -> "Visitor"
+                  end %>
+                </p>
+              </div>
+
+              <!-- Switch Role Options -->
+              <div class="py-2 border-b">
+                <p class="px-4 py-1 text-xs text-gray-500 uppercase tracking-wide">Switch to</p>
+
+                <%= if @current_user.user_type != "visitor" do %>
+                  <.link
+                    navigate={~p"/verify?type=visitor"}
+                    class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <.icon name="hero-eye" class="w-4 h-4 text-gray-400" />
+                    Browse Only
+                  </.link>
+                <% end %>
+
+                <%= if @current_user.user_type != "writer" do %>
+                  <.link
+                    navigate={~p"/verify?type=writer"}
+                    class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <.icon name="hero-document-text" class="w-4 h-4 text-gray-400" />
+                    Write
+                  </.link>
+                <% end %>
+
+                <%= if @current_user.user_type != "voice_artist" do %>
+                  <.link
+                    navigate={~p"/verify?type=voice_artist"}
+                    class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <.icon name="hero-microphone" class="w-4 h-4 text-gray-400" />
+                    Perform
+                  </.link>
+                <% end %>
+              </div>
+
+              <!-- Logout -->
+              <div class="py-2">
+                <.link
+                  href={~p"/session"}
+                  method="delete"
+                  class="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                >
+                  <.icon name="hero-arrow-right-on-rectangle" class="w-4 h-4" />
+                  Sign Out
+                </.link>
+              </div>
+            </div>
           </div>
         <% else %>
           <.link navigate={~p"/verify"} class="bg-emerald-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
@@ -32,29 +102,20 @@
     </div>
   </nav>
 
+  <!-- Click outside to close dropdown -->
+  <script>
+    document.addEventListener('click', function(e) {
+      var dropdown = document.getElementById('user-dropdown');
+      var menu = document.getElementById('user-menu');
+      if (dropdown && menu && !menu.contains(e.target)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+  </script>
+
   <!-- Main Content -->
   <main class="flex-1">
     <.flash_group flash={@flash} />
     <%= @inner_content %>
   </main>
-
-  <!-- Mobile Bottom Navigation (optional, can be enabled) -->
-  <!--
-  <nav class="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t safe-area-inset-bottom">
-    <div class="flex justify-around py-2">
-      <.link navigate={~p"/"} class="flex flex-col items-center text-gray-500 hover:text-emerald-600">
-        <.icon name="hero-home" class="w-6 h-6" />
-        <span class="text-xs">Home</span>
-      </.link>
-      <.link navigate={~p"/browse"} class="flex flex-col items-center text-gray-500 hover:text-emerald-600">
-        <.icon name="hero-book-open" class="w-6 h-6" />
-        <span class="text-xs">Browse</span>
-      </.link>
-      <.link navigate={~p"/verify"} class="flex flex-col items-center text-gray-500 hover:text-emerald-600">
-        <.icon name="hero-user" class="w-6 h-6" />
-        <span class="text-xs">Profile</span>
-      </.link>
-    </div>
-  </nav>
-  -->
 </div>

@@ -38,6 +38,8 @@ defmodule ScriptVoiceWeb.VerifyLive do
        |> assign(:code_sent, false)
        |> assign(:code_verified, false)
        |> assign(:video_recorded, false)
+       |> assign(:video_state, :idle)
+       |> assign(:video_data, nil)
        |> assign(:performer_type, "solo")
        |> assign(:verification_phrase, Enum.random(@verification_phrases))
        |> assign(:form_data, %{
@@ -129,16 +131,52 @@ defmodule ScriptVoiceWeb.VerifyLive do
      |> assign(:error, nil)}
   end
 
+  # Video recording events from the VideoRecorder hook
   @impl true
-  def handle_event("record_video", _, socket) do
-    # In production, this would trigger video recording
-    # For now, just simulate recording complete
-    {:noreply, assign(socket, :video_recorded, true)}
+  def handle_event("preview_started", _, socket) do
+    {:noreply, assign(socket, :video_state, :previewing)}
+  end
+
+  @impl true
+  def handle_event("recording_started", _, socket) do
+    {:noreply, assign(socket, :video_state, :recording)}
+  end
+
+  @impl true
+  def handle_event("recording_complete", _, socket) do
+    {:noreply, assign(socket, :video_state, :recorded)}
+  end
+
+  @impl true
+  def handle_event("retake", _, socket) do
+    {:noreply,
+     socket
+     |> assign(:video_state, :idle)
+     |> assign(:video_recorded, false)}
+  end
+
+  @impl true
+  def handle_event("video_confirmed", %{"video_data" => video_data, "size" => size}, socket) do
+    # Store video data for upload during registration
+    {:noreply,
+     socket
+     |> assign(:video_recorded, true)
+     |> assign(:video_data, video_data)
+     |> assign(:video_size, size)}
+  end
+
+  @impl true
+  def handle_event("video_error", %{"message" => message}, socket) do
+    {:noreply, assign(socket, :error, message)}
   end
 
   @impl true
   def handle_event("rerecord_video", _, socket) do
-    {:noreply, assign(socket, :video_recorded, false)}
+    {:noreply,
+     socket
+     |> assign(:video_recorded, false)
+     |> assign(:video_state, :idle)
+     |> assign(:video_data, nil)}
   end
 
   @impl true
@@ -453,28 +491,122 @@ defmodule ScriptVoiceWeb.VerifyLive do
           <%= if needs_video?(@user_type) do %>
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-700 mb-2">Video Verification *</label>
-              <div class={[
-                "border-2 border-dashed rounded-lg p-6 text-center",
-                @video_recorded && "border-emerald-500 bg-emerald-50"
-              ]}>
+
+              <!-- Phrase to read -->
+              <div class="bg-gray-50 rounded-lg p-3 mb-3">
+                <p class="text-xs text-gray-500 mb-1">Read this phrase aloud:</p>
+                <p class="font-mono text-sm font-medium text-gray-800">
+                  "<%= @verification_phrase %>"
+                </p>
+              </div>
+
+              <!-- Video Recorder -->
+              <div
+                id="video-recorder"
+                phx-hook="VideoRecorder"
+                class={[
+                  "border-2 rounded-lg overflow-hidden",
+                  @video_recorded && "border-emerald-500",
+                  !@video_recorded && "border-dashed border-gray-300"
+                ]}
+              >
                 <%= if @video_recorded do %>
-                  <.icon name="hero-check-circle" class="w-8 h-8 mx-auto mb-2 text-emerald-600" />
-                  <p class="text-sm text-emerald-700 font-medium">Video recorded!</p>
-                  <button phx-click="rerecord_video" class="mt-2 text-gray-500 text-sm underline">
-                    Re-record
-                  </button>
+                  <!-- Recording Complete -->
+                  <div class="p-6 text-center bg-emerald-50">
+                    <.icon name="hero-check-circle" class="w-10 h-10 mx-auto mb-2 text-emerald-600" />
+                    <p class="text-sm text-emerald-700 font-medium mb-1">Video recorded successfully!</p>
+                    <p class="text-xs text-gray-500 mb-3">Your verification video is ready</p>
+                    <button
+                      phx-click="rerecord_video"
+                      class="text-sm text-gray-600 hover:text-gray-800 underline"
+                    >
+                      Re-record video
+                    </button>
+                  </div>
                 <% else %>
-                  <.icon name="hero-video-camera" class="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <p class="text-sm text-gray-600 mb-2">Record yourself saying:</p>
-                  <p class="font-mono bg-gray-100 px-3 py-2 rounded text-sm">
-                    "<%= @verification_phrase %>"
-                  </p>
-                  <.button phx-click="record_video" class="mt-3" size="sm">
-                    Start Recording
-                  </.button>
+                  <!-- Video Preview/Recording Area -->
+                  <div class="relative bg-gray-900 aspect-video">
+                    <!-- Live Preview -->
+                    <video
+                      id="video-preview"
+                      autoplay
+                      muted
+                      playsinline
+                      class="hidden w-full h-full object-cover"
+                    ></video>
+
+                    <!-- Playback -->
+                    <video
+                      id="video-playback"
+                      controls
+                      playsinline
+                      class="hidden w-full h-full object-cover"
+                    ></video>
+
+                    <!-- Idle State -->
+                    <div id="idle-state" class={[@video_state != :idle && "hidden", "absolute inset-0 flex flex-col items-center justify-center text-white p-4"]}>
+                      <.icon name="hero-video-camera" class="w-12 h-12 mb-3 text-gray-400" />
+                      <p class="text-sm text-gray-300 text-center mb-4">
+                        Position yourself in frame and click to start
+                      </p>
+                      <button
+                        id="start-recording-btn"
+                        type="button"
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 transition"
+                      >
+                        <.icon name="hero-video-camera" class="w-5 h-5" />
+                        Start Recording
+                      </button>
+                    </div>
+
+                    <!-- Countdown Overlay -->
+                    <div
+                      id="countdown"
+                      class="hidden absolute inset-0 flex items-center justify-center bg-black/50"
+                    >
+                      <span class="text-6xl font-bold text-white">3</span>
+                    </div>
+
+                    <!-- Recording Indicator -->
+                    <div
+                      id="recording-indicator"
+                      class="hidden absolute top-4 left-4 flex items-center gap-2 bg-red-600 text-white px-3 py-1.5 rounded-full text-sm font-medium"
+                    >
+                      <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                      Recording <span id="recording-timer">0s</span>
+                    </div>
+
+                    <!-- Stop Button -->
+                    <button
+                      id="stop-recording-btn"
+                      type="button"
+                      class="hidden absolute bottom-4 left-1/2 -translate-x-1/2 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition"
+                    >
+                      Stop Recording
+                    </button>
+                  </div>
+
+                  <!-- Playback Controls -->
+                  <div id="playback-controls" class="hidden p-4 bg-gray-50 border-t flex justify-center gap-3">
+                    <button
+                      id="retake-btn"
+                      type="button"
+                      class="hidden px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 transition"
+                    >
+                      Retake
+                    </button>
+                    <button
+                      id="confirm-btn"
+                      type="button"
+                      class="hidden px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition"
+                    >
+                      Confirm & Use This Video
+                    </button>
+                  </div>
                 <% end %>
               </div>
-              <p class="text-xs text-gray-500 mt-1">
+
+              <p class="text-xs text-gray-500 mt-2">
                 This ensures everyone on the platform is a real human
               </p>
             </div>
