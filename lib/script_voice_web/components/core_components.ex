@@ -225,6 +225,7 @@ defmodule ScriptVoiceWeb.CoreComponents do
 
   @doc """
   Renders a like button with heart icon.
+  Stops event propagation to prevent parent click handlers from firing.
   """
   attr :liked, :boolean, default: false
   attr :count, :integer, required: true
@@ -238,6 +239,7 @@ defmodule ScriptVoiceWeb.CoreComponents do
         @liked && "text-red-500",
         !@liked && "text-gray-400 hover:text-red-500"
       ]}
+      onclick="event.stopPropagation();"
       {@rest}
     >
       <.icon

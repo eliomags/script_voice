@@ -80,7 +80,7 @@ defmodule ScriptVoiceWeb.BrowseLive do
   def handle_event("toggle_screenplay_like", %{"id" => id}, socket) do
     case socket.assigns.current_user do
       nil ->
-        {:noreply, push_navigate(socket, to: ~p"/verify")}
+        {:noreply, push_navigate(socket, to: ~p"/verify?type=visitor")}
 
       user ->
         case Social.toggle_like(user.id, "screenplay", id) do

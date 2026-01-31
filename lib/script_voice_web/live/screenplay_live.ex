@@ -71,7 +71,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
   def handle_event("toggle_screenplay_like", %{"id" => id}, socket) do
     case socket.assigns.current_user do
       nil ->
-        {:noreply, push_navigate(socket, to: ~p"/verify")}
+        {:noreply, push_navigate(socket, to: ~p"/verify?type=visitor")}
 
       user ->
         case Social.toggle_like(user.id, "screenplay", id) do
@@ -97,7 +97,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
   def handle_event("toggle_audio_like", %{"id" => id}, socket) do
     case socket.assigns.current_user do
       nil ->
-        {:noreply, push_navigate(socket, to: ~p"/verify")}
+        {:noreply, push_navigate(socket, to: ~p"/verify?type=visitor")}
 
       user ->
         case Social.toggle_like(user.id, "audio_version", id) do
@@ -151,7 +151,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
     if socket.assigns.current_user do
       {:noreply, assign(socket, :show_submit_modal, true)}
     else
-      {:noreply, push_navigate(socket, to: ~p"/verify?type=voice")}
+      {:noreply, push_navigate(socket, to: ~p"/verify?type=voice_artist")}
     end
   end
 
@@ -272,7 +272,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
               </.button>
             <% else %>
               <.link
-                navigate={~p"/verify?type=voice"}
+                navigate={~p"/verify?type=voice_artist"}
                 class="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-emerald-700"
               >
                 Sign up to record

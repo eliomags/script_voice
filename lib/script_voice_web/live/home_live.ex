@@ -32,7 +32,7 @@ defmodule ScriptVoiceWeb.HomeLive do
   def handle_event("toggle_screenplay_like", %{"id" => id}, socket) do
     case socket.assigns.current_user do
       nil ->
-        {:noreply, push_navigate(socket, to: ~p"/verify")}
+        {:noreply, push_navigate(socket, to: ~p"/verify?type=visitor")}
 
       user ->
         case Social.toggle_like(user.id, "screenplay", id) do
@@ -115,13 +115,18 @@ defmodule ScriptVoiceWeb.HomeLive do
                 I'm a Writer
               </.link>
               <.link
-                navigate={~p"/verify?type=voice"}
+                navigate={~p"/verify?type=voice_artist"}
                 class="bg-emerald-500 text-white px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-emerald-400 flex items-center justify-center gap-2 touch-manipulation"
               >
                 <.icon name="hero-microphone" class="w-5 h-5" />
                 I'm a Voice Artist
               </.link>
             </div>
+            <p class="mt-4 text-emerald-100 text-sm">
+              <.link navigate={~p"/browse"} class="underline hover:text-white">
+                Just browse as a guest
+              </.link>
+            </p>
           <% end %>
         </div>
       </div>
