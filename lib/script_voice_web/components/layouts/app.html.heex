@@ -1,0 +1,60 @@
+<div class="min-h-screen bg-gray-50 flex flex-col">
+  <!-- Navigation -->
+  <nav class="bg-white border-b sticky top-0 z-40 safe-area-inset-top">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex justify-between items-center">
+      <.link navigate={~p"/"} class="text-xl font-bold text-emerald-600 flex items-center gap-2">
+        <div class="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+          <.icon name="hero-microphone" class="w-4 h-4 text-white" />
+        </div>
+        <span class="hidden sm:inline">ScriptVoice</span>
+      </.link>
+
+      <div class="flex items-center gap-2 sm:gap-4">
+        <.link navigate={~p"/browse"} class="text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base px-2 py-1">
+          Browse
+        </.link>
+
+        <%= if assigns[:current_user] do %>
+          <div class="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full">
+            <%= if @current_user.verified do %>
+              <.verified_badge />
+            <% end %>
+            <span class="text-sm font-medium truncate max-w-[100px] sm:max-w-none">
+              <%= @current_user.name %>
+            </span>
+          </div>
+        <% else %>
+          <.link navigate={~p"/verify"} class="bg-emerald-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
+            Get Started
+          </.link>
+        <% end %>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="flex-1">
+    <.flash_group flash={@flash} />
+    <%= @inner_content %>
+  </main>
+
+  <!-- Mobile Bottom Navigation (optional, can be enabled) -->
+  <!--
+  <nav class="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t safe-area-inset-bottom">
+    <div class="flex justify-around py-2">
+      <.link navigate={~p"/"} class="flex flex-col items-center text-gray-500 hover:text-emerald-600">
+        <.icon name="hero-home" class="w-6 h-6" />
+        <span class="text-xs">Home</span>
+      </.link>
+      <.link navigate={~p"/browse"} class="flex flex-col items-center text-gray-500 hover:text-emerald-600">
+        <.icon name="hero-book-open" class="w-6 h-6" />
+        <span class="text-xs">Browse</span>
+      </.link>
+      <.link navigate={~p"/verify"} class="flex flex-col items-center text-gray-500 hover:text-emerald-600">
+        <.icon name="hero-user" class="w-6 h-6" />
+        <span class="text-xs">Profile</span>
+      </.link>
+    </div>
+  </nav>
+  -->
+</div>

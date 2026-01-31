@@ -1,0 +1,45 @@
+## `msgid`s in this file come from POT (.pot) files.
+##
+## Do not add, change, or remove `msgid`s manually here as
+## they're tied to the ones in the corresponding POT file
+## (with the same domain).
+##
+## Use `mix gettext.extract --merge` or `mix gettext.merge`
+## to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: en\n"
+
+## From Ecto.Changeset.traverse_errors/2
+msgid "is invalid"
+msgstr "is invalid"
+
+msgid "can't be blank"
+msgstr "can't be blank"
+
+msgid "has already been taken"
+msgstr "has already been taken"
+
+msgid "must be at least %{count} character(s)"
+msgstr "must be at least %{count} character(s)"
+
+msgid "must be at most %{count} character(s)"
+msgstr "must be at most %{count} character(s)"
+
+msgid "is not a valid email address"
+msgstr "is not a valid email address"
+
+msgid "has invalid format"
+msgstr "has invalid format"
+
+msgid "is not included in the list"
+msgstr "is not included in the list"
+
+msgid "must be greater than %{number}"
+msgstr "must be greater than %{number}"
+
+msgid "must be less than %{number}"
+msgstr "must be less than %{number}"
+
+msgid "must be equal to %{number}"
+msgstr "must be equal to %{number}"

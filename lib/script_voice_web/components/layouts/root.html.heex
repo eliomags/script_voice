@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en" class="[scrollbar-gutter:stable]">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <.live_title suffix=" · ScriptVoice">
+      <%= assigns[:page_title] || "ScriptVoice" %>
+    </.live_title>
+    <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
+    <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
+    </script>
+    <!-- Apple Touch Icon for iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="theme-color" content="#059669" />
+  </head>
+  <body class="bg-gray-50 antialiased">
+    <%= @inner_content %>
+  </body>
+</html>
