@@ -361,8 +361,8 @@ Hooks.VideoRecorder = {
       if (currentEls.timer) {
         currentEls.timer.textContent = `${elapsed}s`
       }
-      // Auto-stop after 15 seconds
-      if (elapsed >= 15) {
+      // Auto-stop after 10 seconds (enough to read the verification phrase)
+      if (elapsed >= 10) {
         this.stopRecording()
       }
     }, 100)
@@ -424,8 +424,10 @@ Hooks.VideoRecorder = {
       els.videoPlayback.classList.remove('hidden')
     }
 
-    // Show playback controls
+    // Show playback controls AND the buttons inside
     if (els.playbackControls) els.playbackControls.classList.remove('hidden')
+    if (els.retakeBtn) els.retakeBtn.classList.remove('hidden')
+    if (els.confirmBtn) els.confirmBtn.classList.remove('hidden')
     // Don't push event - area has phx-update="ignore"
   },
 
