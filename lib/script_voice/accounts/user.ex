@@ -26,6 +26,7 @@ defmodule ScriptVoice.Accounts.User do
     field :user_type, :string, default: "visitor"
     field :verification_status, :string, default: "unverified"
     field :verification_video_url, :string
+    field :verification_phrase, :string  # The phrase they read aloud
     field :verified_via, :string  # "phone" or "email"
     field :verified_at, :utc_datetime
 
@@ -51,7 +52,11 @@ defmodule ScriptVoice.Accounts.User do
   """
   def registration_changeset(user, attrs) do
     user
-    |> cast(attrs, [:name, :email, :phone, :password, :user_type])
+    |> cast(attrs, [
+      :name, :email, :phone, :password, :user_type,
+      :verification_status, :verification_video_url, :verification_phrase,
+      :verified_via, :verified_at, :performer_type, :social_links
+    ])
     |> validate_required([:name, :user_type])
     |> validate_contact_info()
     |> validate_inclusion(:user_type, @user_types)
@@ -69,7 +74,7 @@ defmodule ScriptVoice.Accounts.User do
   """
   def verification_changeset(user, attrs) do
     user
-    |> cast(attrs, [:verification_status, :verification_video_url, :verified_via, :verified_at])
+    |> cast(attrs, [:verification_status, :verification_video_url, :verification_phrase, :verified_via, :verified_at])
     |> validate_inclusion(:verification_status, @verification_statuses)
     |> validate_inclusion(:verified_via, ["phone", "email"])
   end

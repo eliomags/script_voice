@@ -189,6 +189,11 @@ defmodule ScriptVoiceWeb.VerifyLive do
     form_data = socket.assigns.form_data
     user_type = socket.assigns.user_type
 
+    # For video verification, we store the video as a data URL for now
+    # In production, you'd upload to cloud storage and store the URL
+    video_url = socket.assigns.video_data
+    verification_phrase = socket.assigns.verification_phrase
+
     # Create or update user
     user_attrs = %{
       name: form_data.name,
@@ -198,7 +203,9 @@ defmodule ScriptVoiceWeb.VerifyLive do
       verification_status: "verified",
       verified_via: socket.assigns.verify_method,
       verified_at: DateTime.utc_now(),
-      social_links: if(form_data.social_link != "", do: [form_data.social_link], else: [])
+      social_links: if(form_data.social_link != "", do: [form_data.social_link], else: []),
+      verification_video_url: video_url,
+      verification_phrase: verification_phrase
     }
 
     # Add performer type for voice artists
@@ -224,9 +231,12 @@ defmodule ScriptVoiceWeb.VerifyLive do
 
       user ->
         # Update existing user
-        case Accounts.complete_verification(user, %{
+        case Accounts.update_user_verification(user, %{
+               verification_status: "verified",
                verified_via: socket.assigns.verify_method,
-               video_url: nil
+               verified_at: DateTime.utc_now(),
+               verification_video_url: video_url,
+               verification_phrase: verification_phrase
              }) do
           {:ok, _} ->
             {:noreply,

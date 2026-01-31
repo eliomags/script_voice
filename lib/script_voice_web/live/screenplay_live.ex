@@ -204,7 +204,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
                 <.genre_badge genre={@screenplay.genre} />
               </div>
               <p class="text-gray-500 text-sm sm:text-base">
-                by <span class="text-emerald-600 font-medium"><%= @screenplay.writer_name %></span>
+                by <.link navigate={~p"/profile/#{@screenplay.writer_id}"} class="text-emerald-600 font-medium hover:underline"><%= @screenplay.writer_name %></.link>
                 · <%= @screenplay.page_count || "?" %> pages
                 <%= if @is_author do %>
                   <span class="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">

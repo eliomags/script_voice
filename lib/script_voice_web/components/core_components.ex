@@ -432,7 +432,7 @@ defmodule ScriptVoiceWeb.CoreComponents do
             <% end %>
           </div>
           <p class="text-sm text-gray-500 mb-2">
-            by <%= @screenplay.writer_name %> · <%= @screenplay.page_count %> pages
+            by <.link navigate={"/profile/#{@screenplay.writer_id}"} class="text-emerald-600 hover:underline" onclick="event.stopPropagation();"><%= @screenplay.writer_name %></.link> · <%= @screenplay.page_count %> pages
           </p>
           <p class="text-gray-600 text-sm line-clamp-2"><%= @screenplay.logline %></p>
         </div>
@@ -487,7 +487,9 @@ defmodule ScriptVoiceWeb.CoreComponents do
           />
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
-              <p class="font-medium truncate"><%= get_performer_display(@audio_version) %></p>
+              <.link navigate={"/profile/#{@audio_version.submitted_by_id}"} class="font-medium truncate text-emerald-600 hover:underline">
+                <%= get_performer_display(@audio_version) %>
+              </.link>
               <%= if @audio_version.verified do %>
                 <.verified_badge />
               <% end %>

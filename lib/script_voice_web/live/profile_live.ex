@@ -172,6 +172,38 @@ defmodule ScriptVoiceWeb.ProfileLive do
           </div>
         </div>
 
+        <!-- Verification Video (for writers and voice artists) -->
+        <%= if @profile_user.user_type in ["writer", "voice_artist"] and @profile_user.verification_video_url do %>
+          <div class="bg-white border rounded-xl p-4 sm:p-6 mb-6">
+            <h2 class="font-semibold mb-3 flex items-center gap-2">
+              <.icon name="hero-check-badge" class="w-5 h-5 text-emerald-600" />
+              Identity Verified
+            </h2>
+            <p class="text-sm text-gray-500 mb-3">
+              This user verified their identity by reading a phrase aloud on video.
+            </p>
+
+            <%= if @profile_user.verification_phrase do %>
+              <div class="bg-gray-50 rounded-lg p-3 mb-3">
+                <p class="text-xs text-gray-500 mb-1">Verification phrase:</p>
+                <p class="font-mono text-sm">"<%= @profile_user.verification_phrase %>"</p>
+              </div>
+            <% end %>
+
+            <!-- Video Player -->
+            <div class="aspect-video bg-gray-900 rounded-lg overflow-hidden">
+              <video
+                controls
+                playsinline
+                class="w-full h-full object-contain"
+                src={@profile_user.verification_video_url}
+              >
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          </div>
+        <% end %>
+
         <!-- Content -->
         <%= if @profile_user.user_type == "writer" do %>
           <h2 class="text-lg font-bold mb-4">Screenplays</h2>
