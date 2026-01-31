@@ -71,37 +71,49 @@ Hooks.VideoRecorder = {
     this.stream = null
     this.chunks = []
     this.videoBlob = null
-
-    // DOM elements
-    this.videoPreview = this.el.querySelector('#video-preview')
-    this.videoPlayback = this.el.querySelector('#video-playback')
-    this.startBtn = this.el.querySelector('#start-recording-btn')
-    this.stopBtn = this.el.querySelector('#stop-recording-btn')
-    this.retakeBtn = this.el.querySelector('#retake-btn')
-    this.confirmBtn = this.el.querySelector('#confirm-btn')
-    this.countdown = this.el.querySelector('#countdown')
-    this.recordingIndicator = this.el.querySelector('#recording-indicator')
-    this.timer = this.el.querySelector('#recording-timer')
-
-    // State
     this.state = 'idle' // idle, previewing, countdown, recording, recorded
 
-    // Bind events
-    if (this.startBtn) {
-      this.startBtn.addEventListener('click', () => this.startPreview())
-    }
-    if (this.stopBtn) {
-      this.stopBtn.addEventListener('click', () => this.stopRecording())
-    }
-    if (this.retakeBtn) {
-      this.retakeBtn.addEventListener('click', () => this.retake())
-    }
-    if (this.confirmBtn) {
-      this.confirmBtn.addEventListener('click', () => this.confirmRecording())
+    // Bind events using event delegation on the container
+    this.el.addEventListener('click', (e) => {
+      const target = e.target.closest('button')
+      if (!target) return
+
+      if (target.id === 'start-recording-btn') {
+        e.preventDefault()
+        this.startPreview()
+      } else if (target.id === 'stop-recording-btn') {
+        e.preventDefault()
+        this.stopRecording()
+      } else if (target.id === 'retake-btn') {
+        e.preventDefault()
+        this.retake()
+      } else if (target.id === 'confirm-btn') {
+        e.preventDefault()
+        this.confirmRecording()
+      }
+    })
+  },
+
+  // Helper to get fresh DOM references
+  getElements() {
+    return {
+      videoPreview: this.el.querySelector('#video-preview'),
+      videoPlayback: this.el.querySelector('#video-playback'),
+      startBtn: this.el.querySelector('#start-recording-btn'),
+      stopBtn: this.el.querySelector('#stop-recording-btn'),
+      retakeBtn: this.el.querySelector('#retake-btn'),
+      confirmBtn: this.el.querySelector('#confirm-btn'),
+      countdown: this.el.querySelector('#countdown'),
+      recordingIndicator: this.el.querySelector('#recording-indicator'),
+      timer: this.el.querySelector('#recording-timer'),
+      idleState: this.el.querySelector('#idle-state'),
+      playbackControls: this.el.querySelector('#playback-controls')
     }
   },
 
   async startPreview() {
+    const els = this.getElements()
+
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
@@ -109,12 +121,17 @@ Hooks.VideoRecorder = {
       })
 
       // Hide idle state, show preview
-      const idleState = this.el.querySelector('#idle-state')
-      if (idleState) idleState.classList.add('hidden')
+      if (els.idleState) els.idleState.classList.add('hidden')
 
-      if (this.videoPreview) {
-        this.videoPreview.srcObject = this.stream
-        this.videoPreview.classList.remove('hidden')
+      if (els.videoPreview) {
+        els.videoPreview.srcObject = this.stream
+        els.videoPreview.classList.remove('hidden')
+        // Explicitly play the video (required by some browsers)
+        try {
+          await els.videoPreview.play()
+        } catch (playErr) {
+          console.warn('Autoplay blocked, user interaction needed:', playErr)
+        }
       }
 
       this.state = 'previewing'
@@ -132,39 +149,43 @@ Hooks.VideoRecorder = {
   startCountdown() {
     this.state = 'countdown'
     let count = 3
+    const els = this.getElements()
 
-    if (this.countdown) {
-      this.countdown.classList.remove('hidden')
-      this.countdown.textContent = count
+    if (els.countdown) {
+      els.countdown.classList.remove('hidden')
+      els.countdown.textContent = count
     }
 
     const countdownInterval = setInterval(() => {
       count--
+      const currentEls = this.getElements()
       if (count > 0) {
-        if (this.countdown) this.countdown.textContent = count
+        if (currentEls.countdown) currentEls.countdown.textContent = count
       } else {
         clearInterval(countdownInterval)
-        if (this.countdown) this.countdown.classList.add('hidden')
+        if (currentEls.countdown) currentEls.countdown.classList.add('hidden')
         this.startRecording()
       }
     }, 1000)
   },
 
   startRecording() {
+    const els = this.getElements()
     this.chunks = []
     this.state = 'recording'
     this.recordingStartTime = Date.now()
 
     // Show recording indicator
-    if (this.recordingIndicator) this.recordingIndicator.classList.remove('hidden')
-    if (this.stopBtn) this.stopBtn.classList.remove('hidden')
-    if (this.startBtn) this.startBtn.classList.add('hidden')
+    if (els.recordingIndicator) els.recordingIndicator.classList.remove('hidden')
+    if (els.stopBtn) els.stopBtn.classList.remove('hidden')
+    if (els.startBtn) els.startBtn.classList.add('hidden')
 
     // Start timer
     this.timerInterval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - this.recordingStartTime) / 1000)
-      if (this.timer) {
-        this.timer.textContent = `${elapsed}s`
+      const currentEls = this.getElements()
+      if (currentEls.timer) {
+        currentEls.timer.textContent = `${elapsed}s`
       }
       // Auto-stop after 15 seconds
       if (elapsed >= 15) {
@@ -197,6 +218,8 @@ Hooks.VideoRecorder = {
   },
 
   stopRecording() {
+    const els = this.getElements()
+
     if (this.timerInterval) {
       clearInterval(this.timerInterval)
     }
@@ -210,52 +233,52 @@ Hooks.VideoRecorder = {
       this.stream.getTracks().forEach(track => track.stop())
     }
 
-    if (this.recordingIndicator) this.recordingIndicator.classList.add('hidden')
-    if (this.stopBtn) this.stopBtn.classList.add('hidden')
+    if (els.recordingIndicator) els.recordingIndicator.classList.add('hidden')
+    if (els.stopBtn) els.stopBtn.classList.add('hidden')
   },
 
   showPlayback() {
+    const els = this.getElements()
     this.state = 'recorded'
 
     // Hide preview, show playback
-    if (this.videoPreview) this.videoPreview.classList.add('hidden')
-    const idleState = this.el.querySelector('#idle-state')
-    if (idleState) idleState.classList.add('hidden')
+    if (els.videoPreview) els.videoPreview.classList.add('hidden')
+    if (els.idleState) els.idleState.classList.add('hidden')
 
-    if (this.videoPlayback && this.videoBlob) {
-      this.videoPlayback.src = URL.createObjectURL(this.videoBlob)
-      this.videoPlayback.classList.remove('hidden')
+    if (els.videoPlayback && this.videoBlob) {
+      els.videoPlayback.src = URL.createObjectURL(this.videoBlob)
+      els.videoPlayback.classList.remove('hidden')
     }
 
     // Show playback controls
-    const playbackControls = this.el.querySelector('#playback-controls')
-    if (playbackControls) playbackControls.classList.remove('hidden')
-    if (this.retakeBtn) this.retakeBtn.classList.remove('hidden')
-    if (this.confirmBtn) this.confirmBtn.classList.remove('hidden')
+    if (els.playbackControls) els.playbackControls.classList.remove('hidden')
+    if (els.retakeBtn) els.retakeBtn.classList.remove('hidden')
+    if (els.confirmBtn) els.confirmBtn.classList.remove('hidden')
 
     this.pushEvent('recording_complete', {})
   },
 
   retake() {
+    const els = this.getElements()
     this.state = 'idle'
     this.videoBlob = null
     this.chunks = []
 
-    if (this.videoPlayback) {
-      this.videoPlayback.classList.add('hidden')
-      URL.revokeObjectURL(this.videoPlayback.src)
+    if (els.videoPlayback) {
+      els.videoPlayback.classList.add('hidden')
+      if (els.videoPlayback.src) {
+        URL.revokeObjectURL(els.videoPlayback.src)
+      }
     }
 
     // Hide playback controls
-    const playbackControls = this.el.querySelector('#playback-controls')
-    if (playbackControls) playbackControls.classList.add('hidden')
-    if (this.retakeBtn) this.retakeBtn.classList.add('hidden')
-    if (this.confirmBtn) this.confirmBtn.classList.add('hidden')
+    if (els.playbackControls) els.playbackControls.classList.add('hidden')
+    if (els.retakeBtn) els.retakeBtn.classList.add('hidden')
+    if (els.confirmBtn) els.confirmBtn.classList.add('hidden')
 
     // Show idle state
-    const idleState = this.el.querySelector('#idle-state')
-    if (idleState) idleState.classList.remove('hidden')
-    if (this.startBtn) this.startBtn.classList.remove('hidden')
+    if (els.idleState) els.idleState.classList.remove('hidden')
+    if (els.startBtn) els.startBtn.classList.remove('hidden')
 
     this.pushEvent('retake', {})
   },
