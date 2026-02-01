@@ -52,6 +52,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
          |> assign(:is_author, is_author)
          |> assign(:playing_id, nil)
          |> assign(:show_submit_modal, false)
+         |> assign(:show_script_modal, false)
          |> assign(:page_title, screenplay.title)}
     end
   end
@@ -165,6 +166,16 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
     {:noreply, assign(socket, :show_submit_modal, false)}
   end
 
+  @impl true
+  def handle_event("show_script_modal", _, socket) do
+    {:noreply, assign(socket, :show_script_modal, true)}
+  end
+
+  @impl true
+  def handle_event("close_script_modal", _, socket) do
+    {:noreply, assign(socket, :show_script_modal, false)}
+  end
+
   defp update_audio_likes(socket, id, change) do
     update(socket, :audio_versions, fn versions ->
       Enum.map(versions, fn av ->
@@ -226,7 +237,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
                 phx-click="toggle_screenplay_like"
                 phx-value-id={@screenplay.id}
               />
-              <.button variant="secondary" class="flex-1 sm:flex-none">
+              <.button variant="secondary" class="flex-1 sm:flex-none" phx-click="show_script_modal">
                 <.icon name="hero-document-text" class="w-4 h-4" />
                 <span class="hidden sm:inline">Read Script</span>
                 <span class="sm:hidden">Read</span>
@@ -309,6 +320,33 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
           screenplay={@screenplay}
           current_user={@current_user}
         />
+      </.modal>
+    <% end %>
+
+    <!-- Read Script Modal -->
+    <%= if @show_script_modal do %>
+      <.modal id="script-modal" show={true} on_cancel={JS.push("close_script_modal")}>
+        <div class="max-h-[70vh] overflow-y-auto">
+          <div class="flex items-center justify-between mb-4 sticky top-0 bg-white pb-2 border-b">
+            <div>
+              <h2 class="text-xl font-bold"><%= @screenplay.title %></h2>
+              <p class="text-sm text-gray-500">by <%= @screenplay.writer_name %></p>
+            </div>
+            <.genre_badge genre={@screenplay.genre} />
+          </div>
+
+          <%= if @screenplay.script_content do %>
+            <div class="prose prose-sm max-w-none">
+              <pre class="whitespace-pre-wrap font-mono text-sm bg-gray-50 p-4 rounded-lg overflow-x-auto"><%= @screenplay.script_content %></pre>
+            </div>
+          <% else %>
+            <div class="text-center py-12">
+              <.icon name="hero-document-text" class="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <h3 class="font-semibold text-lg mb-2">Script not available</h3>
+              <p class="text-gray-500">The full script content hasn't been uploaded yet.</p>
+            </div>
+          <% end %>
+        </div>
       </.modal>
     <% end %>
     """
