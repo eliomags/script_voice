@@ -6,6 +6,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
   use ScriptVoiceWeb, :live_view
 
   alias ScriptVoice.{Accounts, Commissions, Notifications, Screenplays, Audio}
+  alias ScriptVoice.Audio.AudioVersion
 
   @impl true
   def mount(_params, session, socket) do
@@ -469,11 +470,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
                 <div>
                   <div class="font-medium text-gray-900"><%= audio.screenplay.title %></div>
                   <div class="text-sm text-gray-500">
-                    <%= if audio.duration do %>
-                      <%= audio.duration %>
-                    <% else %>
-                      Duration unknown
-                    <% end %>
+                    <%= AudioVersion.display_duration(audio) %>
                   </div>
                 </div>
                 <div class="flex items-center gap-2 text-gray-400">

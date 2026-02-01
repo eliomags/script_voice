@@ -886,7 +886,8 @@ Repo.insert!(%AudioVersion{
   performers: ["Jake Morrison", "Lin Zhou", "Sam Peters", "Mia Chen"],
   casting: %{"MAYA" => "Lin Zhou", "COMMANDER VOSS" => "Jake Morrison", "THE VOICE" => "Sam Peters", "TOMMY" => "Mia Chen"},
   audio_url: "/uploads/audio/last_light_collective.mp3",
-  duration: "18:24",
+  duration_seconds: 1104,  # 18:24 = 18*60 + 24
+  file_size_bytes: 26_500_000,  # ~26.5 MB (estimated for 18 min MP3)
   likes: 12,
   author_pick: true,
   verified: true,
@@ -902,7 +903,8 @@ Repo.insert!(%AudioVersion{
   performers: ["Emma Stone"],
   casting: %{},
   audio_url: "/uploads/audio/last_light_emma.mp3",
-  duration: "16:45",
+  duration_seconds: 1005,  # 16:45 = 16*60 + 45
+  file_size_bytes: 24_100_000,  # ~24 MB
   likes: 19,
   author_pick: false,
   verified: true,
@@ -918,7 +920,8 @@ Repo.insert!(%AudioVersion{
   performers: ["David Kim", "Rachel Torres"],
   casting: %{"ELENA" => "Rachel Torres", "JAMES" => "David Kim", "BARISTA" => "David Kim"},
   audio_url: "/uploads/audio/coffee_duo.mp3",
-  duration: "12:30",
+  duration_seconds: 750,  # 12:30 = 12*60 + 30
+  file_size_bytes: 18_000_000,  # ~18 MB
   likes: 7,
   author_pick: true,
   verified: true,
@@ -934,7 +937,8 @@ Repo.insert!(%AudioVersion{
   performers: ["Michael Chang"],
   casting: %{},
   audio_url: "/uploads/audio/sunday_michael.mp3",
-  duration: "11:08",
+  duration_seconds: 668,  # 11:08 = 11*60 + 8
+  file_size_bytes: 16_000_000,  # ~16 MB
   likes: 3,
   author_pick: true,
   verified: true,
@@ -950,7 +954,8 @@ Repo.insert!(%AudioVersion{
   performers: ["Jake Morrison"],
   casting: %{},
   audio_url: "/uploads/audio/sunday_jake.mp3",
-  duration: "10:52",
+  duration_seconds: 652,  # 10:52 = 10*60 + 52
+  file_size_bytes: 15_600_000,  # ~15.6 MB
   likes: 5,
   author_pick: false,
   verified: true,

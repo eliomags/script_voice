@@ -19,7 +19,9 @@ defmodule ScriptVoice.Audio.AudioVersion do
     field :performers, {:array, :string}, default: []
     field :casting, :map, default: %{}  # %{"CHARACTER_NAME" => "performer_name"}
     field :audio_url, :string
-    field :duration, :string  # Format: "MM:SS" or "HH:MM:SS"
+    field :duration, :string  # Legacy: Format "MM:SS" - deprecated, use duration_seconds
+    field :duration_seconds, :integer  # Duration in seconds (preferred)
+    field :file_size_bytes, :integer  # File size for upload validation
     field :likes, :integer, default: 0
     field :author_pick, :boolean, default: false
     field :verified, :boolean, default: false  # All performers verified?
@@ -42,11 +44,13 @@ defmodule ScriptVoice.Audio.AudioVersion do
     audio_version
     |> cast(attrs, [
       :performer_type, :group_name, :performers, :casting,
-      :audio_url, :duration, :verified, :screenplay_id, :submitted_by_id,
+      :audio_url, :duration, :duration_seconds, :file_size_bytes,
+      :verified, :screenplay_id, :submitted_by_id,
       :commission_request_id, :is_paid_commission
     ])
     |> validate_required([:performer_type, :audio_url, :screenplay_id, :submitted_by_id])
     |> validate_inclusion(:performer_type, @performer_types)
+    |> validate_number(:duration_seconds, greater_than: 0)
     |> validate_performers()
     |> format_date()
     |> foreign_key_constraint(:screenplay_id)
@@ -70,6 +74,48 @@ defmodule ScriptVoice.Audio.AudioVersion do
     audio_version
     |> change(author_pick: is_picked)
   end
+
+  @doc """
+  Formats duration in seconds to a human-readable string.
+
+  ## Examples
+
+      iex> format_duration(125)
+      "2:05"
+
+      iex> format_duration(3665)
+      "1:01:05"
+
+      iex> format_duration(nil)
+      nil
+  """
+  def format_duration(nil), do: nil
+  def format_duration(seconds) when is_integer(seconds) and seconds >= 0 do
+    hours = div(seconds, 3600)
+    remaining = rem(seconds, 3600)
+    minutes = div(remaining, 60)
+    secs = rem(remaining, 60)
+
+    if hours > 0 do
+      "#{hours}:#{pad_zero(minutes)}:#{pad_zero(secs)}"
+    else
+      "#{minutes}:#{pad_zero(secs)}"
+    end
+  end
+  def format_duration(_), do: nil
+
+  defp pad_zero(n), do: String.pad_leading(Integer.to_string(n), 2, "0")
+
+  @doc """
+  Returns the display duration, preferring duration_seconds over legacy duration field.
+  """
+  def display_duration(%__MODULE__{duration_seconds: seconds}) when is_integer(seconds) do
+    format_duration(seconds)
+  end
+  def display_duration(%__MODULE__{duration: duration}) when is_binary(duration) do
+    duration
+  end
+  def display_duration(_), do: "Unknown"
 
   # Validate that performers are provided based on performer type
   defp validate_performers(changeset) do
