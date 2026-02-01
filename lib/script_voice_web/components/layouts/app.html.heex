@@ -15,6 +15,9 @@
         </.link>
 
         <%= if assigns[:current_user] do %>
+          <.link navigate={~p"/dashboard"} class="text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base px-2 py-1">
+            Dashboard
+          </.link>
           <!-- User Menu with Dropdown -->
           <div class="relative" id="user-menu">
             <button
@@ -43,6 +46,31 @@
                     _ -> "Visitor"
                   end %>
                 </p>
+              </div>
+
+              <!-- Quick Links -->
+              <div class="py-2 border-b">
+                <.link
+                  navigate={~p"/dashboard"}
+                  class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <.icon name="hero-home" class="w-4 h-4 text-gray-400" />
+                  Dashboard
+                </.link>
+                <.link
+                  navigate={~p"/profile/#{@current_user.id}"}
+                  class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <.icon name="hero-user" class="w-4 h-4 text-gray-400" />
+                  My Profile
+                </.link>
+                <.link
+                  navigate={~p"/commissions"}
+                  class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <.icon name="hero-clipboard-document-list" class="w-4 h-4 text-gray-400" />
+                  Commissions
+                </.link>
               </div>
 
               <!-- Switch Role Options -->
