@@ -32,6 +32,7 @@ defmodule ScriptVoiceWeb.Router do
 
     # Auth routes
     live "/verify", VerifyLive, :index
+    live "/demo-login", DemoLoginLive, :index
     get "/session/login/:user_id", SessionController, :create
     post "/session", SessionController, :create
     delete "/session", SessionController, :delete

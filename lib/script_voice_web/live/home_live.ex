@@ -126,6 +126,10 @@ defmodule ScriptVoiceWeb.HomeLive do
               <.link navigate={~p"/browse"} class="underline hover:text-white">
                 Just browse as a guest
               </.link>
+              <span class="mx-2">·</span>
+              <.link navigate={~p"/demo-login"} class="underline hover:text-white">
+                Demo Login
+              </.link>
             </p>
           <% end %>
         </div>
