@@ -27,6 +27,7 @@ defmodule ScriptVoiceWeb.Router do
     live "/", HomeLive, :index
     live "/browse", BrowseLive, :index
     live "/screenplay/:id", ScreenplayLive, :show
+    live "/screenplay/:id/read", ScriptReaderLive, :show
     live "/profile/:id", ProfileLive, :show
 
     # Auth routes
