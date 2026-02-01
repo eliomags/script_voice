@@ -22,7 +22,7 @@
               class="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-full transition"
               onclick="document.getElementById('user-dropdown').classList.toggle('hidden')"
             >
-              <%= if @current_user.verified do %>
+              <%= if @current_user.verification_status == "verified" do %>
                 <.verified_badge />
               <% end %>
               <span class="text-sm font-medium truncate max-w-[100px] sm:max-w-none">
