@@ -470,9 +470,18 @@ defmodule ScriptVoiceWeb.CoreComponents do
   attr :playing, :boolean, default: false
   attr :liked, :boolean, default: false
   attr :is_author, :boolean, default: false
+  attr :screenplay_id, :string, default: nil
   attr :rest, :global
 
   def audio_version_card(assigns) do
+    # Build profile URL with optional from parameter for back navigation
+    profile_url = if assigns.screenplay_id do
+      "/profile/#{assigns.audio_version.submitted_by_id}?from=screenplay:#{assigns.screenplay_id}"
+    else
+      "/profile/#{assigns.audio_version.submitted_by_id}"
+    end
+    assigns = assign(assigns, :profile_url, profile_url)
+
     ~H"""
     <div class={[
       "bg-white border rounded-xl p-4",
@@ -487,7 +496,7 @@ defmodule ScriptVoiceWeb.CoreComponents do
           />
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
-              <.link navigate={"/profile/#{@audio_version.submitted_by_id}"} class="font-medium truncate text-emerald-600 hover:underline">
+              <.link navigate={@profile_url} class="font-medium truncate text-emerald-600 hover:underline">
                 <%= get_performer_display(@audio_version) %>
               </.link>
               <%= if @audio_version.verified do %>

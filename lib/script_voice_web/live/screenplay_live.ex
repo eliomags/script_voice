@@ -287,6 +287,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
                 playing={@playing_id == av.id}
                 liked={av.id in @liked_audio_ids}
                 is_author={@is_author}
+                screenplay_id={@screenplay.id}
               />
             <% end %>
           </div>

@@ -1,5 +1,10 @@
 import Config
 
+# Load .env file in dev and test environments
+if config_env() in [:dev, :test] do
+  Dotenvy.source([".env", ".env.#{config_env()}", ".env.local"])
+end
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # temporary application starts.
@@ -7,6 +12,19 @@ import Config
 if System.get_env("PHX_SERVER") do
   config :script_voice, ScriptVoiceWeb.Endpoint, server: true
 end
+
+# Stripe configuration (all environments)
+if stripe_key = System.get_env("STRIPE_SECRET_KEY") do
+  config :stripity_stripe, api_key: stripe_key
+end
+
+if stripe_webhook_secret = System.get_env("STRIPE_CONNECT_WEBHOOK_SECRET") do
+  config :stripity_stripe, connect_webhook_signing_secret: stripe_webhook_secret
+end
+
+config :script_voice, :stripe,
+  publishable_key: System.get_env("STRIPE_PUBLISHABLE_KEY"),
+  platform_fee_percent: 10
 
 if config_env() == :prod do
   database_url =

@@ -20,6 +20,7 @@ defmodule ScriptVoice.Screenplays.Screenplay do
     field :logline, :string
     field :page_count, :integer
     field :pdf_url, :string
+    field :script_content, :string  # The actual screenplay text content
     field :likes, :integer, default: 0
     field :audio_version_count, :integer, default: 0
 
@@ -40,7 +41,7 @@ defmodule ScriptVoice.Screenplays.Screenplay do
   """
   def changeset(screenplay, attrs) do
     screenplay
-    |> cast(attrs, [:title, :genre, :logline, :page_count, :pdf_url, :writer_id, :writer_name])
+    |> cast(attrs, [:title, :genre, :logline, :page_count, :pdf_url, :script_content, :writer_id, :writer_name])
     |> cast_embed(:characters)
     |> validate_required([:title, :genre, :logline, :writer_id])
     |> validate_inclusion(:genre, @genres)

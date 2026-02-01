@@ -30,6 +30,10 @@ defmodule ScriptVoice.Accounts.User do
     field :verified_via, :string  # "phone" or "email"
     field :verified_at, :utc_datetime
 
+    # Profile content
+    field :profile_video_url, :string  # 30-sec intro video (separate from verification)
+    field :bio, :string
+
     # Voice artist specific fields
     field :performer_type, :string  # "solo" or "group"
     field :group_name, :string
@@ -94,8 +98,9 @@ defmodule ScriptVoice.Accounts.User do
   """
   def profile_changeset(user, attrs) do
     user
-    |> cast(attrs, [:name, :email, :phone, :social_links])
+    |> cast(attrs, [:name, :email, :phone, :social_links, :profile_video_url, :bio])
     |> validate_length(:name, min: 2, max: 100)
+    |> validate_length(:bio, max: 500)
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
     |> validate_format(:phone, ~r/^\+?[1-9]\d{1,14}$/, message: "must be a valid phone number")
     |> unique_constraint(:email)

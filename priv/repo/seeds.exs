@@ -14,9 +14,12 @@ alias ScriptVoice.Repo
 alias ScriptVoice.Accounts.User
 alias ScriptVoice.Screenplays.Screenplay
 alias ScriptVoice.Audio.AudioVersion
+alias ScriptVoice.Commissions.PerformerPricing
 
-# Create sample users
-IO.puts("Creating sample users...")
+# ============================================================================
+# WRITERS
+# ============================================================================
+IO.puts("Creating writer accounts...")
 
 sarah = Repo.insert!(%User{
   name: "Sarah Chen",
@@ -24,7 +27,8 @@ sarah = Repo.insert!(%User{
   user_type: "writer",
   verification_status: "verified",
   verified_via: "email",
-  verified_at: DateTime.utc_now() |> DateTime.truncate(:second)
+  verified_at: DateTime.utc_now() |> DateTime.truncate(:second),
+  bio: "Award-winning screenwriter with a passion for sci-fi and family dramas. My scripts explore the human condition through extraordinary circumstances."
 })
 
 marcus = Repo.insert!(%User{
@@ -33,7 +37,8 @@ marcus = Repo.insert!(%User{
   user_type: "writer",
   verification_status: "verified",
   verified_via: "email",
-  verified_at: DateTime.utc_now() |> DateTime.truncate(:second)
+  verified_at: DateTime.utc_now() |> DateTime.truncate(:second),
+  bio: "Romance and drama writer based in Brooklyn. Former barista, eternal optimist."
 })
 
 aisha = Repo.insert!(%User{
@@ -42,8 +47,14 @@ aisha = Repo.insert!(%User{
   user_type: "writer",
   verification_status: "verified",
   verified_via: "phone",
-  verified_at: DateTime.utc_now() |> DateTime.truncate(:second)
+  verified_at: DateTime.utc_now() |> DateTime.truncate(:second),
+  bio: "Thriller writer who believes the scariest monsters are the ones that look just like us."
 })
+
+# ============================================================================
+# SOLO VOICE ARTISTS
+# ============================================================================
+IO.puts("Creating solo voice artist accounts...")
 
 jake = Repo.insert!(%User{
   name: "Jake Morrison",
@@ -52,7 +63,9 @@ jake = Repo.insert!(%User{
   performer_type: "solo",
   verification_status: "verified",
   verified_via: "email",
-  verified_at: DateTime.utc_now() |> DateTime.truncate(:second)
+  verified_at: DateTime.utc_now() |> DateTime.truncate(:second),
+  bio: "Professional voice actor with 10+ years experience in audiobooks, commercials, and video games. Specializing in character voices and dramatic readings.",
+  social_links: ["https://linkedin.com/in/jakemorrison", "https://imdb.com/name/jakemorrison"]
 })
 
 emma = Repo.insert!(%User{
@@ -62,11 +75,712 @@ emma = Repo.insert!(%User{
   performer_type: "solo",
   verification_status: "verified",
   verified_via: "phone",
-  verified_at: DateTime.utc_now() |> DateTime.truncate(:second)
+  verified_at: DateTime.utc_now() |> DateTime.truncate(:second),
+  bio: "Classically trained actress bringing scripts to life through voice. I specialize in emotional depth and nuanced character work.",
+  social_links: ["https://imdb.com/name/emmastone"]
 })
 
-# Create sample screenplays
-IO.puts("Creating sample screenplays...")
+michael_chang = Repo.insert!(%User{
+  name: "Michael Chang",
+  email: "michael@example.com",
+  user_type: "voice_artist",
+  performer_type: "solo",
+  verification_status: "verified",
+  verified_via: "email",
+  verified_at: DateTime.utc_now() |> DateTime.truncate(:second),
+  bio: "Voice artist and podcast host. I love bringing family dramas and slice-of-life scripts to audio.",
+  social_links: []
+})
+
+# ============================================================================
+# GROUP/ENSEMBLE VOICE ARTISTS
+# ============================================================================
+IO.puts("Creating group voice artist accounts...")
+
+# The Lighthouse Collective - a voice acting ensemble
+lighthouse_collective = Repo.insert!(%User{
+  name: "The Lighthouse Collective",
+  email: "lighthouse@example.com",
+  user_type: "voice_artist",
+  performer_type: "group",
+  verification_status: "verified",
+  verified_via: "email",
+  verified_at: DateTime.utc_now() |> DateTime.truncate(:second),
+  bio: "We are The Lighthouse Collective - an ensemble of four voice actors who specialize in full-cast dramatic readings. Our members: Jake Morrison, Lin Zhou, Sam Peters, and Mia Chen.",
+  social_links: ["https://stage32.com/lighthousecollective"]
+})
+
+# David Kim & Rachel Torres - a duo
+kim_torres_duo = Repo.insert!(%User{
+  name: "David Kim & Rachel Torres",
+  email: "kimtorres@example.com",
+  user_type: "voice_artist",
+  performer_type: "group",
+  verification_status: "verified",
+  verified_via: "phone",
+  verified_at: DateTime.utc_now() |> DateTime.truncate(:second),
+  bio: "Husband-wife voice acting duo specializing in romantic scripts and two-person dramas. We bring authentic chemistry to every performance.",
+  social_links: ["https://twitter.com/kimtorresduo"]
+})
+
+# ============================================================================
+# PERFORMER PRICING (for commission system testing)
+# ============================================================================
+IO.puts("Setting up performer pricing...")
+
+# Jake Morrison - offers both free and paid
+Repo.insert!(%PerformerPricing{
+  performer_id: jake.id,
+  accepts_free: true,
+  accepts_paid: true,
+  min_price_cents: 2500,
+  max_price_cents: 15000,
+  per_page_price_cents: 500,
+  currency: "usd"
+})
+
+# Emma Stone - paid only
+Repo.insert!(%PerformerPricing{
+  performer_id: emma.id,
+  accepts_free: false,
+  accepts_paid: true,
+  min_price_cents: 5000,
+  max_price_cents: 25000,
+  per_page_price_cents: 800,
+  currency: "usd"
+})
+
+# Michael Chang - free only (for testing free flow)
+Repo.insert!(%PerformerPricing{
+  performer_id: michael_chang.id,
+  accepts_free: true,
+  accepts_paid: false,
+  min_price_cents: nil,
+  max_price_cents: nil,
+  per_page_price_cents: nil,
+  currency: "usd"
+})
+
+# The Lighthouse Collective - paid only (ensemble rates)
+Repo.insert!(%PerformerPricing{
+  performer_id: lighthouse_collective.id,
+  accepts_free: false,
+  accepts_paid: true,
+  min_price_cents: 10000,
+  max_price_cents: 50000,
+  per_page_price_cents: 1500,
+  currency: "usd"
+})
+
+# Kim & Torres Duo - both free and paid
+Repo.insert!(%PerformerPricing{
+  performer_id: kim_torres_duo.id,
+  accepts_free: true,
+  accepts_paid: true,
+  min_price_cents: 4000,
+  max_price_cents: 20000,
+  per_page_price_cents: 600,
+  currency: "usd"
+})
+
+# ============================================================================
+# SCREENPLAYS WITH ACTUAL SCRIPT CONTENT
+# ============================================================================
+IO.puts("Creating screenplays with script content...")
+
+last_light_script = """
+FADE IN:
+
+EXT. ROCKY COASTLINE - NIGHT
+
+A lighthouse beam sweeps across churning waters. The structure is old, weathered, but the light burns fierce.
+
+INT. LIGHTHOUSE - CONTROL ROOM - CONTINUOUS
+
+MAYA (40s, weathered hands, determined eyes) adjusts dials on an ancient control panel. The light mechanism hums above her.
+
+MAYA
+(to herself)
+Sixty-three years. Every night for sixty-three years.
+
+A PHONE RINGS. Maya answers, annoyed.
+
+MAYA (CONT'D)
+Hartwell Lighthouse. ... No, Commander, the light stays on. ... I don't care what your satellites show.
+
+She hangs up. Looks out the window at the dark horizon.
+
+MAYA (CONT'D)
+They don't understand. They never understood.
+
+EXT. LIGHTHOUSE - BASE - LATER
+
+A military helicopter lands. COMMANDER VOSS (50s, decorated uniform, skeptical expression) steps out, shielding his eyes from the rotating beam.
+
+INT. LIGHTHOUSE - CONTROL ROOM - CONTINUOUS
+
+Voss climbs the spiral stairs, slightly out of breath.
+
+COMMANDER VOSS
+Mrs. Hartwell. I'm Commander—
+
+MAYA
+I know who you are. The answer is still no.
+
+COMMANDER VOSS
+The government needs this land. National security.
+
+MAYA
+This light IS national security. You just don't know it yet.
+
+Suddenly, the light FLICKERS. Maya rushes to the controls.
+
+MAYA (CONT'D)
+No, no, no...
+
+A STRANGE HUM fills the air. The light steadies. Outside, the sky shifts—colors that shouldn't exist.
+
+THE VOICE (V.O.)
+(ethereal, everywhere)
+The keeper remains. We honor the agreement.
+
+Voss draws his sidearm, spinning wildly.
+
+COMMANDER VOSS
+What the hell was that?
+
+MAYA
+(calm, almost relieved)
+That was them. They've been waiting out there since 1963. This light is the only thing keeping them at bay.
+
+She gestures to faded photographs on the wall—previous keepers, strange lights in the sky.
+
+MAYA (CONT'D)
+My grandmother made a deal. As long as the light burns, they stay in the darkness between stars.
+
+The door BURSTS open. TOMMY (10, wide-eyed, in pajamas) stands there.
+
+TOMMY
+Aunt Maya? I saw lights in the sky. Pretty lights.
+
+Maya kneels down to his level.
+
+MAYA
+Tommy, remember what I told you about the lighthouse?
+
+TOMMY
+That it keeps the monsters away?
+
+MAYA
+(looking at Voss)
+Exactly right.
+
+THE VOICE (V.O.)
+The child sees clearly. Unlike your soldiers.
+
+COMMANDER VOSS
+(terrified now)
+That voice... it's in my head.
+
+MAYA
+They're not monsters, Commander. They're just... different. And very, very patient.
+
+She turns back to her controls.
+
+MAYA (CONT'D)
+Now, are you going to help me keep this light burning, or are you going to doom us all?
+
+The light sweeps across the water. In the beam's path, for just a moment, we see SHAPES. Vast. Waiting.
+
+FADE TO BLACK.
+
+THE END
+"""
+
+coffee_script = """
+FADE IN:
+
+INT. CROWDED CAFE - DAY
+
+The lunch rush. Every table packed. Steam, chatter, the hiss of espresso machines.
+
+ELENA (30s, sharp eyes behind glasses, laptop bag over shoulder) scans for a seat. Nothing.
+
+She spots one empty chair at a small table. The other seat is occupied by JAMES (30s, disheveled artist type, nursing a cold coffee).
+
+ELENA
+Excuse me. Is this seat—
+
+JAMES
+(not looking up from his phone)
+Taken? No. But I'm not good company.
+
+ELENA
+(sitting down)
+Perfect. Neither am I.
+
+She opens her laptop. Types furiously. James glances at her screen—blocks of text.
+
+JAMES
+Journalist?
+
+ELENA
+(covering her screen)
+That obvious?
+
+JAMES
+You type like you're angry at the keyboard.
+
+ELENA
+Maybe I am.
+
+The BARISTA (20s, perpetually cheerful) appears.
+
+BARISTA
+What can I get you?
+
+ELENA
+Largest coffee you have. Black.
+
+BARISTA
+Rough day?
+
+ELENA
+Rough decade.
+
+The Barista leaves. Silence. Then:
+
+JAMES
+I used to be a musician.
+
+ELENA
+I didn't ask.
+
+JAMES
+I know. I'm telling you because I recognize that look. You're not writing a story. You're hiding from one.
+
+Elena's fingers freeze on the keyboard.
+
+ELENA
+(quiet)
+What would you know about it?
+
+JAMES
+I know that running only works until you stop. Then it all catches up.
+
+He pushes a worn photograph across the table. A band on stage. James at the microphone.
+
+JAMES (CONT'D)
+Three years ago, I was on top of the world. Then the label went under, the band split, and I found out I was really, really good at disappearing.
+
+Elena stares at the photo. Her jaw tightens.
+
+ELENA
+The Reynolds scandal. Last month.
+
+JAMES
+(nodding slowly)
+I saw the byline. Saw what it cost you.
+
+ELENA
+You read my article?
+
+JAMES
+Everyone read your article. Then everyone forgot. That's what happens, right? We burn ourselves down for a story, and the world just... moves on.
+
+The Barista returns with Elena's coffee.
+
+BARISTA
+One very large, very black coffee.
+
+Neither of them acknowledges the cup.
+
+ELENA
+(finally)
+I testified against my own editor. Sources I protected for years—compromised. People lost jobs. Lost more than jobs.
+
+JAMES
+But you told the truth.
+
+ELENA
+Truth doesn't pay rent.
+
+James laughs—genuine, surprised.
+
+JAMES
+No. No, it doesn't.
+
+He finishes his cold coffee.
+
+JAMES (CONT'D)
+I've been sitting in this cafe for six weeks. Different table every day. Watching people. Trying to figure out how to start over.
+
+ELENA
+Any luck?
+
+JAMES
+I'm talking to a stranger about the worst moment of my life.
+
+(beat)
+
+So... progress?
+
+Elena smiles for the first time. It transforms her face.
+
+ELENA
+Elena.
+
+JAMES
+James.
+
+They shake hands. Hold on a moment too long.
+
+ELENA
+Do you want to get out of here? Find somewhere less crowded?
+
+JAMES
+I thought you needed to hide.
+
+ELENA
+(closing her laptop)
+Maybe I'm tired of hiding.
+
+They stand. The Barista watches them go, smiling.
+
+BARISTA
+(to herself)
+About time.
+
+FADE OUT.
+
+THE END
+"""
+
+hollow_men_script = """
+FADE IN:
+
+INT. POLICE PRECINCT - DETECTIVE'S BULLPEN - NIGHT
+
+Rain streaks the windows. DET. REYES (40s, sharp features, hasn't slept in days) spreads CRIME SCENE PHOTOS across her desk.
+
+Three victims. Three different locations. One connecting thread.
+
+DET. REYES
+(to herself)
+Same witness at every scene. Different name. Different face.
+
+CAPTAIN MORRIS (50s, graying, world-weary) approaches with a coffee.
+
+CAPTAIN MORRIS
+Reyes. You've been at this for eighteen hours.
+
+DET. REYES
+Look at these statements.
+
+She shows him three witness interview photos.
+
+DET. REYES (CONT'D)
+Sarah Mitchell saw the first victim fall. Thomas Wright found the second body. Maria Santos heard the third gunshot.
+
+CAPTAIN MORRIS
+Three different witnesses. What's your point?
+
+DET. REYES
+They're all using the same phrases. "The darkness moved." "I couldn't see their face." "Like looking in a broken mirror."
+
+CAPTAIN MORRIS
+Trauma does that. People grasp for words.
+
+DET. REYES
+(standing)
+I need to talk to Dr. Webb.
+
+INT. FORENSIC PSYCHOLOGY OFFICE - LATER
+
+DR. WEBB (50s, clinical but kind) reviews the interview transcripts.
+
+DR. WEBB
+Linguistic mirroring. It's rare to see it this precise across unrelated subjects.
+
+DET. REYES
+Unless they're not unrelated.
+
+DR. WEBB
+You're suggesting... what? These three witnesses are the same person?
+
+DET. REYES
+I'm suggesting I don't know what I'm suggesting anymore.
+
+Her phone BUZZES. She checks it. Her face goes pale.
+
+DET. REYES (CONT'D)
+Fourth victim. And there's a witness.
+
+EXT. CRIME SCENE - ALLEY - NIGHT
+
+Reyes approaches a uniformed officer and a WITNESS. The witness is wrapped in a shock blanket.
+
+When they look up—
+
+Reyes FREEZES.
+
+DET. REYES
+(whispered)
+You.
+
+THE SHAPESHIFTER
+(different face now, same eyes)
+Detective. We meet again. Or is it for the first time?
+
+The uniform looks confused.
+
+UNIFORM OFFICER
+Detective? You know this witness?
+
+DET. REYES
+(hand on holster)
+Everyone back away from this person.
+
+THE SHAPESHIFTER
+(standing, blanket falling)
+Now, now. No need for that. I'm just a witness. I'm always just a witness.
+
+DET. REYES
+Who are you?
+
+THE SHAPESHIFTER
+I'm everyone, Detective. Every face you trust. Every stranger you pass. The neighbor who waves. The barista who knows your order.
+
+They step closer. Reyes draws her weapon.
+
+THE SHAPESHIFTER (CONT'D)
+I've been watching you. You're different. You see patterns others miss. Connections they ignore.
+
+DET. REYES
+Are you confessing to these murders?
+
+THE SHAPESHIFTER
+(laughing)
+Murders? I don't kill, Detective. I observe. I become. And sometimes, people die around me.
+
+(beat)
+
+But that's not murder. That's... evolution.
+
+CAPTAIN MORRIS (V.O.)
+(over radio)
+Reyes! Report!
+
+THE SHAPESHIFTER
+You should answer that. Tell him you found me.
+
+(leaning close)
+
+Tell him I'm everywhere. In your precinct. In your home. In your mirror.
+
+Reyes blinks—
+
+The Shapeshifter is GONE. Just an empty blanket on wet pavement.
+
+DET. REYES
+(into radio)
+Captain... we have a serious problem.
+
+She looks at her own reflection in a puddle. For just a moment, the reflection SMILES when she doesn't.
+
+FADE TO BLACK.
+
+TO BE CONTINUED...
+"""
+
+sunday_dinner_script = """
+FADE IN:
+
+INT. GRANDMOTHER'S DINING ROOM - EVENING
+
+A formal table set for four. China from another era. Heavy silver. Fresh flowers.
+
+GRANDMA ROSE (80s, elegant even in age, hands trembling slightly as she arranges napkins) surveys her kingdom.
+
+GRANDMA ROSE
+(calling out)
+Lily! The roast needs to rest. Don't let it sit too long.
+
+LILY (20s, nervous, clearly uncomfortable in this space) emerges from the kitchen, wiping her hands.
+
+LILY
+Grandma, maybe you should sit down. I can handle—
+
+GRANDMA ROSE
+I've been handling Sunday dinner for sixty years. I think I can manage one more.
+
+A car pulls up outside. Rose's expression shifts—hope and dread.
+
+LILY
+Mom's here.
+
+SARAH (45, exhausted, carrying wine like an offering) enters through the front door.
+
+SARAH
+Mama. You look beautiful.
+
+GRANDMA ROSE
+(stiff)
+You look tired.
+
+SARAH
+Nice to see you too.
+
+They embrace briefly. Lily watches—studying the tension.
+
+SARAH (CONT'D)
+Is Michael—
+
+GRANDMA ROSE
+He'll come. He always comes.
+
+SARAH
+(muttering)
+That's what I'm afraid of.
+
+They move into the dining room. Rose begins pouring wine.
+
+GRANDMA ROSE
+Your father loved this wine.
+
+SARAH
+Dad loved a lot of things. Didn't mean they loved him back.
+
+GRANDMA ROSE
+(warning)
+Sarah.
+
+The front door OPENS. MICHAEL (50s, carrying decades of resentment like a worn coat) enters. He doesn't remove his jacket.
+
+MICHAEL
+Mother. Sarah. And Lily—I didn't know you'd be here.
+
+LILY
+Uncle Michael. It's good to see—
+
+MICHAEL
+Let's skip the pleasantries. I have somewhere to be at seven.
+
+GRANDMA ROSE
+(quietly)
+You always have somewhere to be.
+
+Everyone sits. Rose says grace—short, perfunctory. They begin eating in suffocating silence.
+
+MICHAEL
+(finally)
+So. When are you going to tell them?
+
+GRANDMA ROSE
+Michael—
+
+MICHAEL
+No. Sixty years of Sunday dinners. Sixty years of pretending this family isn't built on lies. When does it end?
+
+SARAH
+What is he talking about?
+
+MICHAEL
+(to Rose)
+Tell her. Tell your perfect daughter what Dad really did. Who he really was.
+
+LILY
+Maybe we shouldn't—
+
+MICHAEL
+Stay out of this, Lily. You weren't even born yet.
+
+GRANDMA ROSE
+(standing, surprising strength)
+Enough.
+
+The room goes still.
+
+GRANDMA ROSE (CONT'D)
+Your father was not a saint. But he was not a monster either. He was a man. A flawed, complicated man who did his best.
+
+MICHAEL
+His best? He abandoned us for six months! You told everyone he was traveling for work!
+
+SARAH
+(shocked)
+What?
+
+GRANDMA ROSE
+(sitting heavily)
+He came back. That's what matters. He came back, and he tried.
+
+MICHAEL
+He came back because his other family didn't want him either.
+
+SARAH
+Other family?
+
+LILY
+(quietly)
+Oh my god.
+
+GRANDMA ROSE
+(to Michael)
+I forgave him. Why can't you?
+
+MICHAEL
+Because you made me lie! Every Sunday dinner—pass the salt, how was work, lovely roast—while I knew! And Sarah got to be the good daughter, the one who didn't know!
+
+SARAH
+You should have told me.
+
+MICHAEL
+Mother wouldn't let me. Protect the family. Preserve the illusion.
+
+Long silence. The roast cools. The wine sits untouched.
+
+LILY
+(standing)
+My father did something similar. Left when I was seven. Mom never told me why until last year.
+
+Everyone looks at her.
+
+LILY (CONT'D)
+You know what I learned? Secrets are heavier than the truth. They crush the people carrying them.
+
+(to Grandma Rose)
+
+You've been carrying this for sixty years. And Michael's been carrying it with you. Maybe... maybe it's time to put it down.
+
+GRANDMA ROSE
+(tears forming)
+I was so ashamed.
+
+SARAH
+(moving to her mother)
+Mama...
+
+MICHAEL
+(softer now)
+I didn't want to hurt you, Sarah. I just... I couldn't carry it alone anymore.
+
+The family sits together. Not healed—that takes longer. But something has shifted. A first step.
+
+GRANDMA ROSE
+(wiping her eyes)
+The roast is getting cold.
+
+LILY
+(small smile)
+Then we should eat.
+
+They pick up their forks. The silence is different now. Lighter.
+
+FADE OUT.
+
+THE END
+"""
 
 last_light = Repo.insert!(%Screenplay{
   title: "The Last Light",
@@ -76,7 +790,8 @@ last_light = Repo.insert!(%Screenplay{
   logline: "A lighthouse keeper discovers her beacon is the only thing preventing an alien invasion.",
   page_count: 12,
   likes: 24,
-  audio_version_count: 3,
+  audio_version_count: 2,
+  script_content: last_light_script,
   characters: [
     %{id: Ecto.UUID.generate(), name: "MAYA", gender: "Female", estimated_lines: 45, description: "Lighthouse keeper, 40s, weathered but determined"},
     %{id: Ecto.UUID.generate(), name: "COMMANDER VOSS", gender: "Male", estimated_lines: 28, description: "Military officer, 50s, skeptical"},
@@ -90,14 +805,15 @@ coffee = Repo.insert!(%Screenplay{
   writer_id: marcus.id,
   writer_name: marcus.name,
   genre: "Romance",
-  logline: "Two strangers share a table at a crowded café and discover they're both running from the same past.",
+  logline: "Two strangers share a table at a crowded cafe and discover they're both running from the same past.",
   page_count: 8,
   likes: 18,
   audio_version_count: 1,
+  script_content: coffee_script,
   characters: [
     %{id: Ecto.UUID.generate(), name: "ELENA", gender: "Female", estimated_lines: 52, description: "Journalist, 30s, guarded"},
     %{id: Ecto.UUID.generate(), name: "JAMES", gender: "Male", estimated_lines: 48, description: "Former musician, 30s, melancholic"},
-    %{id: Ecto.UUID.generate(), name: "BARISTA", gender: "Any", estimated_lines: 6, description: "Friendly café worker"}
+    %{id: Ecto.UUID.generate(), name: "BARISTA", gender: "Any", estimated_lines: 6, description: "Friendly cafe worker"}
   ]
 })
 
@@ -110,6 +826,7 @@ hollow_men = Repo.insert!(%Screenplay{
   page_count: 15,
   likes: 31,
   audio_version_count: 0,
+  script_content: hollow_men_script,
   characters: [
     %{id: Ecto.UUID.generate(), name: "DET. REYES", gender: "Female", estimated_lines: 67, description: "Homicide detective, 40s, sharp"},
     %{id: Ecto.UUID.generate(), name: "THE SHAPESHIFTER", gender: "Any", estimated_lines: 34, description: "Multiple identities"},
@@ -127,6 +844,7 @@ sunday_dinner = Repo.insert!(%Screenplay{
   page_count: 6,
   likes: 12,
   audio_version_count: 2,
+  script_content: sunday_dinner_script,
   characters: [
     %{id: Ecto.UUID.generate(), name: "GRANDMA ROSE", gender: "Female", estimated_lines: 28, description: "Family matriarch, 80s"},
     %{id: Ecto.UUID.generate(), name: "MICHAEL", gender: "Male", estimated_lines: 32, description: "Son, 50s, resentful"},
@@ -135,12 +853,16 @@ sunday_dinner = Repo.insert!(%Screenplay{
   ]
 })
 
-# Create sample audio versions
-IO.puts("Creating sample audio versions...")
+# ============================================================================
+# AUDIO VERSIONS - NOW PROPERLY LINKED TO PERFORMER ACCOUNTS
+# ============================================================================
+IO.puts("Creating audio versions with correct performer links...")
 
+# The Lighthouse Collective performs "The Last Light"
+# NOTE: submitted_by_id links to the collective's account
 Repo.insert!(%AudioVersion{
   screenplay_id: last_light.id,
-  submitted_by_id: jake.id,
+  submitted_by_id: lighthouse_collective.id,  # Correctly linked to group account
   performer_type: "group",
   group_name: "The Lighthouse Collective",
   performers: ["Jake Morrison", "Lin Zhou", "Sam Peters", "Mia Chen"],
@@ -153,9 +875,10 @@ Repo.insert!(%AudioVersion{
   date: "Jan 15, 2026"
 })
 
+# Emma Stone performs "The Last Light" solo
 Repo.insert!(%AudioVersion{
   screenplay_id: last_light.id,
-  submitted_by_id: emma.id,
+  submitted_by_id: emma.id,  # Correctly linked to Emma's account
   performer_type: "solo",
   group_name: nil,
   performers: ["Emma Stone"],
@@ -168,11 +891,12 @@ Repo.insert!(%AudioVersion{
   date: "Jan 8, 2026"
 })
 
+# David Kim & Rachel Torres perform "Coffee for Two"
 Repo.insert!(%AudioVersion{
   screenplay_id: coffee.id,
-  submitted_by_id: jake.id,
+  submitted_by_id: kim_torres_duo.id,  # Correctly linked to duo account
   performer_type: "duo",
-  group_name: nil,
+  group_name: "David Kim & Rachel Torres",
   performers: ["David Kim", "Rachel Torres"],
   casting: %{"ELENA" => "Rachel Torres", "JAMES" => "David Kim", "BARISTA" => "David Kim"},
   audio_url: "/uploads/audio/coffee_duo.mp3",
@@ -183,9 +907,10 @@ Repo.insert!(%AudioVersion{
   date: "Jan 18, 2026"
 })
 
+# Michael Chang performs "Sunday Dinner" solo
 Repo.insert!(%AudioVersion{
   screenplay_id: sunday_dinner.id,
-  submitted_by_id: jake.id,
+  submitted_by_id: michael_chang.id,  # Correctly linked to Michael's account
   performer_type: "solo",
   group_name: nil,
   performers: ["Michael Chang"],
@@ -198,4 +923,42 @@ Repo.insert!(%AudioVersion{
   date: "Jan 19, 2026"
 })
 
-IO.puts("Seeds completed!")
+# Jake Morrison performs "Sunday Dinner" solo
+Repo.insert!(%AudioVersion{
+  screenplay_id: sunday_dinner.id,
+  submitted_by_id: jake.id,  # Correctly linked to Jake's account
+  performer_type: "solo",
+  group_name: nil,
+  performers: ["Jake Morrison"],
+  casting: %{},
+  audio_url: "/uploads/audio/sunday_jake.mp3",
+  duration: "10:52",
+  likes: 5,
+  author_pick: false,
+  verified: true,
+  date: "Jan 20, 2026"
+})
+
+IO.puts("")
+IO.puts("============================================")
+IO.puts("Seeds completed successfully!")
+IO.puts("============================================")
+IO.puts("")
+IO.puts("Demo Accounts Created:")
+IO.puts("")
+IO.puts("WRITERS:")
+IO.puts("  - sarah@example.com (Sarah Chen)")
+IO.puts("  - marcus@example.com (Marcus Webb)")
+IO.puts("  - aisha@example.com (Aisha Patel)")
+IO.puts("")
+IO.puts("SOLO VOICE ARTISTS:")
+IO.puts("  - jake@example.com (Jake Morrison) - Accepts free & paid")
+IO.puts("  - emma@example.com (Emma Stone) - Paid only")
+IO.puts("  - michael@example.com (Michael Chang) - Free only")
+IO.puts("")
+IO.puts("GROUP VOICE ARTISTS:")
+IO.puts("  - lighthouse@example.com (The Lighthouse Collective) - Paid only")
+IO.puts("  - kimtorres@example.com (David Kim & Rachel Torres) - Free & paid")
+IO.puts("")
+IO.puts("Use these accounts to test commission request flows!")
+IO.puts("============================================")

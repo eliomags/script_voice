@@ -47,7 +47,8 @@ defmodule ScriptVoice.MixProject do
       {:bandit, "~> 1.0"},
       {:bcrypt_elixir, "~> 3.0"},
       {:uuid, "~> 1.1"},
-      {:stripity_stripe, "~> 3.1"}
+      {:stripity_stripe, "~> 3.1"},
+      {:dotenvy, "~> 0.8"}
     ]
   end
 

@@ -10,7 +10,7 @@ defmodule ScriptVoiceWeb.ProfileLive do
   alias ScriptVoice.Social
 
   @impl true
-  def mount(%{"id" => id}, session, socket) do
+  def mount(%{"id" => id} = params, session, socket) do
     current_user = get_current_user(session)
 
     case Accounts.get_user(id) do
@@ -43,6 +43,12 @@ defmodule ScriptVoiceWeb.ProfileLive do
             []
           end
 
+        # Determine back URL from referer param or default to browse
+        back_url = case params["from"] do
+          "screenplay:" <> screenplay_id -> ~p"/screenplay/#{screenplay_id}"
+          _ -> ~p"/browse"
+        end
+
         {:ok,
          socket
          |> assign(:current_user, current_user)
@@ -51,6 +57,7 @@ defmodule ScriptVoiceWeb.ProfileLive do
          |> assign(:audio_versions, audio_versions)
          |> assign(:is_own_profile, is_own_profile)
          |> assign(:liked_screenplay_ids, liked_ids)
+         |> assign(:back_url, back_url)
          |> assign(:page_title, profile_user.name)}
     end
   end
@@ -105,6 +112,14 @@ defmodule ScriptVoiceWeb.ProfileLive do
     ~H"""
     <div class="py-6 sm:py-8 px-4 sm:px-6">
       <div class="max-w-4xl mx-auto">
+        <!-- Back Button -->
+        <div class="mb-4">
+          <.link navigate={@back_url} class="text-sm text-emerald-600 hover:underline flex items-center gap-1">
+            <.icon name="hero-arrow-left" class="w-4 h-4" />
+            Back
+          </.link>
+        </div>
+
         <!-- Profile Header -->
         <div class="bg-white border rounded-xl p-6 mb-6">
           <div class="flex items-start gap-4">
@@ -153,6 +168,11 @@ defmodule ScriptVoiceWeb.ProfileLive do
                 <% end %>
               </div>
 
+              <!-- Bio -->
+              <%= if @profile_user.bio do %>
+                <p class="text-gray-600 text-sm mt-3"><%= @profile_user.bio %></p>
+              <% end %>
+
               <!-- Social Links -->
               <%= if @profile_user.social_links != [] do %>
                 <div class="flex gap-2 mt-3">
@@ -171,6 +191,26 @@ defmodule ScriptVoiceWeb.ProfileLive do
             </div>
           </div>
         </div>
+
+        <!-- Profile Intro Video (30-sec intro, separate from verification) -->
+        <%= if @profile_user.profile_video_url do %>
+          <div class="bg-white border rounded-xl p-4 sm:p-6 mb-6">
+            <h2 class="font-semibold mb-3 flex items-center gap-2">
+              <.icon name="hero-video-camera" class="w-5 h-5 text-emerald-600" />
+              About Me
+            </h2>
+            <div class="aspect-video bg-gray-900 rounded-lg overflow-hidden">
+              <video
+                controls
+                playsinline
+                class="w-full h-full object-contain"
+                src={@profile_user.profile_video_url}
+              >
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          </div>
+        <% end %>
 
         <!-- Verification Video (for writers and voice artists) -->
         <%= if @profile_user.user_type in ["writer", "voice_artist"] and @profile_user.verification_video_url do %>
