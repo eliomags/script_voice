@@ -128,59 +128,77 @@ kim_torres_duo = Repo.insert!(%User{
 # ============================================================================
 IO.puts("Setting up performer pricing...")
 
-# Jake Morrison - offers both free and paid
+# Jake Morrison - per page pricing, affordable rates
 Repo.insert!(%PerformerPricing{
-  performer_id: jake.id,
-  accepts_free: true,
-  accepts_paid: true,
-  min_price_cents: 2500,
-  max_price_cents: 15000,
-  per_page_price_cents: 500,
-  currency: "usd"
+  user_id: jake.id,
+  pricing_model: "per_page",
+  per_page_rate_cents: 500,
+  minimum_rate_cents: 2500,
+  included_retakes: 2,
+  retake_rate_cents: 200,
+  is_accepting_commissions: true,
+  max_concurrent_projects: 5,
+  typical_turnaround_days: 7,
+  currency: "USD"
 })
 
-# Emma Stone - paid only
+# Emma Stone - premium per page pricing
 Repo.insert!(%PerformerPricing{
-  performer_id: emma.id,
-  accepts_free: false,
-  accepts_paid: true,
-  min_price_cents: 5000,
-  max_price_cents: 25000,
-  per_page_price_cents: 800,
-  currency: "usd"
+  user_id: emma.id,
+  pricing_model: "per_page",
+  per_page_rate_cents: 800,
+  minimum_rate_cents: 5000,
+  included_retakes: 1,
+  retake_rate_cents: 400,
+  is_accepting_commissions: true,
+  max_concurrent_projects: 3,
+  typical_turnaround_days: 10,
+  currency: "USD"
 })
 
-# Michael Chang - free only (for testing free flow)
+# Michael Chang - quote-based (flexible/free-friendly)
 Repo.insert!(%PerformerPricing{
-  performer_id: michael_chang.id,
-  accepts_free: true,
-  accepts_paid: false,
-  min_price_cents: nil,
-  max_price_cents: nil,
-  per_page_price_cents: nil,
-  currency: "usd"
+  user_id: michael_chang.id,
+  pricing_model: "quote",
+  minimum_rate_cents: nil,
+  included_retakes: 3,
+  is_accepting_commissions: true,
+  max_concurrent_projects: 10,
+  typical_turnaround_days: 5,
+  currency: "USD",
+  notes: "Happy to work on passion projects! Contact me for rates."
 })
 
-# The Lighthouse Collective - paid only (ensemble rates)
+# The Lighthouse Collective - ensemble flat rate pricing
 Repo.insert!(%PerformerPricing{
-  performer_id: lighthouse_collective.id,
-  accepts_free: false,
-  accepts_paid: true,
-  min_price_cents: 10000,
-  max_price_cents: 50000,
-  per_page_price_cents: 1500,
-  currency: "usd"
+  user_id: lighthouse_collective.id,
+  pricing_model: "flat",
+  flat_rate_cents: 15000,
+  minimum_rate_cents: 10000,
+  included_retakes: 2,
+  retake_rate_cents: 1000,
+  rush_multiplier_percent: 75,
+  is_accepting_commissions: true,
+  max_concurrent_projects: 2,
+  typical_turnaround_days: 14,
+  currency: "USD",
+  notes: "Full ensemble cast with professional production."
 })
 
-# Kim & Torres Duo - both free and paid
+# Kim & Torres Duo - per page per character pricing
 Repo.insert!(%PerformerPricing{
-  performer_id: kim_torres_duo.id,
-  accepts_free: true,
-  accepts_paid: true,
-  min_price_cents: 4000,
-  max_price_cents: 20000,
-  per_page_price_cents: 600,
-  currency: "usd"
+  user_id: kim_torres_duo.id,
+  pricing_model: "per_page_per_character",
+  per_page_rate_cents: 400,
+  per_character_rate_cents: 200,
+  minimum_rate_cents: 4000,
+  included_retakes: 2,
+  retake_rate_cents: 300,
+  is_accepting_commissions: true,
+  max_concurrent_projects: 4,
+  typical_turnaround_days: 7,
+  currency: "USD",
+  notes: "Specializing in romantic scripts and two-person dramas."
 })
 
 # ============================================================================
@@ -952,13 +970,13 @@ IO.puts("  - marcus@example.com (Marcus Webb)")
 IO.puts("  - aisha@example.com (Aisha Patel)")
 IO.puts("")
 IO.puts("SOLO VOICE ARTISTS:")
-IO.puts("  - jake@example.com (Jake Morrison) - Accepts free & paid")
-IO.puts("  - emma@example.com (Emma Stone) - Paid only")
-IO.puts("  - michael@example.com (Michael Chang) - Free only")
+IO.puts("  - jake@example.com (Jake Morrison) - Per page: $5/page, min $25")
+IO.puts("  - emma@example.com (Emma Stone) - Per page: $8/page, min $50")
+IO.puts("  - michael@example.com (Michael Chang) - Quote-based (flexible)")
 IO.puts("")
 IO.puts("GROUP VOICE ARTISTS:")
-IO.puts("  - lighthouse@example.com (The Lighthouse Collective) - Paid only")
-IO.puts("  - kimtorres@example.com (David Kim & Rachel Torres) - Free & paid")
+IO.puts("  - lighthouse@example.com (The Lighthouse Collective) - Flat: $150, min $100")
+IO.puts("  - kimtorres@example.com (David Kim & Rachel Torres) - Per page + character")
 IO.puts("")
 IO.puts("Use these accounts to test commission request flows!")
 IO.puts("============================================")
