@@ -71,39 +71,13 @@
                   <.icon name="hero-clipboard-document-list" class="w-4 h-4 text-gray-400" />
                   Commissions
                 </.link>
-              </div>
-
-              <!-- Switch Role Options -->
-              <div class="py-2 border-b">
-                <p class="px-4 py-1 text-xs text-gray-500 uppercase tracking-wide">Switch to</p>
-
-                <%= if @current_user.user_type != "visitor" do %>
+                <%= if @current_user.user_type == "voice_artist" do %>
                   <.link
-                    navigate={~p"/verify?type=visitor"}
+                    navigate={~p"/settings/pricing"}
                     class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   >
-                    <.icon name="hero-eye" class="w-4 h-4 text-gray-400" />
-                    Browse Only
-                  </.link>
-                <% end %>
-
-                <%= if @current_user.user_type != "writer" do %>
-                  <.link
-                    navigate={~p"/verify?type=writer"}
-                    class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    <.icon name="hero-document-text" class="w-4 h-4 text-gray-400" />
-                    Write
-                  </.link>
-                <% end %>
-
-                <%= if @current_user.user_type != "voice_artist" do %>
-                  <.link
-                    navigate={~p"/verify?type=voice_artist"}
-                    class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    <.icon name="hero-microphone" class="w-4 h-4 text-gray-400" />
-                    Perform
+                    <.icon name="hero-currency-dollar" class="w-4 h-4 text-gray-400" />
+                    Pricing Settings
                   </.link>
                 <% end %>
               </div>
