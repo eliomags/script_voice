@@ -4,6 +4,18 @@
 
 This document outlines the complete implementation plan for adding a paid commission system where screenplay writers can hire voice artists to perform their scripts.
 
+## Key Decisions (Confirmed)
+
+| Decision | Answer |
+|----------|--------|
+| Payment Processing | Stripe Connect with Apple Pay, Google Pay, Link |
+| Escrow | Yes - hold payment until completion |
+| Platform Fee | 10% to ScriptVoice |
+| Fee Transparency | Show all fees clearly in payment flow |
+| Writer Cancellation | Cannot cancel after acceptance - payment stays with performer |
+| Dispute Resolution | Comprehensive rules document required |
+| Paid Badge | No - private between parties |
+
 ## Table of Contents
 1. [User Stories](#user-stories)
 2. [Database Schema](#database-schema)
@@ -629,14 +641,127 @@ Phoenix.PubSub.broadcast(ScriptVoice.PubSub, "notifications:#{user_id}", {:new_n
 
 ---
 
-## Open Questions
+## Payment System (Stripe Connect)
 
-1. **Payment Processing**: Is this MVP tracking only, or do we need Stripe integration?
-2. **Escrow**: Should payments be held until completion?
-3. **Dispute Resolution**: What happens if writer never approves?
-4. **Platform Fee**: Will ScriptVoice take a percentage?
-5. **Refunds**: What's the cancellation/refund policy?
-6. **Contracts**: Any legal agreement needed between parties?
+### Architecture
+```
+Writer pays → Stripe holds in escrow → Completion → Funds released to Performer
+                                    ↓
+                              Platform takes 10%
+```
+
+### Payment Methods
+- Credit/Debit Cards
+- Apple Pay
+- Google Pay
+- Link (Stripe's fast checkout)
+
+### Fee Structure (Displayed to Writer)
+```
+Commission Amount:     $180.00
+Stripe Processing:      $5.52  (2.9% + $0.30)
+Platform Fee (10%):    $18.00
+─────────────────────────────────
+Total:                $203.52
+```
+
+### Performer Payout
+```
+Commission Amount:     $180.00
+Platform Fee (10%):   -$18.00
+─────────────────────────────────
+You Receive:          $162.00
+```
+
+### Stripe Connect Flow
+1. **Performer Onboarding**: Voice artists must connect Stripe account
+2. **Payment Intent**: Created when commission accepted (not when requested)
+3. **Payment Capture**: Charged to writer's card
+4. **Funds Held**: In Stripe until commission completed
+5. **Payout**: Released to performer on approval
+
+### Database: `stripe_accounts` Table
+```sql
+CREATE TABLE stripe_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  stripe_account_id VARCHAR(100) NOT NULL,  -- acct_xxx
+  onboarding_complete BOOLEAN NOT NULL DEFAULT false,
+  charges_enabled BOOLEAN NOT NULL DEFAULT false,
+  payouts_enabled BOOLEAN NOT NULL DEFAULT false,
+  country VARCHAR(2),
+  default_currency VARCHAR(3) DEFAULT 'USD',
+  inserted_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id),
+  UNIQUE(stripe_account_id)
+);
+```
+
+### Database: `payments` Table
+```sql
+CREATE TABLE payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  commission_request_id UUID NOT NULL REFERENCES commission_requests(id),
+
+  -- Stripe IDs
+  stripe_payment_intent_id VARCHAR(100),
+  stripe_transfer_id VARCHAR(100),
+
+  -- Amounts (all in cents)
+  amount_cents INTEGER NOT NULL,           -- Base commission
+  processing_fee_cents INTEGER NOT NULL,   -- Stripe's fee
+  platform_fee_cents INTEGER NOT NULL,     -- Our 10%
+  performer_payout_cents INTEGER NOT NULL, -- What performer gets
+
+  -- Status
+  status VARCHAR(30) NOT NULL DEFAULT 'pending',
+    -- pending, processing, held, completed, refunded, disputed
+
+  -- Payment method
+  payment_method VARCHAR(50),  -- card, apple_pay, google_pay, link
+  last_four VARCHAR(4),
+
+  -- Timestamps
+  captured_at TIMESTAMP,
+  released_at TIMESTAMP,
+  refunded_at TIMESTAMP,
+
+  inserted_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+```
+
+---
+
+## Cancellation & Dispute Policy
+
+### Cancellation Rules
+| Stage | Writer Can Cancel? | Performer Can Cancel? | Payment |
+|-------|-------------------|----------------------|---------|
+| Pending (not accepted) | ✅ Yes | N/A | No charge |
+| Accepted | ❌ No | ⚠️ Emergency only | Held |
+| In Progress | ❌ No | ⚠️ Emergency only | Held |
+| Submitted | ❌ No | ❌ No | Held |
+| Revision Requested | ❌ No | ❌ No | Held |
+
+### Performer Emergency Cancellation
+- Requires valid reason (medical, family emergency)
+- Must provide documentation if requested
+- May affect reputation/rating
+- Payment returned to writer
+
+### Dispute Resolution Process
+1. **Initial Complaint**: Either party can open dispute
+2. **72-Hour Response**: Other party must respond
+3. **Evidence Review**: Platform reviews submissions, messages, audio
+4. **Resolution**: Platform makes final decision
+5. **Appeal**: One appeal allowed within 7 days
+
+### Dispute Outcomes
+- **Performer Upheld**: Payment released to performer
+- **Writer Upheld**: Full refund to writer
+- **Partial**: Negotiated split (rare)
 
 ---
 

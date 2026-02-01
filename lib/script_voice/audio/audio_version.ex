@@ -25,8 +25,12 @@ defmodule ScriptVoice.Audio.AudioVersion do
     field :verified, :boolean, default: false  # All performers verified?
     field :date, :string  # Formatted date for display
 
+    # Commission-related fields
+    field :is_paid_commission, :boolean, default: false
+
     belongs_to :screenplay, ScriptVoice.Screenplays.Screenplay
     belongs_to :submitted_by, ScriptVoice.Accounts.User
+    belongs_to :commission_request, ScriptVoice.Commissions.CommissionRequest
 
     timestamps(type: :utc_datetime)
   end
@@ -38,7 +42,8 @@ defmodule ScriptVoice.Audio.AudioVersion do
     audio_version
     |> cast(attrs, [
       :performer_type, :group_name, :performers, :casting,
-      :audio_url, :duration, :verified, :screenplay_id, :submitted_by_id
+      :audio_url, :duration, :verified, :screenplay_id, :submitted_by_id,
+      :commission_request_id, :is_paid_commission
     ])
     |> validate_required([:performer_type, :audio_url, :screenplay_id, :submitted_by_id])
     |> validate_inclusion(:performer_type, @performer_types)
