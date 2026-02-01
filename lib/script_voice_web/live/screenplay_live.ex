@@ -58,7 +58,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
 
   @impl true
   def handle_event("change_audio_sort", %{"sort" => sort}, socket) do
-    sort_atom = String.to_existing_atom(sort)
+    sort_atom = parse_audio_sort(sort)
     audio_versions = Audio.list_audio_versions_for_screenplay(socket.assigns.screenplay.id, sort: sort_atom)
 
     {:noreply,
@@ -66,6 +66,11 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
      |> assign(:audio_sort, sort)
      |> assign(:audio_versions, audio_versions)}
   end
+
+  defp parse_audio_sort("recent"), do: :recent
+  defp parse_audio_sort("popular"), do: :popular
+  defp parse_audio_sort("author_picks"), do: :author_picks
+  defp parse_audio_sort(_), do: :recent
 
   @impl true
   def handle_event("toggle_screenplay_like", %{"id" => id}, socket) do

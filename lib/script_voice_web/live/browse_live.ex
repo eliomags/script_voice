@@ -54,11 +54,16 @@ defmodule ScriptVoiceWeb.BrowseLive do
 
   defp load_screenplays(socket) do
     genre = socket.assigns.selected_genre
-    sort = String.to_existing_atom(socket.assigns.selected_sort)
+    sort = parse_sort(socket.assigns.selected_sort)
 
     screenplays = Screenplays.list_screenplays(sort: sort, genre: genre)
     assign(socket, :screenplays, screenplays)
   end
+
+  defp parse_sort("recent"), do: :recent
+  defp parse_sort("popular"), do: :popular
+  defp parse_sort("needs_audio"), do: :needs_audio
+  defp parse_sort(_), do: :recent
 
   @impl true
   def handle_event("filter_genre", %{"genre" => genre}, socket) do
