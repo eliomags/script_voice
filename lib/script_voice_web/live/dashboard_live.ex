@@ -469,8 +469,8 @@ defmodule ScriptVoiceWeb.DashboardLive do
                 <div>
                   <div class="font-medium text-gray-900"><%= audio.screenplay.title %></div>
                   <div class="text-sm text-gray-500">
-                    <%= if audio.duration_seconds do %>
-                      <%= div(audio.duration_seconds, 60) %>:<%= rem(audio.duration_seconds, 60) |> Integer.to_string() |> String.pad_leading(2, "0") %>
+                    <%= if audio.duration do %>
+                      <%= audio.duration %>
                     <% else %>
                       Duration unknown
                     <% end %>
