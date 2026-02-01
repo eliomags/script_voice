@@ -15,6 +15,12 @@ defmodule ScriptVoiceWeb.Router do
     plug :accepts, ["json"]
   end
 
+  # Pipeline for Stripe webhooks - no CSRF protection, raw body preserved
+  pipeline :stripe_webhook do
+    plug :accepts, ["json"]
+    plug ScriptVoiceWeb.Plugs.RawBodyReader
+  end
+
   scope "/", ScriptVoiceWeb do
     pipe_through :browser
 
@@ -28,6 +34,24 @@ defmodule ScriptVoiceWeb.Router do
     get "/session/login/:user_id", SessionController, :create
     post "/session", SessionController, :create
     delete "/session", SessionController, :delete
+
+    # Commission routes
+    live "/commissions", CommissionDashboardLive, :index
+    live "/commissions/:id", CommissionDetailLive, :show
+    live "/commissions/request/:screenplay_id", CommissionRequestLive, :new
+
+    # Performer pricing settings
+    live "/settings/pricing", PerformerPricingLive, :edit
+
+    # Stripe Connect onboarding
+    live "/settings/payments", StripeConnectLive, :index
+  end
+
+  # Stripe webhook endpoint
+  scope "/webhooks", ScriptVoiceWeb do
+    pipe_through :stripe_webhook
+
+    post "/stripe", StripeWebhookController, :handle
   end
 
   # Enable LiveDashboard in development

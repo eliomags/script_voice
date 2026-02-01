@@ -15,9 +15,26 @@ defmodule ScriptVoice.Accounts do
 
   @doc """
   Returns the list of users.
+
+  ## Options
+    * `:user_type` - Filter by user type (e.g., "writer", "voice_artist")
+    * `:verification_status` - Filter by verification status
   """
-  def list_users do
-    Repo.all(User)
+  def list_users(opts \\ []) do
+    User
+    |> maybe_filter_by_user_type(Keyword.get(opts, :user_type))
+    |> maybe_filter_by_verification(Keyword.get(opts, :verification_status))
+    |> Repo.all()
+  end
+
+  defp maybe_filter_by_user_type(query, nil), do: query
+  defp maybe_filter_by_user_type(query, user_type) do
+    from(u in query, where: u.user_type == ^user_type)
+  end
+
+  defp maybe_filter_by_verification(query, nil), do: query
+  defp maybe_filter_by_verification(query, status) do
+    from(u in query, where: u.verification_status == ^status)
   end
 
   @doc """

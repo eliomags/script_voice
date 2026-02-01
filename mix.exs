@@ -46,7 +46,8 @@ defmodule ScriptVoice.MixProject do
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.0"},
       {:bcrypt_elixir, "~> 3.0"},
-      {:uuid, "~> 1.1"}
+      {:uuid, "~> 1.1"},
+      {:stripity_stripe, "~> 3.1"}
     ]
   end
 

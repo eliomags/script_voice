@@ -50,5 +50,16 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+# Stripe configuration
+# Set these in runtime.exs or environment variables
+config :stripity_stripe,
+  api_key: System.get_env("STRIPE_SECRET_KEY"),
+  connect_webhook_signing_secret: System.get_env("STRIPE_CONNECT_WEBHOOK_SECRET")
+
+# ScriptVoice Stripe settings
+config :script_voice, :stripe,
+  platform_fee_percent: 10,
+  publishable_key: System.get_env("STRIPE_PUBLISHABLE_KEY")
+
 # Import environment specific config
 import_config "#{config_env()}.exs"

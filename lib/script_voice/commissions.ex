@@ -391,6 +391,13 @@ defmodule ScriptVoice.Commissions do
   end
 
   @doc """
+  Gets a Stripe account by its Stripe account ID.
+  """
+  def get_stripe_account_by_stripe_id(stripe_account_id) do
+    Repo.get_by(StripeAccount, stripe_account_id: stripe_account_id)
+  end
+
+  @doc """
   Creates a Stripe account record.
   """
   def create_stripe_account(attrs) do
