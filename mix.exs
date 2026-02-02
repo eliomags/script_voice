@@ -48,7 +48,12 @@ defmodule ScriptVoice.MixProject do
       {:bcrypt_elixir, "~> 3.0"},
       {:uuid, "~> 1.1"},
       {:stripity_stripe, "~> 3.1"},
-      {:dotenvy, "~> 0.8"}
+      {:dotenvy, "~> 0.8"},
+      # Cloudflare R2 (S3-compatible) storage
+      {:ex_aws, "~> 2.5"},
+      {:ex_aws_s3, "~> 2.5"},
+      {:hackney, "~> 1.20"},
+      {:sweet_xml, "~> 0.7"}
     ]
   end
 

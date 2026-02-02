@@ -26,6 +26,27 @@ config :script_voice, :stripe,
   publishable_key: System.get_env("STRIPE_PUBLISHABLE_KEY"),
   platform_fee_percent: 10
 
+# Cloudflare R2 configuration (all environments)
+# R2 is S3-compatible, so we use ex_aws_s3
+if r2_account_id = System.get_env("R2_ACCOUNT_ID") do
+  r2_endpoint = "#{r2_account_id}.r2.cloudflarestorage.com"
+
+  config :ex_aws,
+    access_key_id: System.get_env("R2_ACCESS_KEY_ID"),
+    secret_access_key: System.get_env("R2_SECRET_ACCESS_KEY"),
+    region: "auto"
+
+  config :ex_aws, :s3,
+    scheme: "https://",
+    host: r2_endpoint,
+    region: "auto"
+
+  config :script_voice, :uploads,
+    bucket: System.get_env("R2_BUCKET", "scriptvoice-uploads"),
+    public_url: System.get_env("R2_PUBLIC_URL"),
+    endpoint: r2_endpoint
+end
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||

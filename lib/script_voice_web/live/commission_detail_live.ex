@@ -6,6 +6,7 @@ defmodule ScriptVoiceWeb.CommissionDetailLive do
 
   alias ScriptVoice.Commissions
   alias ScriptVoice.Notifications
+  alias ScriptVoiceWeb.CommissionSubmitAudioComponent
 
   @impl true
   def mount(%{"id" => id}, session, socket) do
@@ -241,6 +242,36 @@ defmodule ScriptVoiceWeb.CommissionDetailLive do
      |> assign(:submissions, submissions)}
   end
 
+  @impl true
+  def handle_info({:submit_commission_audio, audio_data}, socket) do
+    commission = socket.assigns.commission
+
+    # Submit the audio to the commission
+    case Commissions.submit_audio(commission.id, socket.assigns.current_user.id, audio_data) do
+      {:ok, _submission} ->
+        # Notify writer of new submission
+        Notifications.notify_submission_received(
+          commission.writer_id,
+          socket.assigns.current_user.name,
+          commission.screenplay.title,
+          commission.id
+        )
+
+        # Reload data
+        updated_commission = Commissions.get_commission_request(commission.id)
+        submissions = Commissions.get_submissions_for_commission(commission.id)
+
+        {:noreply,
+         socket
+         |> assign(:commission, updated_commission)
+         |> assign(:submissions, submissions)
+         |> put_flash(:info, "Recording submitted successfully!")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, "Failed to submit recording: #{inspect(reason)}")}
+    end
+  end
+
   defp get_other_party_id(commission, "writer"), do: commission.performer_id
   defp get_other_party_id(commission, "performer"), do: commission.writer_id
 
@@ -322,6 +353,18 @@ defmodule ScriptVoiceWeb.CommissionDetailLive do
                 Decline
               </button>
             </div>
+          </div>
+        <% end %>
+
+        <!-- Submit Audio Section (for performers with active commissions) -->
+        <%= if @role == "performer" and @commission.status in ["accepted", "in_progress", "revision_requested"] do %>
+          <div class="mb-6">
+            <.live_component
+              module={CommissionSubmitAudioComponent}
+              id="commission-submit-audio"
+              commission={@commission}
+              current_user={@current_user}
+            />
           </div>
         <% end %>
 
