@@ -54,22 +54,55 @@ defmodule ScriptVoiceWeb.ScriptReaderLive do
 
       <!-- Script Content -->
       <div class="max-w-4xl mx-auto px-4 py-6 sm:py-8">
-        <%= if @screenplay.script_content do %>
-          <div class="bg-white rounded-xl shadow-sm border p-6 sm:p-8">
-            <pre class="whitespace-pre-wrap font-mono text-sm sm:text-base leading-relaxed text-gray-800"><%= @screenplay.script_content %></pre>
-          </div>
-        <% else %>
-          <div class="bg-white rounded-xl shadow-sm border p-12 text-center">
-            <.icon name="hero-document-text" class="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h2 class="font-semibold text-xl mb-2">Script not available</h2>
-            <p class="text-gray-500 mb-6">The full script content hasn't been uploaded yet.</p>
-            <.link
-              navigate={~p"/screenplay/#{@screenplay.id}"}
-              class="text-emerald-600 font-medium hover:underline"
-            >
-              Back to screenplay
-            </.link>
-          </div>
+        <%= cond do %>
+          <% @screenplay.pdf_url -> %>
+            <!-- PDF Viewer -->
+            <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+              <div class="bg-gray-100 px-4 py-3 border-b flex items-center justify-between">
+                <span class="text-sm text-gray-600 font-medium">PDF Script</span>
+                <a
+                  href={@screenplay.pdf_url}
+                  target="_blank"
+                  download
+                  class="text-sm text-emerald-600 hover:underline flex items-center gap-1"
+                >
+                  <.icon name="hero-arrow-down-tray" class="w-4 h-4" />
+                  Download
+                </a>
+              </div>
+              <iframe
+                src={@screenplay.pdf_url}
+                class="w-full"
+                style="height: calc(100vh - 200px); min-height: 600px;"
+              >
+                <p class="p-6 text-center text-gray-500">
+                  Your browser doesn't support embedded PDFs.
+                  <a href={@screenplay.pdf_url} target="_blank" class="text-emerald-600 underline">
+                    Click here to download the PDF
+                  </a>
+                </p>
+              </iframe>
+            </div>
+
+          <% @screenplay.script_content -> %>
+            <!-- Text Content -->
+            <div class="bg-white rounded-xl shadow-sm border p-6 sm:p-8">
+              <pre class="whitespace-pre-wrap font-mono text-sm sm:text-base leading-relaxed text-gray-800"><%= @screenplay.script_content %></pre>
+            </div>
+
+          <% true -> %>
+            <!-- No Content -->
+            <div class="bg-white rounded-xl shadow-sm border p-12 text-center">
+              <.icon name="hero-document-text" class="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h2 class="font-semibold text-xl mb-2">Script not available</h2>
+              <p class="text-gray-500 mb-6">The full script content hasn't been uploaded yet.</p>
+              <.link
+                navigate={~p"/screenplay/#{@screenplay.id}"}
+                class="text-emerald-600 font-medium hover:underline"
+              >
+                Back to screenplay
+              </.link>
+            </div>
         <% end %>
       </div>
 
