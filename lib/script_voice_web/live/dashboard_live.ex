@@ -141,6 +141,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
     |> assign(:upload_characters, [])
     |> assign(:upload_error, nil)
     |> allow_upload(:pdf, accept: ~w(.pdf), max_entries: 1, max_file_size: 10_000_000, auto_upload: true)
+    |> allow_upload(:replace_pdf, accept: ~w(.pdf), max_entries: 1, max_file_size: 10_000_000, auto_upload: true)
   end
 
   # ===========================================================================
@@ -282,22 +283,37 @@ defmodule ScriptVoiceWeb.DashboardLive do
   @impl true
   def handle_event("save_edit", _, socket) do
     screenplay = Screenplays.get_screenplay!(socket.assigns.edit_screenplay_id)
+    user_id = socket.assigns.current_user.id
 
-    if screenplay.writer_id == socket.assigns.current_user.id do
+    if screenplay.writer_id == user_id do
+      # Process replacement PDF if any
+      pdf_result = process_replace_pdf_upload(socket, user_id)
+
       attrs = %{
         "title" => socket.assigns.edit_title,
         "genre" => socket.assigns.edit_genre,
         "logline" => socket.assigns.edit_logline
       }
 
+      # Add PDF URL if a new PDF was uploaded
+      attrs = case pdf_result do
+        {:ok, %{url: url}} -> Map.put(attrs, "pdf_url", url)
+        _ -> attrs
+      end
+
       case Screenplays.update_screenplay(screenplay, attrs) do
         {:ok, updated} ->
           # Notify performers if there are audio versions
           notify_performers_of_update(updated)
 
+          message = case pdf_result do
+            {:ok, _} -> "Screenplay updated with new script (v#{updated.version})!"
+            _ -> "Screenplay updated successfully!"
+          end
+
           {:noreply,
            socket
-           |> put_flash(:info, "Screenplay updated successfully!")
+           |> put_flash(:info, message)
            |> assign(:edit_screenplay_id, nil)
            |> load_screenplays(socket.assigns.current_user)}
 
@@ -306,6 +322,24 @@ defmodule ScriptVoiceWeb.DashboardLive do
       end
     else
       {:noreply, put_flash(socket, :error, "You can only edit your own screenplays")}
+    end
+  end
+
+  defp process_replace_pdf_upload(socket, user_id) do
+    alias ScriptVoice.Uploads
+
+    uploaded_files =
+      consume_uploaded_entries(socket, :replace_pdf, fn %{path: temp_path}, entry ->
+        if Uploads.configured?() do
+          Uploads.upload_pdf(temp_path, entry.client_name, user_id)
+        else
+          {:ok, %{url: "/uploads/#{entry.client_name}", key: entry.client_name, size: 0}}
+        end
+      end)
+
+    case uploaded_files do
+      [result | _] -> result
+      [] -> {:error, :no_file}
     end
   end
 
@@ -385,12 +419,23 @@ defmodule ScriptVoiceWeb.DashboardLive do
 
   @impl true
   def handle_event("publish_screenplay", _, socket) do
+    user_id = socket.assigns.current_user.id
+
+    # Process uploaded PDF if any
+    pdf_result = process_pdf_upload(socket, user_id)
+
     screenplay_attrs = %{
       "title" => socket.assigns.upload_title,
       "genre" => socket.assigns.upload_genre,
       "logline" => socket.assigns.upload_logline,
       "characters" => socket.assigns.upload_characters
     }
+
+    # Add PDF URL if upload succeeded
+    screenplay_attrs = case pdf_result do
+      {:ok, %{url: url}} -> Map.put(screenplay_attrs, "pdf_url", url)
+      _ -> screenplay_attrs
+    end
 
     case Screenplays.create_screenplay(screenplay_attrs, socket.assigns.current_user) do
       {:ok, screenplay} ->
@@ -408,6 +453,25 @@ defmodule ScriptVoiceWeb.DashboardLive do
       {:error, changeset} ->
         error = format_errors(changeset)
         {:noreply, assign(socket, :upload_error, error)}
+    end
+  end
+
+  defp process_pdf_upload(socket, user_id) do
+    alias ScriptVoice.Uploads
+
+    uploaded_files =
+      consume_uploaded_entries(socket, :pdf, fn %{path: temp_path}, entry ->
+        if Uploads.configured?() do
+          Uploads.upload_pdf(temp_path, entry.client_name, user_id)
+        else
+          # Local fallback - just return a placeholder
+          {:ok, %{url: "/uploads/#{entry.client_name}", key: entry.client_name, size: 0}}
+        end
+      end)
+
+    case uploaded_files do
+      [result | _] -> result
+      [] -> {:error, :no_file}
     end
   end
 
@@ -968,6 +1032,39 @@ defmodule ScriptVoiceWeb.DashboardLive do
                         ><%= @edit_logline %></textarea>
                       </div>
 
+                      <!-- Replace Script PDF -->
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                          Replace Script (Optional)
+                        </label>
+                        <div
+                          class="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-emerald-400 transition"
+                          phx-drop-target={@uploads.replace_pdf.ref}
+                        >
+                          <.live_file_input upload={@uploads.replace_pdf} class="sr-only" />
+                          <label for={@uploads.replace_pdf.ref} class="cursor-pointer block">
+                            <.icon name="hero-arrow-up-tray" class="w-6 h-6 mx-auto mb-1 text-gray-400" />
+                            <p class="text-xs text-gray-500">
+                              <%= if sp.pdf_url do %>
+                                Upload new PDF to replace current script
+                              <% else %>
+                                Upload PDF script
+                              <% end %>
+                            </p>
+                          </label>
+                          <%= for entry <- @uploads.replace_pdf.entries do %>
+                            <div class="mt-2 bg-emerald-50 rounded-lg p-2">
+                              <p class="text-xs text-emerald-600 font-medium"><%= entry.client_name %></p>
+                            </div>
+                          <% end %>
+                        </div>
+                        <%= if sp.pdf_url do %>
+                          <p class="text-xs text-gray-500 mt-1">
+                            Current: v<%= sp.version || 1 %> - Uploading new script will create v<%= (sp.version || 1) + 1 %>
+                          </p>
+                        <% end %>
+                      </div>
+
                       <%= if (sp.audio_version_count || 0) > 0 do %>
                         <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
                           <.icon name="hero-exclamation-triangle" class="w-4 h-4 inline" />
@@ -1019,11 +1116,12 @@ defmodule ScriptVoiceWeb.DashboardLive do
                           </span>
                         </div>
                       </.link>
-                      <div class="flex items-center gap-1 ml-4 flex-shrink-0">
+                      <!-- Action Buttons -->
+                      <div class="flex items-center gap-2 ml-3 flex-shrink-0">
                         <button
                           phx-click="start_edit"
                           phx-value-id={sp.id}
-                          class="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                          class="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition"
                           title="Edit screenplay"
                         >
                           <.icon name="hero-pencil-square" class="w-5 h-5" />
@@ -1031,14 +1129,11 @@ defmodule ScriptVoiceWeb.DashboardLive do
                         <button
                           phx-click="confirm_delete"
                           phx-value-id={sp.id}
-                          class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                          class="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
                           title="Delete screenplay"
                         >
                           <.icon name="hero-trash" class="w-5 h-5" />
                         </button>
-                        <.link navigate={~p"/screenplay/#{sp.id}"} class="p-2 text-gray-400 hover:text-gray-600">
-                          <.icon name="hero-chevron-right" class="w-5 h-5" />
-                        </.link>
                       </div>
                     </div>
                   </div>
