@@ -74,13 +74,14 @@ defmodule ScriptVoice.Uploads do
     # Create directory if needed
     File.mkdir_p!(dest_dir)
 
-    case File.cp(source_path, dest_path) do
-      :ok ->
-        file_size = File.stat!(dest_path).size
-        url = "/uploads/#{key}"
-        Logger.info("Uploaded file locally: #{key} (#{file_size} bytes)")
-        {:ok, %{url: url, key: key, size: file_size}}
-
+    # Use binary read/write to avoid encoding issues with source paths
+    with {:ok, contents} <- File.read(source_path),
+         :ok <- File.write(dest_path, contents) do
+      file_size = byte_size(contents)
+      url = "/uploads/#{key}"
+      Logger.info("Uploaded file locally: #{key} (#{file_size} bytes)")
+      {:ok, %{url: url, key: key, size: file_size}}
+    else
       {:error, reason} ->
         Logger.error("Failed to save file locally: #{inspect(reason)}")
         {:error, reason}
