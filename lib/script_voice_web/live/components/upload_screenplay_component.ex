@@ -233,8 +233,10 @@ defmodule ScriptVoiceWeb.UploadScreenplayComponent do
                 <div class="flex items-center justify-between mb-2">
                   <input
                     type="text"
+                    name="value"
                     value={char.name}
                     phx-blur="update_character"
+                    phx-debounce="blur"
                     phx-value-index={index}
                     phx-value-field="name"
                     phx-target={@myself}
@@ -242,6 +244,7 @@ defmodule ScriptVoiceWeb.UploadScreenplayComponent do
                   />
                   <div class="flex items-center gap-2">
                     <select
+                      name="value"
                       phx-change="update_character"
                       phx-value-index={index}
                       phx-value-field="gender"
@@ -266,8 +269,10 @@ defmodule ScriptVoiceWeb.UploadScreenplayComponent do
                 <div class="flex items-center justify-between text-sm text-gray-500">
                   <input
                     type="text"
+                    name="value"
                     value={char.description || ""}
                     phx-blur="update_character"
+                    phx-debounce="blur"
                     phx-value-index={index}
                     phx-value-field="description"
                     phx-target={@myself}

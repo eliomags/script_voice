@@ -117,6 +117,16 @@ defmodule ScriptVoiceWeb.BrowseLive do
     {:noreply, assign(socket, :show_upload_modal, false)}
   end
 
+  # Handle screenplay created from upload component
+  @impl true
+  def handle_info({:screenplay_created, screenplay}, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_upload_modal, false)
+     |> put_flash(:info, "Screenplay \"#{screenplay.title}\" published successfully!")
+     |> push_navigate(to: ~p"/screenplay/#{screenplay.id}")}
+  end
+
   defp update_screenplay_likes(socket, id, change) do
     update(socket, :screenplays, fn screenplays ->
       Enum.map(screenplays, fn sp ->
