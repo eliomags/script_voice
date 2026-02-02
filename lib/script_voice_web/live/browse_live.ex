@@ -509,16 +509,14 @@ defmodule ScriptVoiceWeb.BrowseLive do
           </div>
 
           <!-- Sort Dropdown -->
-          <div class="sm:ml-auto">
-            <select
+          <div class="sm:ml-auto w-full sm:w-48">
+            <.styled_dropdown
+              id="browse-sort"
               name="sort"
+              value={@selected_sort}
+              options={@sort_options}
               phx-change="change_sort"
-              class="w-full sm:w-auto border rounded-lg px-3 py-2 text-sm font-medium bg-white focus:border-emerald-500 focus:ring-emerald-500"
-            >
-              <%= for {label, value} <- @sort_options do %>
-                <option value={value} selected={value == @selected_sort}><%= label %></option>
-              <% end %>
-            </select>
+            />
           </div>
         </div>
 
@@ -550,7 +548,7 @@ defmodule ScriptVoiceWeb.BrowseLive do
               <.screenplay_card
                 screenplay={sp}
                 liked={sp.id in @liked_screenplay_ids}
-                phx-click={JS.navigate(~p"/screenplay/#{sp.id}")}
+                phx-click={JS.navigate(~p"/screenplay/#{sp.id}?from=browse")}
               />
             <% end %>
           </div>

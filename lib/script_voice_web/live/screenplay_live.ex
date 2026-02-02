@@ -20,10 +20,16 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
   def mount(%{"id" => id} = params, session, socket) do
     current_user = get_current_user(session)
 
-    # Handle back navigation from commissions
-    back_to = case params do
-      %{"from" => "commission", "commission_id" => commission_id} -> ~p"/commissions/#{commission_id}"
-      _ -> nil
+    # Handle back navigation based on where user came from
+    {back_to, back_label} = case params do
+      %{"from" => "commission", "commission_id" => commission_id} ->
+        {~p"/commissions/#{commission_id}", "Back to commission"}
+      %{"from" => "browse"} ->
+        {~p"/browse", "Back to browse"}
+      %{"from" => "dashboard"} ->
+        {~p"/dashboard?tab=screenplays", "Back to my scripts"}
+      _ ->
+        {nil, nil}
     end
 
     case Screenplays.get_screenplay(id) do
@@ -59,6 +65,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
          |> assign(:playing_id, nil)
          |> assign(:show_submit_modal, false)
          |> assign(:back_to, back_to)
+         |> assign(:back_label, back_label)
          |> assign(:page_title, screenplay.title)}
     end
   end
@@ -206,8 +213,8 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
       <div class="max-w-4xl mx-auto">
         <!-- Back Button -->
         <%= cond do %>
-          <% @back_to -> %>
-            <.back navigate={@back_to}>Back to commission</.back>
+          <% @back_to && @back_label -> %>
+            <.back navigate={@back_to}><%= @back_label %></.back>
           <% @is_author -> %>
             <.back navigate={~p"/dashboard?tab=screenplays"}>Back to my scripts</.back>
           <% true -> %>
@@ -292,15 +299,15 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
             Audio Versions (<%= length(@audio_versions) %>)
           </h2>
           <div class="flex items-center gap-3 w-full sm:w-auto">
-            <select
-              name="sort"
-              phx-change="change_audio_sort"
-              class="flex-1 sm:flex-none border rounded-lg px-3 py-2 text-sm font-medium bg-white focus:border-emerald-500 focus:ring-emerald-500"
-            >
-              <%= for {label, value} <- @audio_sort_options do %>
-                <option value={value} selected={value == @audio_sort}><%= label %></option>
-              <% end %>
-            </select>
+            <div class="flex-1 sm:flex-none sm:w-40">
+              <.styled_dropdown
+                id="audio-sort"
+                name="sort"
+                value={@audio_sort}
+                options={@audio_sort_options}
+                phx-change="change_audio_sort"
+              />
+            </div>
             <%= if @current_user && @current_user.user_type == "voice_artist" do %>
               <.button phx-click="show_submit_modal" class="whitespace-nowrap">
                 <.icon name="hero-microphone" class="w-4 h-4" />

@@ -794,7 +794,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
           <%= if @current_user.user_type == "writer" && length(@screenplays) > 0 do %>
             <div class="space-y-2">
               <%= for sp <- Enum.take(@screenplays, 3) do %>
-                <.link navigate={~p"/screenplay/#{sp.id}"} class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
+                <.link navigate={~p"/screenplay/#{sp.id}?from=dashboard"} class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
                   <div class="truncate">
                     <div class="font-medium text-sm text-gray-900 truncate"><%= sp.title %></div>
                     <div class="text-xs text-gray-500"><%= sp.genre %></div>
@@ -810,7 +810,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
             <%= if @current_user.user_type == "voice_artist" && length(@audio_versions) > 0 do %>
               <div class="space-y-2">
                 <%= for audio <- Enum.take(@audio_versions, 3) do %>
-                  <.link navigate={~p"/screenplay/#{audio.screenplay_id}"} class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
+                  <.link navigate={~p"/screenplay/#{audio.screenplay_id}?from=dashboard"} class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
                     <div class="truncate">
                       <div class="font-medium text-sm text-gray-900 truncate"><%= audio.screenplay.title %></div>
                       <div class="text-xs text-gray-500"><%= AudioVersion.display_duration(audio) %></div>
@@ -1220,7 +1220,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
                   <!-- Normal View -->
                   <div class="p-4">
                     <div class="flex items-start justify-between">
-                      <.link navigate={~p"/screenplay/#{sp.id}"} class="flex-1 min-w-0">
+                      <.link navigate={~p"/screenplay/#{sp.id}?from=dashboard"} class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 mb-1">
                           <h3 class="font-semibold text-gray-900 truncate"><%= sp.title %></h3>
                           <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded"><%= sp.genre %></span>
@@ -1301,7 +1301,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
             <% script_version = audio.script_version || 1 %>
             <% current_version = audio.screenplay.version || 1 %>
             <% is_outdated = script_version < current_version %>
-            <.link navigate={~p"/screenplay/#{audio.screenplay_id}"} class={["block bg-white rounded-xl border p-4 transition", is_outdated && "border-amber-300", !is_outdated && "hover:border-emerald-300"]}>
+            <.link navigate={~p"/screenplay/#{audio.screenplay_id}?from=dashboard"} class={["block bg-white rounded-xl border p-4 transition", is_outdated && "border-amber-300", !is_outdated && "hover:border-emerald-300"]}>
               <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
