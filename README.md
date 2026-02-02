@@ -2,45 +2,107 @@
 
 A Phoenix LiveView platform connecting screenplay writers with voice artists. Writers upload scripts, voice artists bring them to life with audio performances, and the community discovers new talent.
 
+## Table of Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [Demo Accounts](#demo-accounts)
+- [Project Structure](#project-structure)
+- [Key Routes](#key-routes)
+- [Database Schema](#database-schema)
+- [Commission System](#commission-system)
+- [Payment Flow](#payment-flow)
+- [File Storage](#file-storage)
+- [Development](#development)
+- [Deployment](#deployment)
+- [API Integrations](#api-integrations)
+
 ## Features
 
 ### For Writers
-- Upload and manage screenplays with character breakdowns
-- Browse audio performances of your scripts
-- Mark favorite performances as "Author's Picks"
-- Commission voice artists for custom recordings
-- Like and discover other writers' work
+
+- **Screenplay Management**
+  - Upload screenplays as PDF or paste text directly
+  - Track multiple versions with edit history and version notes
+  - Automatic character extraction from scripts
+  - Edit title, genre, logline, and metadata
+  - Delete screenplays with cascade to related audio versions
+
+- **Commission Voice Artists**
+  - Browse available voice artists with pricing info
+  - Multi-step commission request: Select Performer → Set Budget → Pay
+  - Secure payment via Stripe Checkout
+  - Real-time messaging with performers
+  - Review submissions and request revisions (included retakes)
+  - Approve final recordings to release payment
+
+- **Discovery & Social**
+  - Browse audio performances of your scripts
+  - Mark favorite performances as "Author's Picks"
+  - Like and discover other writers' work
+  - View verified user profiles
 
 ### For Voice Artists
-- Record audio versions of screenplays (solo or ensemble)
-- Set up pricing for commissions (per-page, flat rate, or quote-based)
-- Connect Stripe account for receiving payments
-- Build a profile with bio, intro video, and social links
-- Track earnings and manage active commissions
+
+- **Pricing & Availability**
+  - Multiple pricing models: per-page, per-page-per-character, flat rate, or quote-based
+  - Set minimum rates and rush job multipliers
+  - Define included retakes and additional retake pricing
+  - Toggle commission acceptance on/off
+  - Set maximum concurrent projects
+
+- **Commission Management**
+  - Receive commission requests with full screenplay access
+  - Accept or decline with optional response message
+  - View screenplay details and read scripts before accepting
+  - Submit audio recordings (MP3, WAV, M4A, OGG, FLAC up to 100MB)
+  - Handle revision requests with writer feedback
+  - Track earnings and active commissions
+
+- **Stripe Connect Integration**
+  - Connect bank account for receiving payments
+  - Express account onboarding flow
+  - Automatic payouts on commission completion
+  - Dashboard access for earnings tracking
+
+- **Profile Building**
+  - Bio and performer type (solo, duo, group/ensemble)
+  - Profile intro video
+  - Social media links
+  - Verification badge for verified artists
 
 ### For Everyone
-- Browse screenplays by genre, popularity, or recency
-- Listen to audio performances
-- View verified user profiles
+
 - Mobile-first responsive design
+- Browse screenplays by genre, popularity, or recency
+- Listen to audio performances with built-in player
+- View verified user profiles
+- In-app notifications for updates
+- Phone/email verification for account security
 
 ## Tech Stack
 
-- **Framework**: Phoenix 1.7+ with LiveView
-- **Language**: Elixir
-- **Database**: PostgreSQL
-- **Styling**: Tailwind CSS
-- **Payments**: Stripe Connect
-- **Authentication**: Custom phone/email verification
+| Component | Technology |
+|-----------|------------|
+| **Framework** | Phoenix 1.7+ with LiveView 0.20+ |
+| **Language** | Elixir 1.14+ |
+| **Database** | SQLite (development) / PostgreSQL (production) |
+| **Styling** | Tailwind CSS 3.x |
+| **Icons** | Heroicons |
+| **Payments** | Stripe Connect (marketplace payments) |
+| **File Storage** | Cloudflare R2 (S3-compatible) with local fallback |
+| **Authentication** | Custom phone/email verification |
 
 ## Getting Started
 
 ### Prerequisites
 
-- Elixir 1.15+
+- Elixir 1.14+
 - Erlang/OTP 26+
-- PostgreSQL 14+
 - Node.js 18+ (for assets)
+- SQLite 3.x (development) or PostgreSQL 14+ (production)
 
 ### Installation
 
@@ -73,22 +135,32 @@ A Phoenix LiveView platform connecting screenplay writers with voice artists. Wr
 
 6. Visit [`localhost:4000`](http://localhost:4000) in your browser.
 
-### Environment Variables
+## Environment Variables
 
 Copy `.env.example` to `.env` and configure:
 
 ```bash
-# Database
-DATABASE_URL=ecto://postgres:postgres@localhost/script_voice_dev
+# Database (SQLite for dev, PostgreSQL for prod)
+DATABASE_PATH=priv/repo/script_voice_dev.db
+# Or for PostgreSQL:
+# DATABASE_URL=ecto://postgres:postgres@localhost/script_voice_dev
 
 # Phoenix
 SECRET_KEY_BASE=your-secret-key-base
 PHX_HOST=localhost
+PORT=4000
 
 # Stripe (for commission payments)
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_CONNECT_WEBHOOK_SECRET=whsec_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Cloudflare R2 (optional - falls back to local storage)
+R2_ACCOUNT_ID=your-account-id
+R2_ACCESS_KEY_ID=your-access-key
+R2_SECRET_ACCESS_KEY=your-secret-key
+R2_BUCKET_NAME=scriptvoice
+R2_PUBLIC_URL=https://your-bucket.r2.dev
 ```
 
 ## Demo Accounts
@@ -97,105 +169,276 @@ After running `mix ecto.setup`, the following demo accounts are available:
 
 ### Writers
 
-| Email | Name | Description |
+| Email | Name | Screenplays |
 |-------|------|-------------|
-| sarah@example.com | Sarah Chen | Sci-fi and family drama writer |
-| marcus@example.com | Marcus Webb | Romance and drama writer |
-| aisha@example.com | Aisha Patel | Thriller writer |
+| sarah@example.com | Sarah Chen | Sci-fi and family drama |
+| marcus@example.com | Marcus Webb | Romance and drama |
+| aisha@example.com | Aisha Patel | Thriller |
 
 ### Solo Voice Artists
 
-| Email | Name | Pricing |
-|-------|------|---------|
+| Email | Name | Pricing Model |
+|-------|------|---------------|
 | jake@example.com | Jake Morrison | Per page: $5/page, min $25 |
 | emma@example.com | Emma Stone | Per page: $8/page, min $50 |
 | michael@example.com | Michael Chang | Quote-based (flexible) |
 
 ### Group/Ensemble Voice Artists
 
-| Email | Name | Pricing |
-|-------|------|---------|
+| Email | Name | Pricing Model |
+|-------|------|---------------|
 | lighthouse@example.com | The Lighthouse Collective | Flat rate: $150, min $100 |
 | kimtorres@example.com | David Kim & Rachel Torres | Per page + per character |
 
-**Note**: All demo accounts are pre-verified. No password is required in development mode - just enter the email to sign in.
+**Note**: All demo accounts are pre-verified. In development mode, enter the email to sign in (no password required).
 
 ## Project Structure
 
 ```
 script_voice/
 ├── lib/
-│   ├── script_voice/           # Business logic
-│   │   ├── accounts/           # User management, verification
-│   │   ├── screenplays/        # Screenplay CRUD
-│   │   ├── audio/              # Audio version management
-│   │   ├── commissions/        # Commission requests, pricing
-│   │   ├── social/             # Likes, follows
-│   │   ├── notifications/      # In-app notifications
-│   │   └── stripe.ex           # Stripe Connect integration
+│   ├── script_voice/                 # Business logic (contexts)
+│   │   ├── accounts.ex               # User management, verification
+│   │   ├── accounts/
+│   │   │   └── user.ex               # User schema
+│   │   ├── screenplays.ex            # Screenplay CRUD, versioning
+│   │   ├── screenplays/
+│   │   │   └── screenplay.ex         # Screenplay schema
+│   │   ├── audio.ex                  # Audio version management
+│   │   ├── audio/
+│   │   │   └── audio_version.ex      # Audio schema
+│   │   ├── commissions.ex            # Commission workflow
+│   │   ├── commissions/
+│   │   │   ├── commission_request.ex # Commission schema
+│   │   │   ├── commission_submission.ex
+│   │   │   ├── commission_message.ex
+│   │   │   ├── performer_pricing.ex
+│   │   │   ├── payment.ex
+│   │   │   ├── stripe_account.ex
+│   │   │   └── price_calculator.ex   # Fee calculations
+│   │   ├── social.ex                 # Likes, follows
+│   │   ├── notifications.ex          # In-app notifications
+│   │   ├── stripe.ex                 # Stripe Connect integration
+│   │   └── uploads.ex                # R2/local file uploads
 │   │
-│   └── script_voice_web/       # Web layer
-│       ├── components/         # Reusable UI components
-│       ├── live/               # LiveView pages
-│       ├── controllers/        # Traditional controllers
-│       └── router.ex           # Route definitions
+│   └── script_voice_web/             # Web layer
+│       ├── components/
+│       │   ├── core_components.ex    # Form inputs, buttons, modals
+│       │   └── layouts.ex            # Root + app layouts
+│       ├── live/
+│       │   ├── home_live.ex          # Landing page
+│       │   ├── browse_live.ex        # Screenplay browsing
+│       │   ├── screenplay_live.ex    # Screenplay details
+│       │   ├── script_reader_live.ex # PDF/text reader
+│       │   ├── profile_live.ex       # User profiles
+│       │   ├── dashboard_live.ex     # Writer dashboard (tabbed)
+│       │   ├── commission_dashboard_live.ex  # Commission list
+│       │   ├── commission_detail_live.ex     # Commission details
+│       │   ├── commission_request_live.ex    # Request form
+│       │   ├── payment_success_live.ex       # Payment confirmation
+│       │   ├── performer_pricing_live.ex     # Pricing settings
+│       │   ├── stripe_connect_live.ex        # Stripe onboarding
+│       │   ├── verify_live.ex                # Verification flow
+│       │   ├── demo_login_live.ex            # Demo accounts
+│       │   └── components/
+│       │       ├── commission_submit_audio_component.ex
+│       │       ├── submit_audio_component.ex
+│       │       └── upload_screenplay_component.ex
+│       ├── controllers/
+│       │   ├── session_controller.ex
+│       │   └── stripe_webhook_controller.ex
+│       └── router.ex
 │
 ├── priv/
-│   └── repo/
-│       ├── migrations/         # Database migrations
-│       └── seeds.exs           # Demo data
+│   ├── repo/
+│   │   ├── migrations/               # 16 database migrations
+│   │   └── seeds.exs                 # Demo data
+│   └── static/
+│       └── uploads/                  # Local file storage fallback
 │
-├── assets/                     # Frontend assets (JS, CSS)
-├── config/                     # Configuration files
-└── test/                       # Test files
+├── assets/                           # Frontend assets (JS, CSS)
+├── config/                           # Configuration files
+└── test/                             # Test files
 ```
 
 ## Key Routes
 
+### Public Routes
+
 | Path | Description |
 |------|-------------|
 | `/` | Landing page |
-| `/browse` | Browse all screenplays |
+| `/browse` | Browse all screenplays with filters |
 | `/screenplay/:id` | View screenplay details and audio versions |
+| `/screenplay/:id/read` | Full-screen script reader (PDF/text) |
 | `/profile/:id` | User profile page |
 | `/verify` | Phone/email verification flow |
-| `/commissions` | Commission dashboard |
-| `/commissions/request/:performer_id` | Request a commission |
-| `/commissions/:id` | Commission details |
-| `/settings/payments` | Stripe Connect setup |
+| `/demo-login` | Demo account login (development only) |
+
+### Commission Routes
+
+| Path | Description |
+|------|-------------|
+| `/commissions` | Commission dashboard (filtered by user type) |
+| `/commissions/:id` | Commission detail + messaging |
+| `/commissions/request/:screenplay_id` | Multi-step commission request form |
+| `/commissions/payment/success` | Post-payment confirmation |
+
+### Settings Routes
+
+| Path | Description |
+|------|-------------|
+| `/dashboard` | Writer dashboard (screenplays, audio, commissions, profile) |
+| `/settings/pricing` | Voice artist pricing configuration |
+| `/settings/payments` | Stripe Connect onboarding |
+
+### API Routes
+
+| Path | Method | Description |
+|------|--------|-------------|
+| `/session` | POST | Login with credentials |
+| `/session/:user_id` | GET | Demo login (dev only) |
+| `/session` | DELETE | Logout |
+| `/webhooks/stripe` | POST | Stripe webhook handler |
 
 ## Database Schema
 
 ### Core Tables
 
-- **users** - Writers, voice artists, and visitors
-- **screenplays** - Uploaded scripts with character data
-- **audio_versions** - Recorded performances linked to screenplays
-- **likes** - User likes on screenplays and audio versions
+| Table | Purpose |
+|-------|---------|
+| `users` | Writers, voice artists, and visitors with verification status |
+| `screenplays` | Scripts with version tracking, characters, and metadata |
+| `audio_versions` | Recorded performances with performer/casting info |
+| `likes` | User likes on screenplays and audio versions |
 
 ### Commission System
 
-- **performer_pricing** - Voice artist rate settings
-- **commission_requests** - Commission workflow tracking
-- **commission_submissions** - Audio submissions for commissions
-- **commission_messages** - In-commission messaging
-- **payments** - Stripe payment records
-- **stripe_accounts** - Connected Stripe account info
+| Table | Purpose |
+|-------|---------|
+| `performer_pricing` | Voice artist rate settings and availability |
+| `commission_requests` | Commission workflow tracking with status |
+| `commission_submissions` | Audio submissions with revision feedback |
+| `commission_messages` | In-commission messaging thread |
+| `payments` | Stripe payment records with fee breakdown |
+| `stripe_accounts` | Connected Stripe account info |
 
 ### Supporting Tables
 
-- **verification_codes** - Phone/email verification
-- **notifications** - In-app notifications
+| Table | Purpose |
+|-------|---------|
+| `verification_codes` | Phone/email OTP codes |
+| `notifications` | In-app notifications |
 
-## Commission Flow
+## Commission System
 
-1. **Writer requests commission** - Selects performer, screenplay, and agrees to pricing
-2. **Payment captured** - Stripe holds funds (if paid commission)
-3. **Performer accepts/declines** - Reviews request details
-4. **Work in progress** - Performer records audio, can message writer
-5. **Submission** - Performer uploads audio for review
-6. **Approval** - Writer approves or requests revision
-7. **Completion** - Payment released to performer (minus 10% platform fee)
+### Status Lifecycle
+
+```
+pending ──┬──→ accepted ──→ in_progress ──→ submitted ──┬──→ completed ✓
+          │                                              │
+          │                                              └──→ revision_requested ──→ [resubmit]
+          │
+          ├──→ declined ✗
+          └──→ cancelled ✗
+```
+
+### Status Descriptions
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Awaiting performer response |
+| `accepted` | Performer committed, payment held in escrow |
+| `in_progress` | Performer recording |
+| `submitted` | Audio uploaded for writer review |
+| `revision_requested` | Writer requested changes (uses 1 retake) |
+| `completed` | Approved, payment released to performer |
+| `declined` | Performer declined the request |
+| `cancelled` | Either party cancelled |
+
+### Retake System
+
+- Default: 2 retakes included per commission
+- Configurable per voice artist in pricing settings
+- Each revision request consumes 1 retake
+- Additional retakes can be priced separately
+
+## Payment Flow
+
+### Escrow Model
+
+ScriptVoice uses an escrow payment model to protect both writers and performers:
+
+```
+1. Writer requests commission
+   └── Redirects to Stripe Checkout
+
+2. Payment captured
+   └── Funds held in platform account (status: "held")
+
+3. Performer accepts & works
+   └── Payment remains in escrow
+
+4. Performer submits audio
+   └── Writer reviews submission
+
+5. Writer approves
+   └── Payment transferred to performer's Stripe account
+   └── Platform fee (10%) deducted
+
+6. Performer receives payout
+   └── Status: "completed"
+```
+
+### Fee Breakdown
+
+For a $100 commission:
+
+**Writer Pays:**
+| Item | Amount |
+|------|--------|
+| Commission Amount | $100.00 |
+| Processing Fee (2.9% + $0.30) | $3.20 |
+| **Total** | **$103.20** |
+
+**Performer Receives:**
+| Item | Amount |
+|------|--------|
+| Commission Amount | $100.00 |
+| Platform Fee (10%) | -$10.00 |
+| **Payout** | **$90.00** |
+
+### Stripe Connect
+
+Voice artists connect their Stripe accounts via Express onboarding:
+
+1. Navigate to `/settings/payments`
+2. Click "Connect with Stripe"
+3. Complete Stripe's onboarding flow
+4. Return to ScriptVoice with connected account
+5. Start accepting paid commissions
+
+## File Storage
+
+### Upload Support
+
+| Type | Formats | Max Size |
+|------|---------|----------|
+| Screenplays | PDF, TXT (paste) | 50MB |
+| Audio | MP3, WAV, M4A, OGG, FLAC, audio/* | 100MB |
+| Profile Video | MP4, MOV, WEBM | 100MB |
+
+### Storage Backends
+
+1. **Cloudflare R2** (Production)
+   - S3-compatible object storage
+   - Public URLs for file serving
+   - Configured via environment variables
+
+2. **Local Storage** (Development Fallback)
+   - Files stored in `priv/static/uploads/`
+   - Served via Phoenix static plug
+   - Automatic fallback when R2 not configured
 
 ## Development
 
@@ -222,56 +465,115 @@ mix ecto.migrate
 
 # Rollback last migration
 mix ecto.rollback
+
+# Drop database
+mix ecto.drop
+
+# Create database
+mix ecto.create
 ```
 
 ### Asset Building
 
 ```bash
-# Development build
-mix assets.build
+# Development build (with watching)
+mix phx.server  # Assets built automatically
 
 # Production build
 mix assets.deploy
 ```
 
+### LiveDashboard
+
+In development, visit `/dev/dashboard` for:
+- Real-time metrics
+- Process information
+- ETS table inspection
+- Socket connections
+
 ## Deployment
 
 ### Production Configuration
 
-1. Set all environment variables in your production environment
-2. Configure your database connection via `DATABASE_URL`
+1. Set all environment variables
+2. Configure database connection via `DATABASE_URL`
 3. Set `PHX_HOST` to your domain
-4. Configure Stripe webhook endpoints
+4. Configure Stripe webhook endpoints:
+   - `https://yourdomain.com/webhooks/stripe`
+5. Set up R2 bucket with public access
 
 ### Release Build
 
 ```bash
+# Build release
 MIX_ENV=prod mix release
+
+# Run migrations
+_build/prod/rel/script_voice/bin/script_voice eval "ScriptVoice.Release.migrate"
+
+# Start server
+_build/prod/rel/script_voice/bin/script_voice start
+```
+
+### Docker Deployment
+
+```dockerfile
+# Example Dockerfile
+FROM elixir:1.14-alpine AS build
+# ... build steps ...
+
+FROM alpine:3.18
+# ... runtime configuration ...
 ```
 
 ## API Integrations
 
 ### Stripe Connect
 
-The platform uses Stripe Connect for marketplace payments:
-- Voice artists connect their Stripe accounts
-- Writers pay when requesting commissions
-- Funds are held until work is approved
-- 10% platform fee is deducted on payout
+Full marketplace payment integration:
+- Express account creation for performers
+- Checkout Sessions for secure payment
+- Payment intents with escrow capability
+- Automatic transfers on commission approval
+- Webhook handling for payment events
+
+### Cloudflare R2
+
+S3-compatible file storage:
+- Audio file uploads
+- PDF screenplay uploads
+- Public URL generation
+- CORS configuration for browser uploads
 
 ### Future Integrations (Planned)
 
-- Twilio for SMS verification
-- SendGrid/SES for email notifications
-- S3/CloudFlare R2 for audio storage
+- **Twilio**: SMS verification
+- **SendGrid/SES**: Email notifications
+- **Claude API**: Automatic character extraction from screenplays
+- **FFprobe**: Audio metadata extraction (duration, format)
+
+## Recent Changes
+
+### Version 2.0 (February 2026)
+
+- **Payment Flow**: Complete Stripe Checkout integration with escrow
+- **Commission UX**: Screenplay access for performers, improved navigation
+- **User Type Separation**: Clear separation of writer/performer views
+- **Filter Counts**: Commission filter tabs show counts
+- **Version Tracking**: Screenplay versioning with edit history
+- **PDF Viewer**: Embedded PDF reader for screenplays
+- **Audio Upload**: Wildcard MIME type support (audio/*)
+- **Local Fallback**: File storage works without R2 configured
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Run tests and formatting
-5. Submit a pull request
+4. Run tests and formatting (`mix test && mix format`)
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
 ## License
 
