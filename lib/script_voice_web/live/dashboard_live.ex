@@ -1404,7 +1404,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
                     <% end %>
                   </div>
                   <div class="text-sm text-gray-500 mt-1">
-                    <%= format_money(c.agreed_price_cents || c.requested_price_cents) %>
+                    <%= format_money(c.agreed_amount_cents || c.offered_amount_cents) %>
                   </div>
                 </div>
                 <.icon name="hero-chevron-right" class="w-5 h-5 text-gray-400 flex-shrink-0" />
@@ -1547,7 +1547,12 @@ defmodule ScriptVoiceWeb.DashboardLive do
     """
   end
 
-  defp format_time_ago(datetime) do
+  defp format_time_ago(nil), do: ""
+  defp format_time_ago(%NaiveDateTime{} = naive) do
+    datetime = DateTime.from_naive!(naive, "Etc/UTC")
+    format_time_ago(datetime)
+  end
+  defp format_time_ago(%DateTime{} = datetime) do
     now = DateTime.utc_now()
     diff = DateTime.diff(now, datetime, :second)
 

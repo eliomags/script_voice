@@ -481,6 +481,14 @@ defmodule ScriptVoiceWeb.CommissionRequestLive do
                   </div>
                 <% end %>
               </div>
+
+              <!-- Message to Performer -->
+              <%= if @message && String.length(@message) > 0 do %>
+                <div class="mt-4 pt-4 border-t">
+                  <span class="text-gray-600 text-sm font-medium block mb-2">Your Message</span>
+                  <p class="text-sm text-gray-800 bg-gray-50 rounded-lg p-3"><%= @message %></p>
+                </div>
+              <% end %>
             </div>
 
             <!-- Payment Breakdown -->
