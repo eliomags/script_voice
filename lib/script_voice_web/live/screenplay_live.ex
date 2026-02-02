@@ -223,13 +223,23 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
               </p>
             </div>
 
-            <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <.like_button
                 liked={@screenplay.id in @liked_screenplay_ids}
                 count={@screenplay.likes}
                 phx-click="toggle_screenplay_like"
                 phx-value-id={@screenplay.id}
               />
+              <%= if @is_author do %>
+                <.link
+                  navigate={~p"/commissions/request/#{@screenplay.id}"}
+                  class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition"
+                >
+                  <.icon name="hero-user-plus" class="w-4 h-4" />
+                  <span class="hidden sm:inline">Commission Voice Artist</span>
+                  <span class="sm:hidden">Commission</span>
+                </.link>
+              <% end %>
 <%= cond do %>
                 <% @screenplay.script_content && String.length(@screenplay.script_content) > 0 -> %>
                   <.link
@@ -297,7 +307,14 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
             <.icon name="hero-microphone" class="w-10 h-10 text-amber-500 mx-auto mb-3" />
             <h3 class="font-semibold text-lg mb-2">No audio versions yet</h3>
             <%= if @is_author do %>
-              <p class="text-gray-600">Voice artists can submit their audio performances here.</p>
+              <p class="text-gray-600 mb-4">Voice artists can submit their audio performances, or you can commission one directly.</p>
+              <.link
+                navigate={~p"/commissions/request/#{@screenplay.id}"}
+                class="inline-flex items-center gap-2 bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 transition"
+              >
+                <.icon name="hero-user-plus" class="w-4 h-4" />
+                Commission Voice Artist
+              </.link>
             <% else %>
               <p class="text-gray-600 mb-4">Be the first to bring this screenplay to life!</p>
               <%= if @current_user && @current_user.user_type == "voice_artist" do %>
