@@ -134,10 +134,10 @@ defmodule ScriptVoiceWeb.DashboardLive do
 
   defp init_upload_form(socket) do
     socket
-    |> assign(:upload_step, 1)
     |> assign(:upload_title, "")
     |> assign(:upload_genre, "Drama")
     |> assign(:upload_logline, "")
+    |> assign(:upload_page_count, nil)
     |> assign(:upload_characters, [])
     |> assign(:upload_error, nil)
     |> allow_upload(:pdf, accept: ~w(.pdf), max_entries: 1, max_file_size: 10_000_000, auto_upload: true)
@@ -176,46 +176,52 @@ defmodule ScriptVoiceWeb.DashboardLive do
   # Upload form events
   @impl true
   def handle_event("toggle_upload_form", _, socket) do
-    {:noreply, assign(socket, :show_upload_form, !socket.assigns.show_upload_form)}
+    # When toggling, always reset form to clean state
+    {:noreply,
+     socket
+     |> assign(:show_upload_form, !socket.assigns.show_upload_form)
+     |> assign(:upload_title, "")
+     |> assign(:upload_genre, "Drama")
+     |> assign(:upload_logline, "")
+     |> assign(:upload_page_count, nil)
+     |> assign(:upload_characters, [])
+     |> assign(:upload_error, nil)}
   end
 
   @impl true
   def handle_event("validate_upload", params, socket) do
-    socket =
-      socket
-      |> assign(:upload_error, nil)
-      |> then(fn s -> if params["title"], do: assign(s, :upload_title, params["title"]), else: s end)
-      |> then(fn s -> if params["genre"], do: assign(s, :upload_genre, params["genre"]), else: s end)
-      |> then(fn s -> if params["logline"], do: assign(s, :upload_logline, params["logline"]), else: s end)
+    # Always preserve existing values - use params if provided, otherwise keep existing
+    title = Map.get(params, "title", socket.assigns.upload_title)
+    genre = Map.get(params, "genre", socket.assigns.upload_genre)
+    logline = Map.get(params, "logline", socket.assigns.upload_logline)
 
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_event("continue_to_characters", _, socket) do
-    cond do
-      socket.assigns.upload_title == "" ->
-        {:noreply, assign(socket, :upload_error, "Please enter a title")}
-
-      socket.assigns.upload_logline == "" ->
-        {:noreply, assign(socket, :upload_error, "Please enter a logline")}
-
-      true ->
-        {:noreply, assign(socket, :upload_step, 2)}
+    # For page_count, parse integer and preserve existing on empty/invalid
+    page_count = case Map.get(params, "page_count") do
+      nil -> socket.assigns[:upload_page_count]
+      "" -> socket.assigns[:upload_page_count]
+      val ->
+        case Integer.parse(val) do
+          {num, _} -> num
+          :error -> socket.assigns[:upload_page_count]
+        end
     end
+
+    {:noreply,
+     socket
+     |> assign(:upload_error, nil)
+     |> assign(:upload_title, title)
+     |> assign(:upload_genre, genre)
+     |> assign(:upload_logline, logline)
+     |> assign(:upload_page_count, page_count)}
   end
 
-  @impl true
-  def handle_event("back_to_step_1", _, socket) do
-    {:noreply, assign(socket, :upload_step, 1)}
-  end
 
   @impl true
   def handle_event("add_character", _, socket) do
     new_char = %{
-      name: "NEW CHARACTER",
-      gender: "Unknown",
-      estimated_lines: 0,
+      name: "",
+      gender: "Any",
+      estimated_lines: nil,
       description: ""
     }
 
@@ -223,16 +229,81 @@ defmodule ScriptVoiceWeb.DashboardLive do
   end
 
   @impl true
-  def handle_event("update_character", %{"index" => index, "field" => field, "value" => value}, socket) do
-    index = String.to_integer(index)
+  def handle_event("update_character", %{"index" => index, "field" => field} = params, socket) do
+    index_int = String.to_integer(index)
+
+    # Get value from phx-value-* attributes or dynamic input names
+    value = cond do
+      # For gender buttons, look for "gender" param
+      Map.has_key?(params, "gender") && params["gender"] != "" -> params["gender"]
+      # Legacy: check "value" param
+      Map.has_key?(params, "value") && params["value"] != "" -> params["value"]
+      # For form inputs with dynamic names
+      Map.has_key?(params, "char_name_#{index}") -> params["char_name_#{index}"]
+      Map.has_key?(params, "char_gender_#{index}") -> params["char_gender_#{index}"]
+      Map.has_key?(params, "char_lines_#{index}") -> params["char_lines_#{index}"]
+      true -> nil
+    end
+
+    # Convert estimated_lines to integer
+    value = if field == "estimated_lines" do
+      case value do
+        nil -> nil
+        "" -> nil
+        val when is_binary(val) -> String.to_integer(val)
+        val -> val
+      end
+    else
+      value
+    end
 
     characters =
       socket.assigns.upload_characters
-      |> List.update_at(index, fn char ->
+      |> List.update_at(index_int, fn char ->
         Map.put(char, String.to_atom(field), value)
       end)
 
     {:noreply, assign(socket, :upload_characters, characters)}
+  end
+
+  # Catch-all for character updates from select elements (phx-change doesn't include phx-value-* attrs)
+  @impl true
+  def handle_event("update_character", %{"_target" => [target_name]} = params, socket) do
+    # Parse the target name to extract index and field (e.g., "char_gender_0" -> index=0, field="gender")
+    case Regex.run(~r/^char_(name|gender|lines)_(\d+)$/, target_name) do
+      [_, field_short, index_str] ->
+        index = String.to_integer(index_str)
+        field = case field_short do
+          "name" -> "name"
+          "gender" -> "gender"
+          "lines" -> "estimated_lines"
+        end
+        value = params[target_name]
+
+        # Convert estimated_lines to integer
+        value = if field == "estimated_lines" do
+          case value do
+            nil -> nil
+            "" -> nil
+            val when is_binary(val) -> String.to_integer(val)
+            val -> val
+          end
+        else
+          value
+        end
+
+        characters =
+          socket.assigns.upload_characters
+          |> List.update_at(index, fn char ->
+            Map.put(char, String.to_atom(field), value)
+          end)
+
+        {:noreply, assign(socket, :upload_characters, characters)}
+
+      _ ->
+        # Unknown target, ignore
+        {:noreply, socket}
+    end
   end
 
   @impl true
@@ -295,10 +366,16 @@ defmodule ScriptVoiceWeb.DashboardLive do
         "logline" => socket.assigns.edit_logline
       }
 
-      # Add PDF URL if a new PDF was uploaded
+      # Add PDF URL and extracted text if a new PDF was uploaded
       attrs = case pdf_result do
-        {:ok, %{url: url}} -> Map.put(attrs, "pdf_url", url)
-        _ -> attrs
+        %{url: url, extracted_text: text} when not is_nil(text) and text != "" ->
+          attrs
+          |> Map.put("pdf_url", url)
+          |> Map.put("script_content", text)
+        %{url: url} ->
+          Map.put(attrs, "pdf_url", url)
+        _ ->
+          attrs
       end
 
       case Screenplays.update_screenplay(screenplay, attrs) do
@@ -327,14 +404,27 @@ defmodule ScriptVoiceWeb.DashboardLive do
 
   defp process_replace_pdf_upload(socket, user_id) do
     alias ScriptVoice.Uploads
+    alias ScriptVoice.PdfExtractor
 
     uploaded_files =
       consume_uploaded_entries(socket, :replace_pdf, fn %{path: temp_path}, entry ->
-        if Uploads.configured?() do
+        # First extract text from PDF
+        extracted_text = case PdfExtractor.extract_text(temp_path) do
+          {:ok, text} -> text
+          _ -> nil
+        end
+
+        # Then upload the PDF file
+        upload_result = if Uploads.configured?() do
           Uploads.upload_pdf(temp_path, entry.client_name, user_id)
         else
-          # Use local storage when R2 isn't configured
           Uploads.upload_pdf_local(temp_path, entry.client_name, user_id)
+        end
+
+        # Return both the upload result and extracted text
+        case upload_result do
+          {:ok, result} -> {:ok, Map.put(result, :extracted_text, extracted_text)}
+          error -> error
         end
       end)
 
@@ -429,13 +519,20 @@ defmodule ScriptVoiceWeb.DashboardLive do
       "title" => socket.assigns.upload_title,
       "genre" => socket.assigns.upload_genre,
       "logline" => socket.assigns.upload_logline,
+      "page_count" => socket.assigns[:upload_page_count],
       "characters" => socket.assigns.upload_characters
     }
 
-    # Add PDF URL if upload succeeded
+    # Add PDF URL and extracted text if upload succeeded
     screenplay_attrs = case pdf_result do
-      {:ok, %{url: url}} -> Map.put(screenplay_attrs, "pdf_url", url)
-      _ -> screenplay_attrs
+      %{url: url, extracted_text: text} when not is_nil(text) and text != "" ->
+        screenplay_attrs
+        |> Map.put("pdf_url", url)
+        |> Map.put("script_content", text)
+      %{url: url} ->
+        Map.put(screenplay_attrs, "pdf_url", url)
+      _ ->
+        screenplay_attrs
     end
 
     case Screenplays.create_screenplay(screenplay_attrs, socket.assigns.current_user) do
@@ -444,10 +541,10 @@ defmodule ScriptVoiceWeb.DashboardLive do
          socket
          |> put_flash(:info, "Screenplay \"#{screenplay.title}\" published successfully!")
          |> assign(:show_upload_form, false)
-         |> assign(:upload_step, 1)
          |> assign(:upload_title, "")
          |> assign(:upload_genre, "Drama")
          |> assign(:upload_logline, "")
+         |> assign(:upload_page_count, nil)
          |> assign(:upload_characters, [])
          |> load_screenplays(socket.assigns.current_user)}
 
@@ -459,14 +556,27 @@ defmodule ScriptVoiceWeb.DashboardLive do
 
   defp process_pdf_upload(socket, user_id) do
     alias ScriptVoice.Uploads
+    alias ScriptVoice.PdfExtractor
 
     uploaded_files =
       consume_uploaded_entries(socket, :pdf, fn %{path: temp_path}, entry ->
-        if Uploads.configured?() do
+        # First extract text from PDF
+        extracted_text = case PdfExtractor.extract_text(temp_path) do
+          {:ok, text} -> text
+          _ -> nil
+        end
+
+        # Then upload the PDF file
+        upload_result = if Uploads.configured?() do
           Uploads.upload_pdf(temp_path, entry.client_name, user_id)
         else
-          # Use local storage when R2 isn't configured
           Uploads.upload_pdf_local(temp_path, entry.client_name, user_id)
+        end
+
+        # Return both the upload result and extracted text
+        case upload_result do
+          {:ok, result} -> {:ok, Map.put(result, :extracted_text, extracted_text)}
+          error -> error
         end
       end)
 
@@ -592,10 +702,10 @@ defmodule ScriptVoiceWeb.DashboardLive do
               <.screenplays_tab
                 screenplays={@screenplays}
                 show_upload_form={@show_upload_form}
-                upload_step={@upload_step}
                 upload_title={@upload_title}
                 upload_genre={@upload_genre}
                 upload_logline={@upload_logline}
+                upload_page_count={@upload_page_count}
                 upload_characters={@upload_characters}
                 upload_error={@upload_error}
                 uploads={@uploads}
@@ -811,137 +921,153 @@ defmodule ScriptVoiceWeb.DashboardLive do
       <%= if @show_upload_form do %>
         <div class="bg-white rounded-xl border p-4 sm:p-6">
           <%= if @upload_error do %>
-            <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-center gap-2 text-red-700 text-sm">
+            <div class="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 flex items-center gap-2 text-red-700 text-sm">
               <.icon name="hero-exclamation-circle" class="w-5 h-5" />
               <%= @upload_error %>
             </div>
           <% end %>
 
-          <%= if @upload_step == 1 do %>
-            <h3 class="font-semibold text-gray-900 mb-4">Upload New Screenplay</h3>
-            <form phx-change="validate_upload" phx-submit="continue_to_characters" class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-                <input
-                  type="text"
-                  name="title"
-                  value={@upload_title}
-                  class="w-full border rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:ring-emerald-500"
-                  placeholder="Your screenplay title"
-                />
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Genre *</label>
-                <select name="genre" class="w-full border rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:ring-emerald-500">
-                  <%= for genre <- Screenplay.genres() do %>
-                    <option value={genre} selected={genre == @upload_genre}><%= genre %></option>
-                  <% end %>
-                </select>
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Logline *</label>
-                <textarea
-                  name="logline"
-                  rows="3"
-                  class="w-full border rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:ring-emerald-500"
-                  placeholder="One sentence that captures your story..."
-                ><%= @upload_logline %></textarea>
-              </div>
-
-              <div
-                class="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-emerald-400 transition"
-                phx-drop-target={@uploads.pdf.ref}
-              >
-                <.live_file_input upload={@uploads.pdf} class="sr-only" />
-                <label for={@uploads.pdf.ref} class="cursor-pointer block">
-                  <.icon name="hero-document-text" class="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <p class="text-sm text-gray-500">Drop PDF or <span class="text-emerald-600 font-medium">click to upload</span></p>
-                </label>
-                <%= for entry <- @uploads.pdf.entries do %>
-                  <div class="mt-3 bg-emerald-50 rounded-lg p-2">
-                    <p class="text-sm text-emerald-600 font-medium"><%= entry.client_name %></p>
-                  </div>
-                <% end %>
-              </div>
-
-              <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition">
-                Continue to Add Characters
-              </button>
-            </form>
-          <% else %>
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="font-semibold text-gray-900">Add Characters</h3>
-              <button phx-click="back_to_step_1" class="text-sm text-gray-500 hover:text-gray-700">
-                ← Back
-              </button>
+          <h3 class="font-semibold text-gray-900 mb-6">Upload New Screenplay</h3>
+          <form phx-change="validate_upload" phx-submit="publish_screenplay" class="space-y-5">
+            <div class="grid sm:grid-cols-2 gap-4">
+              <.styled_input
+                name="title"
+                value={@upload_title}
+                label="Title"
+                placeholder="Your screenplay title"
+                required={true}
+              />
+              <.styled_dropdown
+                name="genre"
+                value={@upload_genre}
+                options={Screenplay.genres()}
+                label="Genre"
+                required={true}
+              />
             </div>
 
-            <p class="text-sm text-gray-600 mb-4">Add your screenplay's characters. Voice artists will see this when browsing.</p>
+            <.styled_textarea
+              name="logline"
+              value={@upload_logline}
+              label="Logline"
+              placeholder="One sentence that captures your story..."
+              rows={2}
+              required={true}
+            />
 
-            <div class="space-y-3 max-h-[300px] overflow-y-auto mb-4">
-              <%= for {char, index} <- Enum.with_index(@upload_characters) do %>
-                <div class="border rounded-lg p-3">
-                  <div class="flex items-center justify-between mb-2">
-                    <input
-                      type="text"
-                      name="value"
-                      value={char.name}
-                      phx-blur="update_character"
-                      phx-debounce="blur"
-                      phx-value-index={index}
-                      phx-value-field="name"
-                      class="font-medium bg-transparent border-b border-transparent hover:border-gray-300 focus:border-emerald-500 focus:outline-none"
-                      style="width: 120px;"
-                    />
-                    <div class="flex items-center gap-2">
-                      <select
-                        name="value"
-                        phx-change="update_character"
+            <div class="grid sm:grid-cols-2 gap-4">
+              <.styled_number
+                name="page_count"
+                value={@upload_page_count}
+                label="Page Count"
+                placeholder="Number of pages"
+                min={1}
+                max={500}
+              />
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">Script PDF</label>
+                <div
+                  class="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/50 transition-colors"
+                  phx-drop-target={@uploads.pdf.ref}
+                >
+                  <.live_file_input upload={@uploads.pdf} class="sr-only" />
+                  <label for={@uploads.pdf.ref} class="cursor-pointer block">
+                    <%= if Enum.empty?(@uploads.pdf.entries) do %>
+                      <.icon name="hero-document-text" class="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                      <p class="text-sm text-gray-500">Drop PDF or <span class="text-emerald-600 font-medium">browse</span></p>
+                    <% else %>
+                      <%= for entry <- @uploads.pdf.entries do %>
+                        <div class="flex items-center justify-center gap-2">
+                          <.icon name="hero-check-circle" class="w-5 h-5 text-emerald-500" />
+                          <p class="text-sm text-emerald-600 font-medium truncate"><%= entry.client_name %></p>
+                        </div>
+                      <% end %>
+                    <% end %>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Characters Section -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-3">Characters (optional)</label>
+              <div class="space-y-3">
+                <%= for {char, index} <- Enum.with_index(@upload_characters) do %>
+                  <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                    <div class="flex-1">
+                      <input
+                        type="text"
+                        name={"char_name_#{index}"}
+                        value={char.name}
+                        phx-blur="update_character"
                         phx-value-index={index}
-                        phx-value-field="gender"
-                        class="text-sm border rounded px-2 py-1"
-                      >
+                        phx-value-field="name"
+                        placeholder="Character name"
+                        class="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      />
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <div class="flex rounded-lg border border-gray-200 overflow-hidden">
                         <%= for gender <- Character.genders() do %>
-                          <option value={gender} selected={gender == char.gender}><%= gender %></option>
+                          <button
+                            type="button"
+                            phx-click="update_character"
+                            phx-value-index={index}
+                            phx-value-field="gender"
+                            phx-value-gender={gender}
+                            class={[
+                              "px-3 py-2 text-sm font-medium transition-colors",
+                              gender == char.gender && "bg-emerald-500 text-white",
+                              gender != char.gender && "bg-white text-gray-600 hover:bg-gray-50"
+                            ]}
+                          >
+                            <%= gender %>
+                          </button>
                         <% end %>
-                      </select>
-                      <button type="button" phx-click="remove_character" phx-value-index={index} class="text-gray-400 hover:text-red-500">
+                      </div>
+                      <input
+                        type="hidden"
+                        name={"char_gender_#{index}"}
+                        value={char.gender}
+                      />
+                      <input
+                        type="number"
+                        name={"char_lines_#{index}"}
+                        value={char.estimated_lines}
+                        phx-blur="update_character"
+                        phx-value-index={index}
+                        phx-value-field="estimated_lines"
+                        placeholder="Lines"
+                        min="0"
+                        class="w-20 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <button
+                        type="button"
+                        phx-click="remove_character"
+                        phx-value-index={index}
+                        class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      >
                         <.icon name="hero-x-mark" class="w-4 h-4" />
                       </button>
                     </div>
                   </div>
-                  <input
-                    type="text"
-                    name="value"
-                    value={char.description || ""}
-                    phx-blur="update_character"
-                    phx-debounce="blur"
-                    phx-value-index={index}
-                    phx-value-field="description"
-                    placeholder="Character description..."
-                    class="w-full text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
-              <% end %>
+                <% end %>
 
-              <button
-                type="button"
-                phx-click="add_character"
-                class="w-full border-2 border-dashed rounded-lg py-3 text-gray-500 hover:border-gray-400 hover:text-gray-600 text-sm"
-              >
-                + Add Character
-              </button>
+                <button
+                  type="button"
+                  phx-click="add_character"
+                  class="w-full border-2 border-dashed border-gray-200 rounded-xl py-3 text-gray-500 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50/50 text-sm font-medium transition-colors"
+                >
+                  + Add Character
+                </button>
+              </div>
             </div>
 
-            <button
-              phx-click="publish_screenplay"
-              class="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 transition"
-            >
+            <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-sm">
               Publish Screenplay
             </button>
-          <% end %>
+          </form>
         </div>
       <% end %>
 
@@ -998,54 +1124,49 @@ defmodule ScriptVoiceWeb.DashboardLive do
                   <!-- Edit Form -->
                   <div class="p-4">
                     <form phx-change="validate_edit" phx-submit="save_edit" class="space-y-4">
-                      <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center justify-between mb-4">
                         <h3 class="font-semibold text-gray-900">Edit Screenplay</h3>
-                        <button type="button" phx-click="cancel_edit" class="text-gray-400 hover:text-gray-600">
+                        <button type="button" phx-click="cancel_edit" class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                           <.icon name="hero-x-mark" class="w-5 h-5" />
                         </button>
                       </div>
 
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                        <input
-                          type="text"
-                          name="title"
-                          value={@edit_title}
-                          class="w-full border rounded-lg px-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500"
-                        />
-                      </div>
+                      <.styled_input
+                        name="title"
+                        value={@edit_title}
+                        label="Title"
+                        required={true}
+                      />
 
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Genre</label>
-                        <select name="genre" class="w-full border rounded-lg px-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500">
-                          <%= for genre <- Screenplay.genres() do %>
-                            <option value={genre} selected={genre == @edit_genre}><%= genre %></option>
-                          <% end %>
-                        </select>
-                      </div>
+                      <.styled_dropdown
+                        name="genre"
+                        value={@edit_genre}
+                        options={Screenplay.genres()}
+                        label="Genre"
+                        required={true}
+                      />
 
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Logline</label>
-                        <textarea
-                          name="logline"
-                          rows="2"
-                          class="w-full border rounded-lg px-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500"
-                        ><%= @edit_logline %></textarea>
-                      </div>
+                      <.styled_textarea
+                        name="logline"
+                        value={@edit_logline}
+                        label="Logline"
+                        rows={2}
+                        required={true}
+                      />
 
                       <!-- Replace Script PDF -->
                       <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">
                           Replace Script (Optional)
                         </label>
                         <div
-                          class="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-emerald-400 transition"
+                          class="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/50 transition-colors"
                           phx-drop-target={@uploads.replace_pdf.ref}
                         >
                           <.live_file_input upload={@uploads.replace_pdf} class="sr-only" />
                           <label for={@uploads.replace_pdf.ref} class="cursor-pointer block">
-                            <.icon name="hero-arrow-up-tray" class="w-6 h-6 mx-auto mb-1 text-gray-400" />
-                            <p class="text-xs text-gray-500">
+                            <.icon name="hero-document-text" class="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                            <p class="text-sm text-gray-500">
                               <%= if sp.pdf_url do %>
                                 Upload new PDF to replace current script
                               <% else %>
@@ -1054,23 +1175,26 @@ defmodule ScriptVoiceWeb.DashboardLive do
                             </p>
                           </label>
                           <%= for entry <- @uploads.replace_pdf.entries do %>
-                            <div class="mt-2 bg-emerald-50 rounded-lg p-2">
-                              <p class="text-xs text-emerald-600 font-medium"><%= entry.client_name %></p>
+                            <div class="mt-3 flex items-center justify-center gap-2">
+                              <.icon name="hero-check-circle" class="w-5 h-5 text-emerald-500" />
+                              <p class="text-sm text-emerald-600 font-medium"><%= entry.client_name %></p>
                             </div>
                           <% end %>
                         </div>
                         <%= if sp.pdf_url do %>
-                          <p class="text-xs text-gray-500 mt-1">
-                            Current: v<%= sp.version || 1 %> - Uploading new script will create v<%= (sp.version || 1) + 1 %>
+                          <p class="text-xs text-gray-500 mt-2">
+                            Current: v<%= sp.version || 1 %> · Uploading new script will create v<%= (sp.version || 1) + 1 %>
                           </p>
                         <% end %>
                       </div>
 
                       <%= if (sp.audio_version_count || 0) > 0 do %>
-                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
-                          <.icon name="hero-exclamation-triangle" class="w-4 h-4 inline" />
-                          This screenplay has <%= sp.audio_version_count %> audio recording<%= if sp.audio_version_count != 1, do: "s" %>.
-                          Performers will be notified of updates.
+                        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800 flex items-start gap-2">
+                          <.icon name="hero-exclamation-triangle" class="w-5 h-5 flex-shrink-0" />
+                          <span>
+                            This screenplay has <%= sp.audio_version_count %> audio recording<%= if sp.audio_version_count != 1, do: "s" %>.
+                            Performers will be notified of updates.
+                          </span>
                         </div>
                       <% end %>
 
@@ -1078,13 +1202,13 @@ defmodule ScriptVoiceWeb.DashboardLive do
                         <button
                           type="button"
                           phx-click="cancel_edit"
-                          class="flex-1 px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                          class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition-colors"
                         >
                           Cancel
                         </button>
                         <button
                           type="submit"
-                          class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium"
+                          class="flex-1 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium transition-colors shadow-sm"
                         >
                           Save Changes
                         </button>

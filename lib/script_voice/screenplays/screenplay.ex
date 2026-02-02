@@ -73,7 +73,7 @@ defmodule ScriptVoice.Screenplays.Screenplay do
     if content_changing do
       changeset
       |> put_change(:version, (screenplay.version || 1) + 1)
-      |> put_change(:last_updated_at, DateTime.utc_now())
+      |> put_change(:last_updated_at, DateTime.utc_now() |> DateTime.truncate(:second))
     else
       changeset
     end

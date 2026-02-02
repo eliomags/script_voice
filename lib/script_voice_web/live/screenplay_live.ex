@@ -198,7 +198,11 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
     <div class="py-6 sm:py-8 px-4 sm:px-6">
       <div class="max-w-4xl mx-auto">
         <!-- Back Button -->
-        <.back navigate={~p"/browse"}>Back to browse</.back>
+        <%= if @is_author do %>
+          <.back navigate={~p"/dashboard?tab=screenplays"}>Back to my scripts</.back>
+        <% else %>
+          <.back navigate={~p"/browse"}>Back to browse</.back>
+        <% end %>
 
         <!-- Screenplay Header -->
         <div class="bg-white border rounded-xl p-4 sm:p-6 mt-4 mb-6">
@@ -226,14 +230,33 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
                 phx-click="toggle_screenplay_like"
                 phx-value-id={@screenplay.id}
               />
-              <.link
-                navigate={~p"/screenplay/#{@screenplay.id}/read"}
-                class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                <.icon name="hero-document-text" class="w-4 h-4" />
-                <span class="hidden sm:inline">Read Script</span>
-                <span class="sm:hidden">Read</span>
-              </.link>
+<%= cond do %>
+                <% @screenplay.script_content && String.length(@screenplay.script_content) > 0 -> %>
+                  <.link
+                    navigate={~p"/screenplay/#{@screenplay.id}/read"}
+                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <.icon name="hero-document-text" class="w-4 h-4" />
+                    <span class="hidden sm:inline">Read Script</span>
+                    <span class="sm:hidden">Read</span>
+                  </.link>
+                <% @screenplay.pdf_url -> %>
+                  <a
+                    href={@screenplay.pdf_url}
+                    target="_blank"
+                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <.icon name="hero-document-text" class="w-4 h-4" />
+                    <span class="hidden sm:inline">Read Script</span>
+                    <span class="sm:hidden">Read</span>
+                  </a>
+                <% true -> %>
+                  <span class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg font-medium text-gray-400 bg-gray-50 cursor-not-allowed">
+                    <.icon name="hero-document-text" class="w-4 h-4" />
+                    <span class="hidden sm:inline">No Script</span>
+                    <span class="sm:hidden">N/A</span>
+                  </span>
+              <% end %>
             </div>
           </div>
 
@@ -273,18 +296,24 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
           <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 sm:p-8 text-center">
             <.icon name="hero-microphone" class="w-10 h-10 text-amber-500 mx-auto mb-3" />
             <h3 class="font-semibold text-lg mb-2">No audio versions yet</h3>
-            <p class="text-gray-600 mb-4">Be the first to bring this screenplay to life!</p>
-            <%= if @current_user do %>
-              <.button phx-click="show_submit_modal">
-                Record This Script
-              </.button>
+            <%= if @is_author do %>
+              <p class="text-gray-600">Voice artists can submit their audio performances here.</p>
             <% else %>
-              <.link
-                navigate={~p"/verify?type=voice_artist"}
-                class="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-emerald-700"
-              >
-                Sign up to record
-              </.link>
+              <p class="text-gray-600 mb-4">Be the first to bring this screenplay to life!</p>
+              <%= if @current_user && @current_user.user_type == "voice_artist" do %>
+                <.button phx-click="show_submit_modal">
+                  Submit Audio
+                </.button>
+              <% else %>
+                <%= if !@current_user do %>
+                  <.link
+                    navigate={~p"/verify?type=voice_artist"}
+                    class="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-emerald-700"
+                  >
+                    Sign up as voice artist
+                  </.link>
+                <% end %>
+              <% end %>
             <% end %>
           </div>
         <% else %>

@@ -6,9 +6,12 @@ defmodule ScriptVoiceWeb.ScriptReaderLive do
   use ScriptVoiceWeb, :live_view
 
   alias ScriptVoice.Screenplays
+  alias ScriptVoice.Accounts
 
   @impl true
-  def mount(%{"id" => id}, _session, socket) do
+  def mount(%{"id" => id}, session, socket) do
+    current_user = get_current_user(session)
+
     case Screenplays.get_screenplay(id) do
       nil ->
         {:ok,
@@ -17,47 +20,59 @@ defmodule ScriptVoiceWeb.ScriptReaderLive do
          |> push_navigate(to: ~p"/browse")}
 
       screenplay ->
+        is_author = current_user && current_user.id == screenplay.writer_id
+
         {:ok,
          socket
+         |> assign(:current_user, current_user)
          |> assign(:screenplay, screenplay)
+         |> assign(:is_author, is_author)
          |> assign(:page_title, "#{screenplay.title} - Read Script")}
+    end
+  end
+
+  defp get_current_user(session) do
+    case session["user_id"] do
+      nil -> nil
+      user_id -> Accounts.get_user(user_id)
     end
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-gray-50">
-      <!-- Sticky Header -->
-      <div class="sticky top-0 z-10 bg-white border-b shadow-sm">
-        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <.link
-              navigate={~p"/screenplay/#{@screenplay.id}"}
-              class="text-gray-500 hover:text-gray-700 p-2 -ml-2 rounded-lg hover:bg-gray-100"
-            >
-              <.icon name="hero-x-mark" class="w-6 h-6" />
-            </.link>
-            <div>
-              <h1 class="font-bold text-lg truncate max-w-[200px] sm:max-w-none"><%= @screenplay.title %></h1>
-              <p class="text-sm text-gray-500">by <%= @screenplay.writer_name %></p>
+    <div class="py-6 sm:py-8 px-4 sm:px-6">
+      <div class="max-w-4xl mx-auto">
+        <!-- Back Button -->
+        <.back navigate={~p"/screenplay/#{@screenplay.id}"}>Back to screenplay</.back>
+
+        <!-- Script Header -->
+        <div class="bg-white border rounded-xl p-4 sm:p-6 mt-4 mb-6">
+          <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
+            <div class="flex-1">
+              <div class="flex flex-wrap items-center gap-2 mb-2">
+                <h1 class="text-xl sm:text-2xl font-bold"><%= @screenplay.title %></h1>
+                <.genre_badge genre={@screenplay.genre} />
+              </div>
+              <p class="text-gray-500 text-sm sm:text-base">
+                by <.link navigate={~p"/profile/#{@screenplay.writer_id}"} class="text-emerald-600 font-medium hover:underline"><%= @screenplay.writer_name %></.link>
+                · <%= @screenplay.page_count || "?" %> pages
+              </p>
             </div>
           </div>
-          <div class="flex items-center gap-2">
-            <.genre_badge genre={@screenplay.genre} />
-            <span class="text-sm text-gray-500 hidden sm:inline">
-              <%= @screenplay.page_count || "?" %> pages
-            </span>
-          </div>
         </div>
-      </div>
 
-      <!-- Script Content -->
-      <div class="max-w-4xl mx-auto px-4 py-6 sm:py-8">
+        <!-- Script Content -->
         <%= cond do %>
+          <% @screenplay.script_content && String.length(@screenplay.script_content) > 0 -> %>
+            <!-- Text Content -->
+            <div class="bg-white rounded-xl border p-6 sm:p-8">
+              <pre class="whitespace-pre-wrap font-mono text-sm sm:text-base leading-relaxed text-gray-800"><%= @screenplay.script_content %></pre>
+            </div>
+
           <% @screenplay.pdf_url -> %>
             <!-- PDF Viewer -->
-            <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div class="bg-white rounded-xl border overflow-hidden">
               <div class="bg-gray-100 px-4 py-3 border-b flex items-center justify-between">
                 <span class="text-sm text-gray-600 font-medium">PDF Script</span>
                 <a
@@ -84,15 +99,9 @@ defmodule ScriptVoiceWeb.ScriptReaderLive do
               </iframe>
             </div>
 
-          <% @screenplay.script_content -> %>
-            <!-- Text Content -->
-            <div class="bg-white rounded-xl shadow-sm border p-6 sm:p-8">
-              <pre class="whitespace-pre-wrap font-mono text-sm sm:text-base leading-relaxed text-gray-800"><%= @screenplay.script_content %></pre>
-            </div>
-
           <% true -> %>
             <!-- No Content -->
-            <div class="bg-white rounded-xl shadow-sm border p-12 text-center">
+            <div class="bg-white rounded-xl border p-12 text-center">
               <.icon name="hero-document-text" class="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h2 class="font-semibold text-xl mb-2">Script not available</h2>
               <p class="text-gray-500 mb-6">The full script content hasn't been uploaded yet.</p>
@@ -104,16 +113,6 @@ defmodule ScriptVoiceWeb.ScriptReaderLive do
               </.link>
             </div>
         <% end %>
-      </div>
-
-      <!-- Bottom Navigation (mobile) -->
-      <div class="fixed bottom-0 left-0 right-0 bg-white border-t p-3 sm:hidden">
-        <.link
-          navigate={~p"/screenplay/#{@screenplay.id}"}
-          class="block w-full text-center bg-gray-100 text-gray-700 py-3 rounded-lg font-medium"
-        >
-          Close Reader
-        </.link>
       </div>
     </div>
     """

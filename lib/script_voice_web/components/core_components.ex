@@ -603,6 +603,306 @@ defmodule ScriptVoiceWeb.CoreComponents do
   end
 
   # ============================================================================
+  # CUSTOM STYLED FORM COMPONENTS
+  # ============================================================================
+
+  @doc """
+  Renders a custom styled text input.
+  """
+  attr :name, :string, required: true
+  attr :value, :any, default: nil
+  attr :placeholder, :string, default: nil
+  attr :type, :string, default: "text"
+  attr :label, :string, default: nil
+  attr :required, :boolean, default: false
+  attr :disabled, :boolean, default: false
+  attr :class, :string, default: nil
+  attr :rest, :global
+
+  def styled_input(assigns) do
+    ~H"""
+    <div class={@class}>
+      <label :if={@label} class="block text-sm font-medium text-gray-700 mb-1.5">
+        <%= @label %><span :if={@required} class="text-red-500 ml-0.5">*</span>
+      </label>
+      <input
+        type={@type}
+        name={@name}
+        value={@value}
+        placeholder={@placeholder}
+        disabled={@disabled}
+        class={[
+          "w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl",
+          "text-gray-900 placeholder-gray-400",
+          "focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500",
+          "transition-colors duration-200",
+          "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+        ]}
+        {@rest}
+      />
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a custom styled number input.
+  """
+  attr :name, :string, required: true
+  attr :value, :any, default: nil
+  attr :placeholder, :string, default: nil
+  attr :label, :string, default: nil
+  attr :min, :integer, default: nil
+  attr :max, :integer, default: nil
+  attr :required, :boolean, default: false
+  attr :disabled, :boolean, default: false
+  attr :class, :string, default: nil
+  attr :rest, :global
+
+  def styled_number(assigns) do
+    ~H"""
+    <div class={@class}>
+      <label :if={@label} class="block text-sm font-medium text-gray-700 mb-1.5">
+        <%= @label %><span :if={@required} class="text-red-500 ml-0.5">*</span>
+      </label>
+      <input
+        type="number"
+        name={@name}
+        value={@value}
+        placeholder={@placeholder}
+        min={@min}
+        max={@max}
+        disabled={@disabled}
+        class={[
+          "w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl",
+          "text-gray-900 placeholder-gray-400",
+          "focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500",
+          "transition-colors duration-200",
+          "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+          "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+        ]}
+        {@rest}
+      />
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a custom styled textarea.
+  """
+  attr :name, :string, required: true
+  attr :value, :any, default: nil
+  attr :placeholder, :string, default: nil
+  attr :label, :string, default: nil
+  attr :rows, :integer, default: 3
+  attr :required, :boolean, default: false
+  attr :disabled, :boolean, default: false
+  attr :class, :string, default: nil
+  attr :rest, :global
+
+  def styled_textarea(assigns) do
+    ~H"""
+    <div class={@class}>
+      <label :if={@label} class="block text-sm font-medium text-gray-700 mb-1.5">
+        <%= @label %><span :if={@required} class="text-red-500 ml-0.5">*</span>
+      </label>
+      <textarea
+        name={@name}
+        placeholder={@placeholder}
+        rows={@rows}
+        disabled={@disabled}
+        class={[
+          "w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl",
+          "text-gray-900 placeholder-gray-400 resize-none",
+          "focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500",
+          "transition-colors duration-200",
+          "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+        ]}
+        {@rest}
+      ><%= @value %></textarea>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a custom styled dropdown/select.
+  Uses a styled button with custom dropdown menu instead of native select.
+  """
+  attr :name, :string, required: true
+  attr :value, :any, default: nil
+  attr :options, :list, required: true
+  attr :label, :string, default: nil
+  attr :placeholder, :string, default: "Select..."
+  attr :required, :boolean, default: false
+  attr :disabled, :boolean, default: false
+  attr :class, :string, default: nil
+  attr :rest, :global
+
+  def styled_select(assigns) do
+    selected_label = Enum.find_value(assigns.options, assigns.placeholder, fn
+      {label, value} -> if to_string(value) == to_string(assigns.value), do: label
+      value when is_binary(value) -> if value == assigns.value, do: value
+      _ -> nil
+    end)
+
+    assigns = assign(assigns, :selected_label, selected_label)
+
+    ~H"""
+    <div class={["relative", @class]}>
+      <label :if={@label} class="block text-sm font-medium text-gray-700 mb-1.5">
+        <%= @label %><span :if={@required} class="text-red-500 ml-0.5">*</span>
+      </label>
+      <div class="relative" x-data="{ open: false }" @click.away="open = false">
+        <button
+          type="button"
+          @click="open = !open"
+          disabled={@disabled}
+          class={[
+            "w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl",
+            "text-left text-gray-900",
+            "focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500",
+            "transition-colors duration-200 flex items-center justify-between",
+            "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+          ]}
+        >
+          <span class={@value && "text-gray-900" || "text-gray-400"}><%= @selected_label %></span>
+          <.icon name="hero-chevron-down" class="w-4 h-4 text-gray-400" />
+        </button>
+
+        <div
+          x-show="open"
+          x-transition:enter="transition ease-out duration-100"
+          x-transition:enter-start="opacity-0 scale-95"
+          x-transition:enter-end="opacity-100 scale-100"
+          x-transition:leave="transition ease-in duration-75"
+          x-transition:leave-start="opacity-100 scale-100"
+          x-transition:leave-end="opacity-0 scale-95"
+          class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-60 overflow-auto"
+          style="display: none;"
+        >
+          <%= for option <- @options do %>
+            <% {opt_label, opt_value} = case option do
+              {l, v} -> {l, v}
+              v -> {v, v}
+            end %>
+            <button
+              type="button"
+              @click={"$refs.input.value = '#{opt_value}'; $refs.input.dispatchEvent(new Event('change', { bubbles: true })); open = false"}
+              class={[
+                "w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors",
+                to_string(opt_value) == to_string(@value) && "bg-emerald-50 text-emerald-700"
+              ]}
+            >
+              <%= opt_label %>
+            </button>
+          <% end %>
+        </div>
+
+        <input type="hidden" name={@name} value={@value} x-ref="input" {@rest} />
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a custom styled dropdown using a button + options list (no native select styling).
+  """
+  attr :name, :string, required: true
+  attr :value, :any, default: nil
+  attr :options, :list, required: true
+  attr :label, :string, default: nil
+  attr :required, :boolean, default: false
+  attr :disabled, :boolean, default: false
+  attr :class, :string, default: nil
+  attr :id, :string, default: nil
+  attr :rest, :global
+
+  def styled_dropdown(assigns) do
+    # Generate unique ID if not provided
+    id = assigns.id || "dropdown-#{:erlang.unique_integer([:positive])}"
+
+    selected_label = Enum.find_value(assigns.options, "Select...", fn
+      {label, value} -> if to_string(value) == to_string(assigns.value), do: label
+      value when is_binary(value) -> if value == to_string(assigns.value), do: value
+      _ -> nil
+    end)
+
+    assigns = assigns
+    |> assign(:id, id)
+    |> assign(:selected_label, selected_label)
+
+    ~H"""
+    <div class={@class} phx-click-away={hide_dropdown(@id)}>
+      <label :if={@label} class="block text-sm font-medium text-gray-700 mb-1.5">
+        <%= @label %><span :if={@required} class="text-red-500 ml-0.5">*</span>
+      </label>
+      <div class="relative">
+        <button
+          type="button"
+          disabled={@disabled}
+          phx-click={toggle_dropdown(@id)}
+          class={[
+            "w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl",
+            "text-left text-gray-900 cursor-pointer",
+            "focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500",
+            "transition-colors duration-200 flex items-center justify-between",
+            "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+          ]}
+        >
+          <span id={"#{@id}-label"}><%= @selected_label %></span>
+          <.icon name="hero-chevron-down" class="w-4 h-4 text-gray-400" />
+        </button>
+
+        <div
+          id={"#{@id}-options"}
+          class="hidden absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-60 overflow-auto"
+        >
+          <%= for option <- @options do %>
+            <% {opt_label, opt_value} = case option do
+              {l, v} -> {l, v}
+              v -> {v, v}
+            end %>
+            <button
+              type="button"
+              onclick={"
+                var input = document.getElementById('#{@id}-input');
+                input.value = '#{opt_value}';
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                document.getElementById('#{@id}-options').classList.add('hidden');
+                document.getElementById('#{@id}-label').textContent = '#{opt_label}';
+              "}
+              class={[
+                "w-full px-4 py-2.5 text-left hover:bg-emerald-50 transition-colors text-sm",
+                to_string(opt_value) == to_string(@value) && "bg-emerald-50 text-emerald-700 font-medium"
+              ]}
+            >
+              <%= opt_label %>
+            </button>
+          <% end %>
+        </div>
+
+        <input type="hidden" name={@name} value={@value} id={"#{@id}-input"} {@rest} />
+      </div>
+    </div>
+    """
+  end
+
+  defp toggle_dropdown(id) do
+    JS.toggle(to: "##{id}-options")
+  end
+
+  defp hide_dropdown(id) do
+    JS.hide(to: "##{id}-options")
+  end
+
+  defp select_option(id, _name, value) do
+    JS.hide(to: "##{id}-options")
+    |> JS.dispatch("input", to: "##{id}-input", detail: %{value: to_string(value)})
+    |> JS.set_attribute({"value", to_string(value)}, to: "##{id}-input")
+    |> JS.dispatch("change", to: "##{id}-input")
+  end
+
+  # ============================================================================
   # FORMS
   # ============================================================================
 
