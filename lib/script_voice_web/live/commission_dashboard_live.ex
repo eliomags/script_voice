@@ -168,10 +168,12 @@ defmodule ScriptVoiceWeb.CommissionDashboardLive do
           </div>
         <% end %>
 
-        <!-- Pending Requests (for performers) -->
-        <%= if @view_mode == "performer" and @pending_commissions != [] do %>
+        <!-- Pending Commissions -->
+        <%= if @pending_commissions != [] do %>
           <div class="mb-6">
-            <h2 class="text-lg font-semibold mb-3">Pending Requests</h2>
+            <h2 class="text-lg font-semibold mb-3">
+              <%= if @view_mode == "performer", do: "Pending Requests", else: "Awaiting Response" %>
+            </h2>
             <div class="space-y-3">
               <%= for commission <- @pending_commissions do %>
                 <.commission_card commission={commission} view_mode={@view_mode} urgent={false} />
@@ -192,7 +194,35 @@ defmodule ScriptVoiceWeb.CommissionDashboardLive do
           </div>
         <% end %>
 
-        <!-- All Commissions (filtered) -->
+        <!-- Completed/Cancelled Commissions (for completed/cancelled filters) -->
+        <%
+          # Get IDs already shown in other sections
+          shown_ids = MapSet.new(
+            Enum.map(@needs_action, & &1.id) ++
+            Enum.map(@pending_commissions, & &1.id) ++
+            Enum.map(@active_commissions, & &1.id)
+          )
+          # Filter out already displayed commissions
+          remaining = Enum.reject(@commissions, fn c -> MapSet.member?(shown_ids, c.id) end)
+        %>
+        <%= if remaining != [] do %>
+          <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-3">
+              <%= case @filter do
+                "completed" -> "Completed"
+                "cancelled" -> "Cancelled"
+                _ -> "Other"
+              end %>
+            </h2>
+            <div class="space-y-3">
+              <%= for commission <- remaining do %>
+                <.commission_card commission={commission} view_mode={@view_mode} urgent={false} />
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Empty State -->
         <%= if @commissions == [] do %>
           <div class="bg-white border rounded-xl p-8 text-center">
             <.icon name="hero-document-text" class="w-12 h-12 text-gray-300 mx-auto mb-4" />
