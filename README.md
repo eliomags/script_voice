@@ -275,11 +275,18 @@ script_voice/
 | `/verify` | Phone/email verification flow |
 | `/demo-login` | Demo account login (development only) |
 
+### Dashboard Routes
+
+| Path | Description |
+|------|-------------|
+| `/dashboard` | Main dashboard with tabs: Overview, My Scripts, Commissions, Profile |
+| `/dashboard?tab=commissions` | Commissions tab (writers see Cancelled filter, performers see All) |
+| `/commissions` | Redirects to `/dashboard?tab=commissions` |
+
 ### Commission Routes
 
 | Path | Description |
 |------|-------------|
-| `/commissions` | Commission dashboard (filtered by user type) |
 | `/commissions/:id` | Commission detail + messaging |
 | `/commissions/request/:screenplay_id` | Multi-step commission request form |
 | `/commissions/payment/success` | Post-payment confirmation |
@@ -288,7 +295,6 @@ script_voice/
 
 | Path | Description |
 |------|-------------|
-| `/dashboard` | Writer dashboard (screenplays, audio, commissions, profile) |
 | `/settings/pricing` | Voice artist pricing configuration |
 | `/settings/payments` | Stripe Connect onboarding |
 
