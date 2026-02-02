@@ -389,19 +389,20 @@ defmodule ScriptVoiceWeb.CommissionRequestLive do
             <!-- Offer Amount -->
             <div class="bg-white border rounded-xl p-4">
               <label class="block font-semibold mb-2">Your Offer</label>
-              <div class="relative">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  phx-change="update_offer"
-                  name="amount"
-                  value={cents_to_dollars(@offer_amount)}
-                  class="w-full pl-7 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="0.00"
-                />
-              </div>
+              <form phx-change="update_offer" class="contents">
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    name="amount"
+                    value={cents_to_dollars(@offer_amount)}
+                    class="w-full pl-7 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="0.00"
+                  />
+                </div>
+              </form>
               <%= if @price_breakdown.base_amount_cents && @offer_amount && @offer_amount < @price_breakdown.base_amount_cents do %>
                 <p class="text-orange-600 text-sm mt-2">
                   This is below the calculated rate of <%= format_amount(@price_breakdown.base_amount_cents) %>
@@ -412,14 +413,15 @@ defmodule ScriptVoiceWeb.CommissionRequestLive do
             <!-- Deadline -->
             <div class="bg-white border rounded-xl p-4">
               <label class="block font-semibold mb-2">Deadline (optional)</label>
-              <input
-                type="date"
-                phx-change="update_deadline"
-                name="deadline"
-                value={if @deadline, do: Date.to_iso8601(@deadline), else: ""}
-                min={Date.to_iso8601(Date.add(Date.utc_today(), 1))}
-                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              />
+              <form phx-change="update_deadline" class="contents">
+                <input
+                  type="date"
+                  name="deadline"
+                  value={if @deadline, do: Date.to_iso8601(@deadline), else: ""}
+                  min={Date.to_iso8601(Date.add(Date.utc_today(), 1))}
+                  class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </form>
               <%= if is_rush?(@deadline, @pricing) do %>
                 <p class="text-orange-600 text-sm mt-2">
                   This is a rush job (&lt;<%= @pricing.rush_days_threshold %> days). Rush fee of <%= @pricing.rush_multiplier_percent %>% may apply.
@@ -430,14 +432,14 @@ defmodule ScriptVoiceWeb.CommissionRequestLive do
             <!-- Message -->
             <div class="bg-white border rounded-xl p-4">
               <label class="block font-semibold mb-2">Message to Performer</label>
-              <textarea
-                phx-change="update_message"
-                name="message"
-                rows="4"
-                value={@message}
-                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                placeholder="Introduce yourself and explain what you're looking for..."
-              ><%= @message %></textarea>
+              <form phx-change="update_message" class="contents">
+                <textarea
+                  name="message"
+                  rows="4"
+                  class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  placeholder="Introduce yourself and explain what you're looking for..."
+                ><%= @message %></textarea>
+              </form>
             </div>
 
             <!-- Navigation -->
