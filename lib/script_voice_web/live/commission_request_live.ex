@@ -388,20 +388,14 @@ defmodule ScriptVoiceWeb.CommissionRequestLive do
 
             <!-- Offer Amount -->
             <div class="bg-white border rounded-xl p-4">
-              <label class="block font-semibold mb-2">Your Offer</label>
               <form phx-change="update_offer" class="contents">
-                <div class="relative">
-                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    name="amount"
-                    value={cents_to_dollars(@offer_amount)}
-                    class="w-full pl-7 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="0.00"
-                  />
-                </div>
+                <.styled_currency
+                  name="amount"
+                  value={cents_to_dollars(@offer_amount)}
+                  label="Your Offer"
+                  placeholder="0.00"
+                  required={true}
+                />
               </form>
               <%= if @price_breakdown.base_amount_cents && @offer_amount && @offer_amount < @price_breakdown.base_amount_cents do %>
                 <p class="text-orange-600 text-sm mt-2">
@@ -412,14 +406,13 @@ defmodule ScriptVoiceWeb.CommissionRequestLive do
 
             <!-- Deadline -->
             <div class="bg-white border rounded-xl p-4">
-              <label class="block font-semibold mb-2">Deadline (optional)</label>
               <form phx-change="update_deadline" class="contents">
-                <input
-                  type="date"
+                <.styled_date_picker
                   name="deadline"
-                  value={if @deadline, do: Date.to_iso8601(@deadline), else: ""}
-                  min={Date.to_iso8601(Date.add(Date.utc_today(), 1))}
-                  class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  value={@deadline}
+                  label="Deadline (optional)"
+                  placeholder="Select deadline"
+                  min_date={Date.add(Date.utc_today(), 1)}
                 />
               </form>
               <%= if is_rush?(@deadline, @pricing) do %>
@@ -431,14 +424,15 @@ defmodule ScriptVoiceWeb.CommissionRequestLive do
 
             <!-- Message -->
             <div class="bg-white border rounded-xl p-4">
-              <label class="block font-semibold mb-2">Message to Performer</label>
               <form phx-change="update_message" class="contents">
-                <textarea
+                <.styled_textarea
                   name="message"
-                  rows="4"
-                  class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  value={@message}
+                  label="Message to Performer"
                   placeholder="Introduce yourself and explain what you're looking for..."
-                ><%= @message %></textarea>
+                  rows={4}
+                  required={true}
+                />
               </form>
             </div>
 

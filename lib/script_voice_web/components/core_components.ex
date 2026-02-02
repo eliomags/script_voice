@@ -902,6 +902,202 @@ defmodule ScriptVoiceWeb.CoreComponents do
     |> JS.dispatch("change", to: "##{id}-input")
   end
 
+  @doc """
+  Renders a styled currency input with $ prefix.
+  """
+  attr :name, :string, required: true
+  attr :value, :any, default: nil
+  attr :label, :string, default: nil
+  attr :placeholder, :string, default: "0.00"
+  attr :required, :boolean, default: false
+  attr :disabled, :boolean, default: false
+  attr :class, :string, default: nil
+  attr :rest, :global
+
+  def styled_currency(assigns) do
+    ~H"""
+    <div class={@class}>
+      <label :if={@label} class="block text-sm font-medium text-gray-700 mb-1.5">
+        <%= @label %><span :if={@required} class="text-red-500 ml-0.5">*</span>
+      </label>
+      <div class="relative">
+        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">$</span>
+        <input
+          type="text"
+          inputmode="decimal"
+          name={@name}
+          value={@value}
+          disabled={@disabled}
+          placeholder={@placeholder}
+          class={[
+            "w-full pl-8 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl",
+            "text-gray-900 placeholder-gray-400",
+            "focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500",
+            "transition-colors duration-200",
+            "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed",
+            "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          ]}
+          {@rest}
+        />
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a styled date picker with custom calendar UI.
+  """
+  attr :name, :string, required: true
+  attr :value, :any, default: nil
+  attr :label, :string, default: nil
+  attr :placeholder, :string, default: "Select date"
+  attr :required, :boolean, default: false
+  attr :disabled, :boolean, default: false
+  attr :min_date, :any, default: nil
+  attr :class, :string, default: nil
+  attr :id, :string, default: nil
+  attr :rest, :global
+
+  def styled_date_picker(assigns) do
+    id = assigns.id || "datepicker-#{:erlang.unique_integer([:positive])}"
+
+    # Get current display month/year for calendar
+    today = Date.utc_today()
+    selected_date = case assigns.value do
+      %Date{} = d -> d
+      nil -> nil
+      "" -> nil
+      str when is_binary(str) ->
+        case Date.from_iso8601(str) do
+          {:ok, d} -> d
+          _ -> nil
+        end
+    end
+
+    display_month = selected_date || today
+    min_date = assigns.min_date || Date.add(today, 1)
+
+    # Format selected date for display
+    display_text = if selected_date do
+      Calendar.strftime(selected_date, "%B %d, %Y")
+    else
+      nil
+    end
+
+    assigns = assigns
+    |> assign(:id, id)
+    |> assign(:display_text, display_text)
+    |> assign(:display_month, display_month)
+    |> assign(:today, today)
+    |> assign(:min_date, min_date)
+    |> assign(:selected_date, selected_date)
+
+    ~H"""
+    <div class={@class} phx-click-away={hide_dropdown(@id)}>
+      <label :if={@label} class="block text-sm font-medium text-gray-700 mb-1.5">
+        <%= @label %><span :if={@required} class="text-red-500 ml-0.5">*</span>
+      </label>
+      <div class="relative">
+        <button
+          type="button"
+          disabled={@disabled}
+          phx-click={toggle_dropdown(@id)}
+          class={[
+            "w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl",
+            "text-left cursor-pointer",
+            "focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500",
+            "transition-colors duration-200 flex items-center justify-between",
+            "disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+          ]}
+        >
+          <span class={@display_text && "text-gray-900" || "text-gray-400"}>
+            <%= @display_text || @placeholder %>
+          </span>
+          <.icon name="hero-calendar" class="w-5 h-5 text-gray-400" />
+        </button>
+
+        <div
+          id={"#{@id}-options"}
+          class="hidden absolute z-50 mt-1 w-72 bg-white border border-gray-200 rounded-xl shadow-lg p-4"
+        >
+          <!-- Calendar Header -->
+          <div class="flex items-center justify-between mb-4">
+            <span class="font-semibold text-gray-900">
+              <%= Calendar.strftime(@display_month, "%B %Y") %>
+            </span>
+          </div>
+
+          <!-- Day Headers -->
+          <div class="grid grid-cols-7 gap-1 mb-2">
+            <%= for day <- ~w(Su Mo Tu We Th Fr Sa) do %>
+              <div class="text-center text-xs font-medium text-gray-500 py-1"><%= day %></div>
+            <% end %>
+          </div>
+
+          <!-- Calendar Grid -->
+          <div class="grid grid-cols-7 gap-1">
+            <% first_day = Date.beginning_of_month(@display_month) %>
+            <% day_of_week = Date.day_of_week(first_day, :sunday) %>
+            <% days_in_month = Date.days_in_month(@display_month) %>
+
+            <!-- Empty cells for days before month starts -->
+            <%= for _ <- 1..day_of_week, day_of_week > 0 do %>
+              <div class="p-2"></div>
+            <% end %>
+
+            <!-- Day cells -->
+            <%= for day <- 1..days_in_month do %>
+              <% date = Date.new!(@display_month.year, @display_month.month, day) %>
+              <% is_selected = @selected_date && Date.compare(date, @selected_date) == :eq %>
+              <% is_disabled = Date.compare(date, @min_date) == :lt %>
+              <% is_today = Date.compare(date, @today) == :eq %>
+              <button
+                type="button"
+                disabled={is_disabled}
+                onclick={"
+                  var input = document.getElementById('#{@id}-input');
+                  input.value = '#{Date.to_iso8601(date)}';
+                  input.dispatchEvent(new Event('input', { bubbles: true }));
+                  input.dispatchEvent(new Event('change', { bubbles: true }));
+                  document.getElementById('#{@id}-options').classList.add('hidden');
+                "}
+                class={[
+                  "p-2 text-sm rounded-lg transition-colors",
+                  is_selected && "bg-emerald-600 text-white font-medium",
+                  !is_selected && is_today && "bg-emerald-100 text-emerald-700 font-medium",
+                  !is_selected && !is_today && !is_disabled && "text-gray-700 hover:bg-gray-100",
+                  is_disabled && "text-gray-300 cursor-not-allowed"
+                ]}
+              >
+                <%= day %>
+              </button>
+            <% end %>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="mt-4 pt-3 border-t border-gray-100 flex gap-2">
+            <button
+              type="button"
+              onclick={"
+                var input = document.getElementById('#{@id}-input');
+                input.value = '';
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                document.getElementById('#{@id}-options').classList.add('hidden');
+              "}
+              class="flex-1 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <input type="hidden" name={@name} value={if @selected_date, do: Date.to_iso8601(@selected_date), else: ""} id={"#{@id}-input"} {@rest} />
+      </div>
+    </div>
+    """
+  end
+
   # ============================================================================
   # FORMS
   # ============================================================================
