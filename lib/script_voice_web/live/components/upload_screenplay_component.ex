@@ -13,7 +13,6 @@ defmodule ScriptVoiceWeb.UploadScreenplayComponent do
     {:ok,
      socket
      |> assign(:step, 1)
-     |> assign(:extracting, false)
      |> assign(:title, "")
      |> assign(:genre, "Drama")
      |> assign(:logline, "")
@@ -41,12 +40,17 @@ defmodule ScriptVoiceWeb.UploadScreenplayComponent do
 
   @impl true
   def handle_event("upload_and_extract", _, socket) do
-    if socket.assigns.title == "" do
-      {:noreply, assign(socket, :error, "Please enter a title")}
-    else
-      # Start extraction (simulated)
-      send(self(), {:extract_characters, socket.assigns.id})
-      {:noreply, assign(socket, :extracting, true)}
+    cond do
+      socket.assigns.title == "" ->
+        {:noreply, assign(socket, :error, "Please enter a title")}
+
+      socket.assigns.logline == "" ->
+        {:noreply, assign(socket, :error, "Please enter a logline")}
+
+      true ->
+        # Go directly to step 2 for manual character entry
+        # AI extraction can be added later as an optional feature
+        {:noreply, assign(socket, :step, 2)}
     end
   end
 
@@ -107,16 +111,7 @@ defmodule ScriptVoiceWeb.UploadScreenplayComponent do
     {:noreply, assign(socket, :step, 1)}
   end
 
-  # Handle the simulated character extraction
   @impl true
-  def update(%{extract_complete: true, characters: characters}, socket) do
-    {:ok,
-     socket
-     |> assign(:extracting, false)
-     |> assign(:characters, characters)
-     |> assign(:step, 2)}
-  end
-
   def update(assigns, socket) do
     {:ok, assign(socket, assigns)}
   end
@@ -141,7 +136,7 @@ defmodule ScriptVoiceWeb.UploadScreenplayComponent do
     ~H"""
     <div>
       <.modal_header id="upload-screenplay-modal">
-        <%= if @step == 1, do: "Upload Screenplay", else: "Review Characters" %>
+        <%= if @step == 1, do: "Upload Screenplay", else: "Add Characters" %>
       </.modal_header>
 
       <%= if @error do %>
@@ -208,36 +203,28 @@ defmodule ScriptVoiceWeb.UploadScreenplayComponent do
             <% end %>
           </div>
 
-          <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
-            <div class="flex items-center gap-2 text-purple-800">
-              <.icon name="hero-sparkles" class="w-4 h-4" />
-              <span class="text-sm font-medium">AI Character Extraction</span>
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <div class="flex items-center gap-2 text-gray-700">
+              <.icon name="hero-users" class="w-4 h-4" />
+              <span class="text-sm font-medium">Add Characters</span>
             </div>
-            <p class="text-xs text-purple-600 mt-1">
-              We'll automatically detect characters, gender, and line counts from your script
+            <p class="text-xs text-gray-500 mt-1">
+              You'll add your screenplay's characters in the next step. Voice artists will see this when browsing.
             </p>
           </div>
 
           <.button
-            type="button"
-            phx-click="upload_and_extract"
-            phx-target={@myself}
-            disabled={@extracting}
+            type="submit"
             class="w-full"
           >
-            <%= if @extracting do %>
-              <.spinner class="w-4 h-4" />
-              Extracting Characters...
-            <% else %>
-              Upload & Extract Characters
-            <% end %>
+            Continue to Add Characters
           </.button>
         </form>
       <% else %>
-        <!-- Step 2: Review Characters -->
+        <!-- Step 2: Add Characters -->
         <div class="space-y-4">
           <p class="text-sm text-gray-600">
-            Review the characters we detected. Voice artists will see this when choosing scripts to perform.
+            Add your screenplay's characters below. Voice artists will see this when choosing scripts to perform.
           </p>
 
           <div class="space-y-3 max-h-[300px] overflow-y-auto">
