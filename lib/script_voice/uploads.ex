@@ -49,6 +49,45 @@ defmodule ScriptVoice.Uploads do
   end
 
   @doc """
+  Uploads a PDF file locally when R2 is not configured.
+  Saves to priv/static/uploads directory.
+  """
+  def upload_pdf_local(source_path, filename, user_id) do
+    key = generate_key("pdf", user_id, filename)
+    upload_file_local(source_path, key)
+  end
+
+  @doc """
+  Uploads an audio file locally when R2 is not configured.
+  """
+  def upload_audio_local(source_path, filename, user_id) do
+    key = generate_key("audio", user_id, filename)
+    upload_file_local(source_path, key)
+  end
+
+  defp upload_file_local(source_path, key) do
+    # Save to priv/static/uploads
+    uploads_dir = Path.join([:code.priv_dir(:script_voice), "static", "uploads"])
+    dest_dir = Path.join(uploads_dir, Path.dirname(key))
+    dest_path = Path.join(uploads_dir, key)
+
+    # Create directory if needed
+    File.mkdir_p!(dest_dir)
+
+    case File.cp(source_path, dest_path) do
+      :ok ->
+        file_size = File.stat!(dest_path).size
+        url = "/uploads/#{key}"
+        Logger.info("Uploaded file locally: #{key} (#{file_size} bytes)")
+        {:ok, %{url: url, key: key, size: file_size}}
+
+      {:error, reason} ->
+        Logger.error("Failed to save file locally: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  @doc """
   Deletes a file from R2 storage.
 
   Takes the full key (path) of the file.
@@ -78,10 +117,21 @@ defmodule ScriptVoice.Uploads do
 
   @doc """
   Checks if uploads are configured (R2 credentials are set).
+  Verifies that bucket, public_url, and actual R2 credentials exist.
   """
   def configured? do
     config = Application.get_env(:script_voice, :uploads, [])
-    config[:bucket] != nil and config[:public_url] != nil
+    bucket = config[:bucket]
+    public_url = config[:public_url]
+
+    # Also check that the actual R2 environment variables are set
+    access_key = System.get_env("R2_ACCESS_KEY_ID")
+    secret_key = System.get_env("R2_SECRET_ACCESS_KEY")
+
+    bucket != nil and
+      public_url != nil and
+      access_key != nil and access_key != "" and
+      secret_key != nil and secret_key != ""
   end
 
   # ===========================================================================

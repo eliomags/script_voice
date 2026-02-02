@@ -333,7 +333,8 @@ defmodule ScriptVoiceWeb.DashboardLive do
         if Uploads.configured?() do
           Uploads.upload_pdf(temp_path, entry.client_name, user_id)
         else
-          {:ok, %{url: "/uploads/#{entry.client_name}", key: entry.client_name, size: 0}}
+          # Use local storage when R2 isn't configured
+          Uploads.upload_pdf_local(temp_path, entry.client_name, user_id)
         end
       end)
 
@@ -464,8 +465,8 @@ defmodule ScriptVoiceWeb.DashboardLive do
         if Uploads.configured?() do
           Uploads.upload_pdf(temp_path, entry.client_name, user_id)
         else
-          # Local fallback - just return a placeholder
-          {:ok, %{url: "/uploads/#{entry.client_name}", key: entry.client_name, size: 0}}
+          # Use local storage when R2 isn't configured
+          Uploads.upload_pdf_local(temp_path, entry.client_name, user_id)
         end
       end)
 
