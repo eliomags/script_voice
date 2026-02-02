@@ -362,6 +362,29 @@ defmodule ScriptVoiceWeb.CommissionDetailLive do
               </div>
             <% end %>
           </div>
+
+          <!-- Payment Status (for writer) -->
+          <%= if @role == "writer" and @commission.payment do %>
+            <div class="mt-6 pt-6 border-t">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <.icon name="hero-credit-card" class="w-5 h-5 text-gray-400" />
+                  <span class="text-sm font-medium text-gray-700">Payment Status</span>
+                </div>
+                <.payment_status_badge status={@commission.payment.status} />
+              </div>
+              <%= if @commission.payment.status == "held" do %>
+                <p class="text-xs text-gray-500 mt-2">
+                  Payment is held in escrow. It will be released to the performer when you approve the final submission.
+                </p>
+              <% end %>
+              <%= if @commission.payment.status == "completed" do %>
+                <p class="text-xs text-gray-500 mt-2">
+                  Payment has been released to the performer.
+                </p>
+              <% end %>
+            </div>
+          <% end %>
         </div>
 
         <!-- Action Buttons for Performer (Pending) -->
@@ -616,6 +639,26 @@ defmodule ScriptVoiceWeb.CommissionDetailLive do
   defp submission_status_styles("approved"), do: {"bg-emerald-100", "text-emerald-700", "Approved"}
   defp submission_status_styles("revision_requested"), do: {"bg-orange-100", "text-orange-700", "Revision Requested"}
   defp submission_status_styles(_), do: {"bg-gray-100", "text-gray-700", "Unknown"}
+
+  defp payment_status_badge(assigns) do
+    {bg_color, text_color, label} = payment_status_styles(assigns.status)
+    assigns = assign(assigns, :bg_color, bg_color)
+    assigns = assign(assigns, :text_color, text_color)
+    assigns = assign(assigns, :label, label)
+
+    ~H"""
+    <span class={"text-xs px-2 py-1 rounded-full #{@bg_color} #{@text_color}"}>
+      <%= @label %>
+    </span>
+    """
+  end
+
+  defp payment_status_styles("pending"), do: {"bg-yellow-100", "text-yellow-700", "Pending"}
+  defp payment_status_styles("processing"), do: {"bg-blue-100", "text-blue-700", "Processing"}
+  defp payment_status_styles("held"), do: {"bg-purple-100", "text-purple-700", "Held in Escrow"}
+  defp payment_status_styles("completed"), do: {"bg-emerald-100", "text-emerald-700", "Released"}
+  defp payment_status_styles("refunded"), do: {"bg-gray-100", "text-gray-700", "Refunded"}
+  defp payment_status_styles(_), do: {"bg-gray-100", "text-gray-700", "Unknown"}
 
   defp submission_bg("pending_review"), do: "bg-purple-50"
   defp submission_bg("approved"), do: "bg-emerald-50"

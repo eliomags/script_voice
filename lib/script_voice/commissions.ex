@@ -297,8 +297,11 @@ defmodule ScriptVoice.Commissions do
 
   @doc """
   Approves a submission and completes the commission.
+  Also triggers payment release to performer if payment exists.
   """
   def approve_submission(submission_id, writer_id) do
+    alias ScriptVoice.Stripe, as: StripeService
+
     with {:ok, submission} <- get_submission_for_writer(submission_id, writer_id),
          {:ok, commission} <- get_commission_for_writer(submission.commission_request_id, writer_id) do
       Repo.transaction(fn ->
@@ -311,6 +314,35 @@ defmodule ScriptVoice.Commissions do
           commission
           |> CommissionRequest.complete_changeset(nil)
           |> Repo.update()
+
+        # Release payment to performer if payment exists
+        case get_payment_for_commission(commission.id) do
+          nil ->
+            # No payment record - commission was created without payment (dev mode)
+            :ok
+
+          %{status: "held"} = payment ->
+            # Payment is held - release to performer
+            case get_stripe_account(commission.performer_id) do
+              nil ->
+                # Performer has no Stripe account - can't transfer
+                require Logger
+                Logger.warning("Cannot release payment - performer #{commission.performer_id} has no Stripe account")
+
+              stripe_account ->
+                # Transfer to performer
+                case StripeService.release_escrow_to_performer(payment, stripe_account.stripe_account_id) do
+                  {:ok, _transfer} -> :ok
+                  {:error, error} ->
+                    require Logger
+                    Logger.error("Failed to release payment: #{inspect(error)}")
+                end
+            end
+
+          _payment ->
+            # Payment in other status - no action needed
+            :ok
+        end
 
         completed_commission
       end)
@@ -446,6 +478,27 @@ defmodule ScriptVoice.Commissions do
       processing_fee_cents: breakdown.processing_fee_cents,
       platform_fee_cents: breakdown.platform_fee_cents,
       performer_payout_cents: breakdown.performer_payout_cents
+    })
+    |> Repo.insert()
+  end
+
+  @doc """
+  Creates a payment record with Stripe payment intent ID (already captured).
+  Used after successful Stripe Checkout.
+  """
+  def create_payment_with_stripe(commission_id, amount_cents, payment_intent_id) do
+    breakdown = PriceCalculator.calculate_full_breakdown(amount_cents)
+
+    %Payment{}
+    |> Payment.changeset(%{
+      commission_request_id: commission_id,
+      amount_cents: breakdown.commission_amount_cents,
+      processing_fee_cents: breakdown.processing_fee_cents,
+      platform_fee_cents: breakdown.platform_fee_cents,
+      performer_payout_cents: breakdown.performer_payout_cents,
+      stripe_payment_intent_id: payment_intent_id,
+      status: "held",
+      captured_at: DateTime.utc_now() |> DateTime.truncate(:second)
     })
     |> Repo.insert()
   end

@@ -40,6 +40,7 @@ defmodule ScriptVoiceWeb.Router do
 
     # Commission routes
     live "/commissions", CommissionDashboardLive, :index
+    live "/commissions/payment/success", PaymentSuccessLive, :success
     live "/commissions/:id", CommissionDetailLive, :show
     live "/commissions/request/:screenplay_id", CommissionRequestLive, :new
 

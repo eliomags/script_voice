@@ -10,10 +10,20 @@ defmodule ScriptVoiceWeb.CommissionRequestLive do
   alias ScriptVoice.Commissions
   alias ScriptVoice.Commissions.PriceCalculator
   alias ScriptVoice.Notifications
+  alias ScriptVoice.Stripe, as: StripeService
+
+  require Logger
 
   @impl true
-  def mount(%{"screenplay_id" => screenplay_id}, session, socket) do
+  def mount(%{"screenplay_id" => screenplay_id} = params, session, socket) do
     current_user = get_current_user(session)
+
+    # Check if returning from cancelled payment
+    socket = if params["cancelled"] == "true" do
+      put_flash(socket, :error, "Payment was cancelled. You can try again when ready.")
+    else
+      socket
+    end
 
     case current_user do
       nil ->
@@ -172,12 +182,33 @@ defmodule ScriptVoiceWeb.CommissionRequestLive do
 
   @impl true
   def handle_event("submit_request", _params, socket) do
-    # Check if performer has Stripe account set up
     performer = socket.assigns.selected_performer
+
+    # Check if performer has Stripe account set up
     has_stripe = Commissions.performer_ready_for_payments?(performer.id)
 
-    # For now, we'll create the commission request without immediate payment
-    # Payment will be collected when performer accepts
+    # Check if Stripe is configured
+    stripe_configured = StripeService.configured?()
+
+    cond do
+      # If Stripe is not configured (dev mode), create commission without payment
+      not stripe_configured ->
+        create_commission_without_payment(socket)
+
+      # If performer doesn't have Stripe, show warning but allow (they need to set up)
+      not has_stripe ->
+        # For now, create without payment - performer needs to complete Stripe setup
+        Logger.warning("Creating commission without payment - performer #{performer.id} has no Stripe account")
+        create_commission_without_payment(socket)
+
+      # Normal flow - redirect to Stripe Checkout
+      true ->
+        create_checkout_session(socket)
+    end
+  end
+
+  defp create_commission_without_payment(socket) do
+    performer = socket.assigns.selected_performer
 
     attrs = %{
       screenplay_id: socket.assigns.screenplay.id,
@@ -193,7 +224,6 @@ defmodule ScriptVoiceWeb.CommissionRequestLive do
 
     case Commissions.create_commission_request(attrs) do
       {:ok, commission} ->
-        # Notify performer
         Notifications.notify_commission_request_received(
           performer.id,
           socket.assigns.current_user.name,
@@ -203,11 +233,52 @@ defmodule ScriptVoiceWeb.CommissionRequestLive do
 
         {:noreply,
          socket
-         |> put_flash(:info, "Commission request sent!")
+         |> put_flash(:info, "Commission request sent! (Payment will be collected when Stripe is configured)")
          |> push_navigate(to: ~p"/commissions/#{commission.id}")}
 
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, "Failed to create commission request")}
+    end
+  end
+
+  defp create_checkout_session(socket) do
+    performer = socket.assigns.selected_performer
+
+    # Prepare commission data for checkout session metadata
+    commission_data = %{
+      screenplay_id: socket.assigns.screenplay.id,
+      screenplay_title: socket.assigns.screenplay.title,
+      writer_id: socket.assigns.current_user.id,
+      writer_name: socket.assigns.current_user.name,
+      performer_id: performer.id,
+      performer_name: performer.name,
+      calculated_amount_cents: socket.assigns.price_breakdown.base_amount_cents,
+      amount_cents: socket.assigns.offer_amount,
+      writer_message: socket.assigns.message,
+      deadline: socket.assigns.deadline && Date.to_iso8601(socket.assigns.deadline),
+      is_rush: is_rush?(socket.assigns.deadline, socket.assigns.pricing),
+      retakes_included: socket.assigns.pricing.included_retakes
+    }
+
+    # Build success/cancel URLs
+    base_url = ScriptVoiceWeb.Endpoint.url()
+    urls = %{
+      success_url: "#{base_url}/commissions/payment/success?session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: "#{base_url}/commissions/request/#{socket.assigns.screenplay.id}?cancelled=true"
+    }
+
+    case StripeService.create_checkout_session_with_escrow(commission_data, urls) do
+      {:ok, session} ->
+        # Redirect to Stripe Checkout
+        {:noreply, redirect(socket, external: session.url)}
+
+      {:error, %Stripe.Error{} = error} ->
+        Logger.error("Stripe Checkout error: #{inspect(error)}")
+        {:noreply, put_flash(socket, :error, "Payment setup failed. Please try again.")}
+
+      {:error, error} ->
+        Logger.error("Checkout session error: #{inspect(error)}")
+        {:noreply, put_flash(socket, :error, "Payment setup failed. Please try again.")}
     end
   end
 
@@ -537,9 +608,10 @@ defmodule ScriptVoiceWeb.CommissionRequestLive do
               </button>
               <button
                 phx-click="submit_request"
-                class="bg-emerald-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-emerald-700"
+                class="bg-emerald-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-emerald-700 flex items-center gap-2"
               >
-                Send Commission Request
+                <.icon name="hero-credit-card" class="w-5 h-5" />
+                Pay & Send Request
               </button>
             </div>
           </div>

@@ -300,6 +300,86 @@ defmodule ScriptVoice.Stripe do
     Stripe.Checkout.Session.create(params)
   end
 
+  @doc """
+  Creates a Stripe Checkout Session with escrow-style payment.
+  Payment is collected to platform account first, then transferred on completion.
+  This allows holding payment until the commission is approved.
+  """
+  def create_checkout_session_with_escrow(commission_data, urls) do
+    breakdown = PriceCalculator.calculate_full_breakdown(commission_data.amount_cents)
+
+    params = %{
+      mode: "payment",
+      payment_method_types: ["card", "link"],
+      line_items: [
+        %{
+          price_data: %{
+            currency: "usd",
+            product_data: %{
+              name: "Commission: #{commission_data.screenplay_title}",
+              description: "Voice performance commission for #{commission_data.performer_name}"
+            },
+            unit_amount: breakdown.total_cents
+          },
+          quantity: 1
+        }
+      ],
+      # No transfer_data - payment goes to platform first
+      payment_intent_data: %{
+        capture_method: "automatic",
+        metadata: %{
+          commission_data: Jason.encode!(commission_data),
+          platform: "scriptvoice",
+          type: "commission_escrow"
+        }
+      },
+      success_url: urls.success_url,
+      cancel_url: urls.cancel_url,
+      metadata: %{
+        commission_data: Jason.encode!(commission_data),
+        type: "commission_escrow"
+      }
+    }
+
+    Stripe.Checkout.Session.create(params)
+  end
+
+  @doc """
+  Retrieves a Checkout Session by ID.
+  """
+  def get_checkout_session(session_id) do
+    Stripe.Checkout.Session.retrieve(session_id)
+  end
+
+  @doc """
+  Releases escrowed payment to performer.
+  Creates a transfer from platform to connected account.
+  """
+  def release_escrow_to_performer(payment, performer_stripe_account_id) do
+    # Transfer performer's payout amount to their connected account
+    params = %{
+      amount: payment.performer_payout_cents,
+      currency: "usd",
+      destination: performer_stripe_account_id,
+      transfer_group: "commission_#{payment.commission_request_id}",
+      metadata: %{
+        commission_request_id: payment.commission_request_id,
+        payment_id: payment.id,
+        platform: "scriptvoice"
+      }
+    }
+
+    case Stripe.Transfer.create(params) do
+      {:ok, transfer} ->
+        # Update payment record with transfer ID
+        Commissions.release_payment(payment.id, transfer.id)
+        {:ok, transfer}
+
+      {:error, error} ->
+        {:error, error}
+    end
+  end
+
   # =============================================================================
   # Webhook Handling
   # =============================================================================
