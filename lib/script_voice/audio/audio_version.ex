@@ -30,6 +30,9 @@ defmodule ScriptVoice.Audio.AudioVersion do
     # Commission-related fields
     field :is_paid_commission, :boolean, default: false
 
+    # Version tracking - which script version this was recorded for
+    field :script_version, :integer, default: 1
+
     belongs_to :screenplay, ScriptVoice.Screenplays.Screenplay
     belongs_to :submitted_by, ScriptVoice.Accounts.User
     belongs_to :commission_request, ScriptVoice.Commissions.CommissionRequest
@@ -46,7 +49,7 @@ defmodule ScriptVoice.Audio.AudioVersion do
       :performer_type, :group_name, :performers, :casting,
       :audio_url, :duration, :duration_seconds, :file_size_bytes,
       :verified, :screenplay_id, :submitted_by_id,
-      :commission_request_id, :is_paid_commission
+      :commission_request_id, :is_paid_commission, :script_version
     ])
     |> validate_required([:performer_type, :audio_url, :screenplay_id, :submitted_by_id])
     |> validate_inclusion(:performer_type, @performer_types)

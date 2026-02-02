@@ -62,11 +62,15 @@ defmodule ScriptVoice.Audio do
     # Determine if all performers are verified
     verified = submitter.verification_status == "verified"
 
+    # Track which script version this audio is recorded for
+    script_version = screenplay.version || 1
+
     attrs_with_associations =
       attrs
       |> Map.put("submitted_by_id", submitter.id)
       |> Map.put("screenplay_id", screenplay.id)
       |> Map.put("verified", verified)
+      |> Map.put("script_version", script_version)
 
     result =
       %AudioVersion{}

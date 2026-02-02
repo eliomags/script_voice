@@ -24,6 +24,11 @@ defmodule ScriptVoice.Screenplays.Screenplay do
     field :likes, :integer, default: 0
     field :audio_version_count, :integer, default: 0
 
+    # Version tracking
+    field :version, :integer, default: 1
+    field :version_notes, :string
+    field :last_updated_at, :utc_datetime
+
     # Denormalized writer name for easy display
     field :writer_name, :string
 
@@ -41,7 +46,7 @@ defmodule ScriptVoice.Screenplays.Screenplay do
   """
   def changeset(screenplay, attrs) do
     screenplay
-    |> cast(attrs, [:title, :genre, :logline, :page_count, :pdf_url, :script_content, :writer_id, :writer_name])
+    |> cast(attrs, [:title, :genre, :logline, :page_count, :pdf_url, :script_content, :writer_id, :writer_name, :version, :version_notes, :last_updated_at])
     |> cast_embed(:characters)
     |> validate_required([:title, :genre, :logline, :writer_id])
     |> validate_inclusion(:genre, @genres)
@@ -49,6 +54,29 @@ defmodule ScriptVoice.Screenplays.Screenplay do
     |> validate_length(:logline, min: 10, max: 300)
     |> validate_number(:page_count, greater_than: 0, less_than: 500)
     |> foreign_key_constraint(:writer_id)
+  end
+
+  @doc """
+  Changeset for updating screenplay content (increments version).
+  """
+  def update_changeset(screenplay, attrs) do
+    # Check if content is actually changing
+    content_fields = [:title, :logline, :script_content, :pdf_url, :page_count]
+    content_changing = Enum.any?(content_fields, fn field ->
+      new_val = Map.get(attrs, to_string(field)) || Map.get(attrs, field)
+      old_val = Map.get(screenplay, field)
+      new_val != nil && new_val != old_val
+    end)
+
+    changeset = changeset(screenplay, attrs)
+
+    if content_changing do
+      changeset
+      |> put_change(:version, (screenplay.version || 1) + 1)
+      |> put_change(:last_updated_at, DateTime.utc_now())
+    else
+      changeset
+    end
   end
 
   @doc """

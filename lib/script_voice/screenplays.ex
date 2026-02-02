@@ -60,6 +60,13 @@ defmodule ScriptVoice.Screenplays do
   def get_screenplay(_), do: nil
 
   @doc """
+  Gets a single screenplay, raises if not found.
+  """
+  def get_screenplay!(id) when is_binary(id) do
+    Repo.get!(Screenplay, id)
+  end
+
+  @doc """
   Gets a single screenplay with preloaded associations.
   """
   def get_screenplay_with_preloads(id) do
@@ -83,9 +90,21 @@ defmodule ScriptVoice.Screenplays do
   end
 
   @doc """
-  Updates a screenplay.
+  Updates a screenplay with version tracking.
+  Content changes (title, logline, script_content, pdf_url, page_count)
+  will increment the version number.
   """
   def update_screenplay(%Screenplay{} = screenplay, attrs) do
+    screenplay
+    |> Screenplay.update_changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Updates a screenplay without incrementing version.
+  Use this for metadata-only changes like genre.
+  """
+  def update_screenplay_metadata(%Screenplay{} = screenplay, attrs) do
     screenplay
     |> Screenplay.changeset(attrs)
     |> Repo.update()

@@ -40,6 +40,10 @@ defmodule ScriptVoiceWeb.DashboardLive do
        |> assign(:active_tab, "overview")
        |> assign(:show_upload_form, false)
        |> assign(:delete_confirm_id, nil)
+       |> assign(:edit_screenplay_id, nil)
+       |> assign(:edit_title, "")
+       |> assign(:edit_genre, "")
+       |> assign(:edit_logline, "")
        |> assign_tabs()
        |> load_all_data()}
     else
@@ -235,6 +239,97 @@ defmodule ScriptVoiceWeb.DashboardLive do
     index = String.to_integer(index)
     characters = List.delete_at(socket.assigns.upload_characters, index)
     {:noreply, assign(socket, :upload_characters, characters)}
+  end
+
+  # Edit screenplay
+  @impl true
+  def handle_event("start_edit", %{"id" => id}, socket) do
+    screenplay = Screenplays.get_screenplay!(id)
+
+    if screenplay.writer_id == socket.assigns.current_user.id do
+      {:noreply,
+       socket
+       |> assign(:edit_screenplay_id, id)
+       |> assign(:edit_title, screenplay.title)
+       |> assign(:edit_genre, screenplay.genre)
+       |> assign(:edit_logline, screenplay.logline)}
+    else
+      {:noreply, put_flash(socket, :error, "You can only edit your own screenplays")}
+    end
+  end
+
+  @impl true
+  def handle_event("cancel_edit", _, socket) do
+    {:noreply,
+     socket
+     |> assign(:edit_screenplay_id, nil)
+     |> assign(:edit_title, "")
+     |> assign(:edit_genre, "")
+     |> assign(:edit_logline, "")}
+  end
+
+  @impl true
+  def handle_event("validate_edit", params, socket) do
+    socket =
+      socket
+      |> then(fn s -> if params["title"], do: assign(s, :edit_title, params["title"]), else: s end)
+      |> then(fn s -> if params["genre"], do: assign(s, :edit_genre, params["genre"]), else: s end)
+      |> then(fn s -> if params["logline"], do: assign(s, :edit_logline, params["logline"]), else: s end)
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("save_edit", _, socket) do
+    screenplay = Screenplays.get_screenplay!(socket.assigns.edit_screenplay_id)
+
+    if screenplay.writer_id == socket.assigns.current_user.id do
+      attrs = %{
+        "title" => socket.assigns.edit_title,
+        "genre" => socket.assigns.edit_genre,
+        "logline" => socket.assigns.edit_logline
+      }
+
+      case Screenplays.update_screenplay(screenplay, attrs) do
+        {:ok, updated} ->
+          # Notify performers if there are audio versions
+          notify_performers_of_update(updated)
+
+          {:noreply,
+           socket
+           |> put_flash(:info, "Screenplay updated successfully!")
+           |> assign(:edit_screenplay_id, nil)
+           |> load_screenplays(socket.assigns.current_user)}
+
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Failed to update screenplay")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "You can only edit your own screenplays")}
+    end
+  end
+
+  defp notify_performers_of_update(screenplay) do
+    audio_versions = Audio.list_audio_versions_for_screenplay(screenplay.id)
+
+    for audio <- audio_versions do
+      if audio.submitted_by_id do
+        # Check if performer's recording was for an older version
+        version_warning = if (audio.script_version || 1) < (screenplay.version || 1) do
+          " Your recording was made for version #{audio.script_version || 1}, the script is now on version #{screenplay.version}."
+        else
+          ""
+        end
+
+        Notifications.create_notification(%{
+          user_id: audio.submitted_by_id,
+          type: "screenplay_updated",
+          title: "Screenplay Updated (v#{screenplay.version || 1})",
+          body: "The screenplay \"#{screenplay.title}\" has been updated by the writer.#{version_warning}",
+          action_url: "/screenplay/#{screenplay.id}"
+        })
+      end
+    end
   end
 
   @impl true
@@ -440,6 +535,10 @@ defmodule ScriptVoiceWeb.DashboardLive do
                 upload_error={@upload_error}
                 uploads={@uploads}
                 delete_confirm_id={@delete_confirm_id}
+                edit_screenplay_id={@edit_screenplay_id}
+                edit_title={@edit_title}
+                edit_genre={@edit_genre}
+                edit_logline={@edit_logline}
               />
 
             <% "audio" -> %>
@@ -792,79 +891,157 @@ defmodule ScriptVoiceWeb.DashboardLive do
         <div class="space-y-3">
           <%= for sp <- @screenplays do %>
             <div class="bg-white rounded-xl border hover:border-emerald-300 transition">
-              <%= if @delete_confirm_id == sp.id do %>
-                <!-- Delete Confirmation -->
-                <div class="p-4">
-                  <div class="flex items-start gap-3 mb-4">
-                    <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                      <.icon name="hero-exclamation-triangle" class="w-5 h-5 text-red-600" />
-                    </div>
-                    <div>
-                      <h3 class="font-semibold text-gray-900">Delete "<%= sp.title %>"?</h3>
-                      <p class="text-sm text-gray-600 mt-1">
-                        This will permanently delete this screenplay
-                        <%= if (sp.audio_version_count || 0) > 0 do %>
-                          and <span class="font-medium text-red-600"><%= sp.audio_version_count %> audio recording<%= if sp.audio_version_count != 1, do: "s" %></span>.
-                          Performers will be notified.
-                        <% else %>
-                          .
-                        <% end %>
-                      </p>
-                    </div>
-                  </div>
-                  <div class="flex gap-3">
-                    <button
-                      phx-click="cancel_delete"
-                      class="flex-1 px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      phx-click="delete_screenplay"
-                      phx-value-id={sp.id}
-                      class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              <% else %>
-                <!-- Normal View -->
-                <div class="p-4">
-                  <div class="flex items-start justify-between">
-                    <.link navigate={~p"/screenplay/#{sp.id}"} class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2 mb-1">
-                        <h3 class="font-semibold text-gray-900 truncate"><%= sp.title %></h3>
-                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded"><%= sp.genre %></span>
+              <%= cond do %>
+                <% @delete_confirm_id == sp.id -> %>
+                  <!-- Delete Confirmation -->
+                  <div class="p-4">
+                    <div class="flex items-start gap-3 mb-4">
+                      <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                        <.icon name="hero-exclamation-triangle" class="w-5 h-5 text-red-600" />
                       </div>
-                      <p class="text-sm text-gray-600 line-clamp-2"><%= sp.logline %></p>
-                      <div class="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                        <span><%= sp.page_count || "?" %> pages</span>
-                        <span class="flex items-center gap-1">
-                          <.icon name="hero-heart" class="w-4 h-4" />
-                          <%= sp.likes %>
-                        </span>
-                        <span class="flex items-center gap-1">
-                          <.icon name="hero-microphone" class="w-4 h-4" />
-                          <%= sp.audio_version_count || 0 %>
-                        </span>
+                      <div>
+                        <h3 class="font-semibold text-gray-900">Delete "<%= sp.title %>"?</h3>
+                        <p class="text-sm text-gray-600 mt-1">
+                          This will permanently delete this screenplay
+                          <%= if (sp.audio_version_count || 0) > 0 do %>
+                            and <span class="font-medium text-red-600"><%= sp.audio_version_count %> audio recording<%= if sp.audio_version_count != 1, do: "s" %></span>.
+                            Performers will be notified.
+                          <% else %>
+                            .
+                          <% end %>
+                        </p>
                       </div>
-                    </.link>
-                    <div class="flex items-center gap-2 ml-4 flex-shrink-0">
+                    </div>
+                    <div class="flex gap-3">
                       <button
-                        phx-click="confirm_delete"
-                        phx-value-id={sp.id}
-                        class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                        title="Delete screenplay"
+                        phx-click="cancel_delete"
+                        class="flex-1 px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
                       >
-                        <.icon name="hero-trash" class="w-5 h-5" />
+                        Cancel
                       </button>
-                      <.link navigate={~p"/screenplay/#{sp.id}"}>
-                        <.icon name="hero-chevron-right" class="w-5 h-5 text-gray-400" />
-                      </.link>
+                      <button
+                        phx-click="delete_screenplay"
+                        phx-value-id={sp.id}
+                        class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
-                </div>
+
+                <% @edit_screenplay_id == sp.id -> %>
+                  <!-- Edit Form -->
+                  <div class="p-4">
+                    <form phx-change="validate_edit" phx-submit="save_edit" class="space-y-4">
+                      <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-semibold text-gray-900">Edit Screenplay</h3>
+                        <button type="button" phx-click="cancel_edit" class="text-gray-400 hover:text-gray-600">
+                          <.icon name="hero-x-mark" class="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                        <input
+                          type="text"
+                          name="title"
+                          value={@edit_title}
+                          class="w-full border rounded-lg px-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Genre</label>
+                        <select name="genre" class="w-full border rounded-lg px-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500">
+                          <%= for genre <- Screenplay.genres() do %>
+                            <option value={genre} selected={genre == @edit_genre}><%= genre %></option>
+                          <% end %>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Logline</label>
+                        <textarea
+                          name="logline"
+                          rows="2"
+                          class="w-full border rounded-lg px-3 py-2 text-sm focus:border-emerald-500 focus:ring-emerald-500"
+                        ><%= @edit_logline %></textarea>
+                      </div>
+
+                      <%= if (sp.audio_version_count || 0) > 0 do %>
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                          <.icon name="hero-exclamation-triangle" class="w-4 h-4 inline" />
+                          This screenplay has <%= sp.audio_version_count %> audio recording<%= if sp.audio_version_count != 1, do: "s" %>.
+                          Performers will be notified of updates.
+                        </div>
+                      <% end %>
+
+                      <div class="flex gap-3">
+                        <button
+                          type="button"
+                          phx-click="cancel_edit"
+                          class="flex-1 px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium"
+                        >
+                          Save Changes
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                <% true -> %>
+                  <!-- Normal View -->
+                  <div class="p-4">
+                    <div class="flex items-start justify-between">
+                      <.link navigate={~p"/screenplay/#{sp.id}"} class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                          <h3 class="font-semibold text-gray-900 truncate"><%= sp.title %></h3>
+                          <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded"><%= sp.genre %></span>
+                        </div>
+                        <p class="text-sm text-gray-600 line-clamp-2"><%= sp.logline %></p>
+                        <div class="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                          <span><%= sp.page_count || "?" %> pages</span>
+                          <span class="flex items-center gap-1">
+                            <.icon name="hero-heart" class="w-4 h-4" />
+                            <%= sp.likes %>
+                          </span>
+                          <span class="flex items-center gap-1">
+                            <.icon name="hero-microphone" class="w-4 h-4" />
+                            <%= sp.audio_version_count || 0 %>
+                          </span>
+                          <span class="flex items-center gap-1 text-purple-600">
+                            v<%= sp.version || 1 %>
+                          </span>
+                        </div>
+                      </.link>
+                      <div class="flex items-center gap-1 ml-4 flex-shrink-0">
+                        <button
+                          phx-click="start_edit"
+                          phx-value-id={sp.id}
+                          class="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                          title="Edit screenplay"
+                        >
+                          <.icon name="hero-pencil-square" class="w-5 h-5" />
+                        </button>
+                        <button
+                          phx-click="confirm_delete"
+                          phx-value-id={sp.id}
+                          class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                          title="Delete screenplay"
+                        >
+                          <.icon name="hero-trash" class="w-5 h-5" />
+                        </button>
+                        <.link navigate={~p"/screenplay/#{sp.id}"} class="p-2 text-gray-400 hover:text-gray-600">
+                          <.icon name="hero-chevron-right" class="w-5 h-5" />
+                        </.link>
+                      </div>
+                    </div>
+                  </div>
               <% end %>
             </div>
           <% end %>
@@ -901,15 +1078,29 @@ defmodule ScriptVoiceWeb.DashboardLive do
       <% else %>
         <div class="space-y-3">
           <%= for audio <- @audio_versions do %>
-            <.link navigate={~p"/screenplay/#{audio.screenplay_id}"} class="block bg-white rounded-xl border p-4 hover:border-emerald-300 transition">
+            <% script_version = audio.script_version || 1 %>
+            <% current_version = audio.screenplay.version || 1 %>
+            <% is_outdated = script_version < current_version %>
+            <.link navigate={~p"/screenplay/#{audio.screenplay_id}"} class={["block bg-white rounded-xl border p-4 transition", is_outdated && "border-amber-300", !is_outdated && "hover:border-emerald-300"]}>
               <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                  <h3 class="font-semibold text-gray-900 truncate"><%= audio.screenplay.title %></h3>
+                  <div class="flex items-center gap-2">
+                    <h3 class="font-semibold text-gray-900 truncate"><%= audio.screenplay.title %></h3>
+                    <%= if is_outdated do %>
+                      <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full flex items-center gap-1">
+                        <.icon name="hero-exclamation-triangle" class="w-3 h-3" />
+                        Script updated
+                      </span>
+                    <% end %>
+                  </div>
                   <div class="flex items-center gap-4 mt-1 text-sm text-gray-500">
                     <span><%= AudioVersion.display_duration(audio) %></span>
                     <span class="flex items-center gap-1">
                       <.icon name="hero-heart" class="w-4 h-4" />
                       <%= audio.likes %>
+                    </span>
+                    <span class="text-purple-600">
+                      Recorded v<%= script_version %><%= if is_outdated, do: " → v#{current_version}" %>
                     </span>
                   </div>
                 </div>
