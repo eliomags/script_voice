@@ -2,11 +2,12 @@ defmodule ScriptVoiceWeb.BrowseLive do
   @moduledoc """
   Browse page LiveView - Browse screenplays with filters and sorting.
   Mobile-first design with horizontal scrolling filters.
+  Includes inline upload form for writers.
   """
   use ScriptVoiceWeb, :live_view
 
   alias ScriptVoice.Screenplays
-  alias ScriptVoice.Screenplays.Screenplay
+  alias ScriptVoice.Screenplays.{Screenplay, Character}
   alias ScriptVoice.Social
 
   @genres ["All" | Screenplay.genres()]
@@ -35,9 +36,21 @@ defmodule ScriptVoiceWeb.BrowseLive do
      |> assign(:selected_genre, "All")
      |> assign(:selected_sort, "recent")
      |> assign(:liked_screenplay_ids, liked_ids)
-     |> assign(:show_upload_modal, false)
+     |> assign(:show_upload_form, false)
      |> assign(:page_title, "Browse Screenplays")
+     |> init_upload_form()
      |> load_screenplays()}
+  end
+
+  defp init_upload_form(socket) do
+    socket
+    |> assign(:upload_title, "")
+    |> assign(:upload_genre, "Drama")
+    |> assign(:upload_logline, "")
+    |> assign(:upload_page_count, nil)
+    |> assign(:upload_characters, [])
+    |> assign(:upload_error, nil)
+    |> allow_upload(:pdf, accept: ~w(.pdf), max_entries: 1, max_file_size: 10_000_000, auto_upload: true)
   end
 
   @impl true
@@ -107,24 +120,167 @@ defmodule ScriptVoiceWeb.BrowseLive do
     end
   end
 
+  # Upload form toggle
   @impl true
-  def handle_event("show_upload_modal", _, socket) do
-    {:noreply, assign(socket, :show_upload_modal, true)}
-  end
-
-  @impl true
-  def handle_event("close_upload_modal", _, socket) do
-    {:noreply, assign(socket, :show_upload_modal, false)}
-  end
-
-  # Handle screenplay created from upload component
-  @impl true
-  def handle_info({:screenplay_created, screenplay}, socket) do
+  def handle_event("toggle_upload_form", _, socket) do
     {:noreply,
      socket
-     |> assign(:show_upload_modal, false)
-     |> put_flash(:info, "Screenplay \"#{screenplay.title}\" published successfully!")
-     |> push_navigate(to: ~p"/screenplay/#{screenplay.id}")}
+     |> assign(:show_upload_form, !socket.assigns.show_upload_form)
+     |> assign(:upload_title, "")
+     |> assign(:upload_genre, "Drama")
+     |> assign(:upload_logline, "")
+     |> assign(:upload_page_count, nil)
+     |> assign(:upload_characters, [])
+     |> assign(:upload_error, nil)}
+  end
+
+  @impl true
+  def handle_event("validate_upload", params, socket) do
+    title = Map.get(params, "title", socket.assigns.upload_title)
+    genre = Map.get(params, "genre", socket.assigns.upload_genre)
+    logline = Map.get(params, "logline", socket.assigns.upload_logline)
+
+    page_count = case Map.get(params, "page_count") do
+      nil -> socket.assigns.upload_page_count
+      "" -> socket.assigns.upload_page_count
+      val ->
+        case Integer.parse(val) do
+          {num, _} -> num
+          :error -> socket.assigns.upload_page_count
+        end
+    end
+
+    {:noreply,
+     socket
+     |> assign(:upload_error, nil)
+     |> assign(:upload_title, title)
+     |> assign(:upload_genre, genre)
+     |> assign(:upload_logline, logline)
+     |> assign(:upload_page_count, page_count)}
+  end
+
+  @impl true
+  def handle_event("add_character", _, socket) do
+    new_char = %{
+      name: "",
+      gender: "Any",
+      estimated_lines: nil,
+      description: ""
+    }
+
+    {:noreply, update(socket, :upload_characters, &(&1 ++ [new_char]))}
+  end
+
+  @impl true
+  def handle_event("update_character", %{"index" => index, "field" => field} = params, socket) do
+    index_int = String.to_integer(index)
+
+    value = cond do
+      Map.has_key?(params, "gender") && params["gender"] != "" -> params["gender"]
+      Map.has_key?(params, "value") && params["value"] != "" -> params["value"]
+      Map.has_key?(params, "char_name_#{index}") -> params["char_name_#{index}"]
+      Map.has_key?(params, "char_lines_#{index}") -> params["char_lines_#{index}"]
+      true -> nil
+    end
+
+    value = if field == "estimated_lines" do
+      case value do
+        nil -> nil
+        "" -> nil
+        val when is_binary(val) -> String.to_integer(val)
+        val -> val
+      end
+    else
+      value
+    end
+
+    characters =
+      socket.assigns.upload_characters
+      |> List.update_at(index_int, fn char ->
+        Map.put(char, String.to_atom(field), value)
+      end)
+
+    {:noreply, assign(socket, :upload_characters, characters)}
+  end
+
+  @impl true
+  def handle_event("remove_character", %{"index" => index}, socket) do
+    index = String.to_integer(index)
+    characters = List.delete_at(socket.assigns.upload_characters, index)
+    {:noreply, assign(socket, :upload_characters, characters)}
+  end
+
+  @impl true
+  def handle_event("publish_screenplay", _, socket) do
+    user_id = socket.assigns.current_user.id
+
+    pdf_result = process_pdf_upload(socket, user_id)
+
+    screenplay_attrs = %{
+      "title" => socket.assigns.upload_title,
+      "genre" => socket.assigns.upload_genre,
+      "logline" => socket.assigns.upload_logline,
+      "page_count" => socket.assigns.upload_page_count,
+      "characters" => socket.assigns.upload_characters
+    }
+
+    screenplay_attrs = case pdf_result do
+      %{url: url, extracted_text: text} when not is_nil(text) and text != "" ->
+        screenplay_attrs
+        |> Map.put("pdf_url", url)
+        |> Map.put("script_content", text)
+      %{url: url} ->
+        Map.put(screenplay_attrs, "pdf_url", url)
+      _ ->
+        screenplay_attrs
+    end
+
+    case Screenplays.create_screenplay(screenplay_attrs, socket.assigns.current_user) do
+      {:ok, screenplay} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Screenplay \"#{screenplay.title}\" published successfully!")
+         |> assign(:show_upload_form, false)
+         |> assign(:upload_title, "")
+         |> assign(:upload_genre, "Drama")
+         |> assign(:upload_logline, "")
+         |> assign(:upload_page_count, nil)
+         |> assign(:upload_characters, [])
+         |> push_navigate(to: ~p"/screenplay/#{screenplay.id}")}
+
+      {:error, changeset} ->
+        error = format_errors(changeset)
+        {:noreply, assign(socket, :upload_error, error)}
+    end
+  end
+
+  defp process_pdf_upload(socket, user_id) do
+    alias ScriptVoice.Uploads
+    alias ScriptVoice.PdfExtractor
+
+    uploaded_files =
+      consume_uploaded_entries(socket, :pdf, fn %{path: temp_path}, entry ->
+        extracted_text = case PdfExtractor.extract_text(temp_path) do
+          {:ok, text} -> text
+          _ -> nil
+        end
+
+        upload_result = if Uploads.configured?() do
+          Uploads.upload_pdf(temp_path, entry.client_name, user_id)
+        else
+          Uploads.upload_pdf_local(temp_path, entry.client_name, user_id)
+        end
+
+        case upload_result do
+          {:ok, result} -> {:ok, Map.put(result, :extracted_text, extracted_text)}
+          error -> error
+        end
+      end)
+
+    case uploaded_files do
+      [result | _] -> result
+      [] -> {:error, :no_file}
+    end
   end
 
   defp update_screenplay_likes(socket, id, change) do
@@ -146,6 +302,16 @@ defmodule ScriptVoiceWeb.BrowseLive do
     end
   end
 
+  defp format_errors(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+      Enum.reduce(opts, msg, fn {key, value}, acc ->
+        String.replace(acc, "%{#{key}}", to_string(value))
+      end)
+    end)
+    |> Enum.map(fn {field, errors} -> "#{field}: #{Enum.join(errors, ", ")}" end)
+    |> Enum.join("; ")
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -155,12 +321,173 @@ defmodule ScriptVoiceWeb.BrowseLive do
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <h1 class="text-xl sm:text-2xl font-bold">Browse Screenplays</h1>
           <%= if @current_user && @current_user.user_type == "writer" do %>
-            <.button phx-click="show_upload_modal" class="w-full sm:w-auto">
-              <.icon name="hero-plus" class="w-4 h-4" />
-              Upload
-            </.button>
+            <button
+              phx-click="toggle_upload_form"
+              class={[
+                "w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition",
+                !@show_upload_form && "bg-emerald-600 text-white hover:bg-emerald-700",
+                @show_upload_form && "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              ]}
+            >
+              <%= if @show_upload_form do %>
+                <.icon name="hero-x-mark" class="w-4 h-4" />
+                Cancel
+              <% else %>
+                <.icon name="hero-plus" class="w-4 h-4" />
+                Upload
+              <% end %>
+            </button>
           <% end %>
         </div>
+
+        <!-- Upload Form (Inline) -->
+        <%= if @show_upload_form do %>
+          <div class="bg-white rounded-xl border p-4 sm:p-6 mb-6">
+            <%= if @upload_error do %>
+              <div class="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 flex items-center gap-2 text-red-700 text-sm">
+                <.icon name="hero-exclamation-circle" class="w-5 h-5" />
+                <%= @upload_error %>
+              </div>
+            <% end %>
+
+            <h3 class="font-semibold text-gray-900 mb-6">Upload New Screenplay</h3>
+            <form phx-change="validate_upload" phx-submit="publish_screenplay" class="space-y-5">
+              <div class="grid sm:grid-cols-2 gap-4">
+                <.styled_input
+                  name="title"
+                  value={@upload_title}
+                  label="Title"
+                  placeholder="Your screenplay title"
+                  required={true}
+                />
+                <.styled_dropdown
+                  name="genre"
+                  value={@upload_genre}
+                  options={Screenplay.genres()}
+                  label="Genre"
+                  required={true}
+                />
+              </div>
+
+              <.styled_textarea
+                name="logline"
+                value={@upload_logline}
+                label="Logline"
+                placeholder="One sentence that captures your story..."
+                rows={2}
+                required={true}
+              />
+
+              <div class="grid sm:grid-cols-2 gap-4">
+                <.styled_number
+                  name="page_count"
+                  value={@upload_page_count}
+                  label="Page Count"
+                  placeholder="Number of pages"
+                  min={1}
+                  max={500}
+                />
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1.5">Script PDF</label>
+                  <div
+                    class="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/50 transition-colors"
+                    phx-drop-target={@uploads.pdf.ref}
+                  >
+                    <.live_file_input upload={@uploads.pdf} class="sr-only" />
+                    <label for={@uploads.pdf.ref} class="cursor-pointer block">
+                      <%= if Enum.empty?(@uploads.pdf.entries) do %>
+                        <.icon name="hero-document-text" class="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                        <p class="text-sm text-gray-500">Drop PDF or <span class="text-emerald-600 font-medium">browse</span></p>
+                      <% else %>
+                        <%= for entry <- @uploads.pdf.entries do %>
+                          <div class="flex items-center justify-center gap-2">
+                            <.icon name="hero-check-circle" class="w-5 h-5 text-emerald-500" />
+                            <p class="text-sm text-emerald-600 font-medium truncate"><%= entry.client_name %></p>
+                          </div>
+                        <% end %>
+                      <% end %>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Characters Section -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-3">Characters (optional)</label>
+                <div class="space-y-3">
+                  <%= for {char, index} <- Enum.with_index(@upload_characters) do %>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                      <div class="flex-1">
+                        <input
+                          type="text"
+                          name={"char_name_#{index}"}
+                          value={char.name}
+                          phx-blur="update_character"
+                          phx-value-index={index}
+                          phx-value-field="name"
+                          placeholder="Character name"
+                          class="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        />
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <div class="flex rounded-lg border border-gray-200 overflow-hidden">
+                          <%= for gender <- Character.genders() do %>
+                            <button
+                              type="button"
+                              phx-click="update_character"
+                              phx-value-index={index}
+                              phx-value-field="gender"
+                              phx-value-gender={gender}
+                              class={[
+                                "px-3 py-2 text-sm font-medium transition-colors",
+                                gender == char.gender && "bg-emerald-500 text-white",
+                                gender != char.gender && "bg-white text-gray-600 hover:bg-gray-50"
+                              ]}
+                            >
+                              <%= gender %>
+                            </button>
+                          <% end %>
+                        </div>
+                        <input
+                          type="number"
+                          name={"char_lines_#{index}"}
+                          value={char.estimated_lines}
+                          phx-blur="update_character"
+                          phx-value-index={index}
+                          phx-value-field="estimated_lines"
+                          placeholder="Lines"
+                          min="0"
+                          class="w-20 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button
+                          type="button"
+                          phx-click="remove_character"
+                          phx-value-index={index}
+                          class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <.icon name="hero-x-mark" class="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  <% end %>
+
+                  <button
+                    type="button"
+                    phx-click="add_character"
+                    class="w-full border-2 border-dashed border-gray-200 rounded-xl py-3 text-gray-500 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50/50 text-sm font-medium transition-colors"
+                  >
+                    + Add Character
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-medium hover:bg-emerald-700 transition-colors shadow-sm">
+                Publish Screenplay
+              </button>
+            </form>
+          </div>
+        <% end %>
 
         <!-- Filters -->
         <div class="flex flex-col sm:flex-row gap-4 mb-6">
@@ -230,17 +557,6 @@ defmodule ScriptVoiceWeb.BrowseLive do
         <% end %>
       </div>
     </div>
-
-    <!-- Upload Screenplay Modal -->
-    <%= if @show_upload_modal do %>
-      <.modal id="upload-screenplay-modal" show={true} on_cancel={JS.push("close_upload_modal")}>
-        <.live_component
-          module={ScriptVoiceWeb.UploadScreenplayComponent}
-          id="upload-screenplay"
-          current_user={@current_user}
-        />
-      </.modal>
-    <% end %>
     """
   end
 end
