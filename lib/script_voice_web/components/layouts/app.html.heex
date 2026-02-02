@@ -58,14 +58,14 @@
                   Dashboard
                 </.link>
                 <.link
-                  navigate={~p"/profile/#{@current_user.id}"}
+                  navigate={~p"/dashboard?tab=profile"}
                   class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                 >
                   <.icon name="hero-user" class="w-4 h-4 text-gray-400" />
                   My Profile
                 </.link>
                 <.link
-                  navigate={~p"/commissions"}
+                  navigate={~p"/dashboard?tab=commissions"}
                   class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                 >
                   <.icon name="hero-clipboard-document-list" class="w-4 h-4 text-gray-400" />

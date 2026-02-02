@@ -39,6 +39,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
        |> assign(:page_title, "Dashboard")
        |> assign(:active_tab, "overview")
        |> assign(:show_upload_form, false)
+       |> assign(:delete_confirm_id, nil)
        |> assign_tabs()
        |> load_all_data()}
     else
@@ -237,6 +238,57 @@ defmodule ScriptVoiceWeb.DashboardLive do
   end
 
   @impl true
+  def handle_event("delete_screenplay", %{"id" => id}, socket) do
+    screenplay = Screenplays.get_screenplay!(id)
+
+    # Only allow deletion if user owns the screenplay
+    if screenplay.writer_id == socket.assigns.current_user.id do
+      # Notify performers who have audio for this screenplay before deletion
+      notify_performers_of_deletion(screenplay)
+
+      case Screenplays.delete_screenplay(screenplay) do
+        {:ok, _} ->
+          {:noreply,
+           socket
+           |> put_flash(:info, "Screenplay \"#{screenplay.title}\" and all associated audio deleted.")
+           |> load_screenplays(socket.assigns.current_user)}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to delete screenplay")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "You can only delete your own screenplays")}
+    end
+  end
+
+  @impl true
+  def handle_event("confirm_delete", %{"id" => id}, socket) do
+    {:noreply, assign(socket, :delete_confirm_id, id)}
+  end
+
+  @impl true
+  def handle_event("cancel_delete", _, socket) do
+    {:noreply, assign(socket, :delete_confirm_id, nil)}
+  end
+
+  defp notify_performers_of_deletion(screenplay) do
+    # Get all performers who have audio for this screenplay
+    audio_versions = Audio.list_audio_versions_for_screenplay(screenplay.id)
+
+    for audio <- audio_versions do
+      if audio.submitted_by_id do
+        Notifications.create_notification(%{
+          user_id: audio.submitted_by_id,
+          type: "screenplay_deleted",
+          title: "Screenplay Deleted",
+          body: "The screenplay \"#{screenplay.title}\" has been deleted by the writer. Your audio recording has also been removed.",
+          action_url: nil
+        })
+      end
+    end
+  end
+
+  @impl true
   def handle_event("publish_screenplay", _, socket) do
     screenplay_attrs = %{
       "title" => socket.assigns.upload_title,
@@ -387,6 +439,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
                 upload_characters={@upload_characters}
                 upload_error={@upload_error}
                 uploads={@uploads}
+                delete_confirm_id={@delete_confirm_id}
               />
 
             <% "audio" -> %>
@@ -738,29 +791,82 @@ defmodule ScriptVoiceWeb.DashboardLive do
       <% else %>
         <div class="space-y-3">
           <%= for sp <- @screenplays do %>
-            <.link navigate={~p"/screenplay/#{sp.id}"} class="block bg-white rounded-xl border p-4 hover:border-emerald-300 transition">
-              <div class="flex items-start justify-between">
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1">
-                    <h3 class="font-semibold text-gray-900 truncate"><%= sp.title %></h3>
-                    <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded"><%= sp.genre %></span>
+            <div class="bg-white rounded-xl border hover:border-emerald-300 transition">
+              <%= if @delete_confirm_id == sp.id do %>
+                <!-- Delete Confirmation -->
+                <div class="p-4">
+                  <div class="flex items-start gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                      <.icon name="hero-exclamation-triangle" class="w-5 h-5 text-red-600" />
+                    </div>
+                    <div>
+                      <h3 class="font-semibold text-gray-900">Delete "<%= sp.title %>"?</h3>
+                      <p class="text-sm text-gray-600 mt-1">
+                        This will permanently delete this screenplay
+                        <%= if (sp.audio_version_count || 0) > 0 do %>
+                          and <span class="font-medium text-red-600"><%= sp.audio_version_count %> audio recording<%= if sp.audio_version_count != 1, do: "s" %></span>.
+                          Performers will be notified.
+                        <% else %>
+                          .
+                        <% end %>
+                      </p>
+                    </div>
                   </div>
-                  <p class="text-sm text-gray-600 line-clamp-2"><%= sp.logline %></p>
-                  <div class="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                    <span><%= sp.page_count || "?" %> pages</span>
-                    <span class="flex items-center gap-1">
-                      <.icon name="hero-heart" class="w-4 h-4" />
-                      <%= sp.likes %>
-                    </span>
-                    <span class="flex items-center gap-1">
-                      <.icon name="hero-microphone" class="w-4 h-4" />
-                      <%= sp.audio_versions_count || 0 %>
-                    </span>
+                  <div class="flex gap-3">
+                    <button
+                      phx-click="cancel_delete"
+                      class="flex-1 px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      phx-click="delete_screenplay"
+                      phx-value-id={sp.id}
+                      class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
-                <.icon name="hero-chevron-right" class="w-5 h-5 text-gray-400 ml-4 flex-shrink-0" />
-              </div>
-            </.link>
+              <% else %>
+                <!-- Normal View -->
+                <div class="p-4">
+                  <div class="flex items-start justify-between">
+                    <.link navigate={~p"/screenplay/#{sp.id}"} class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 mb-1">
+                        <h3 class="font-semibold text-gray-900 truncate"><%= sp.title %></h3>
+                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded"><%= sp.genre %></span>
+                      </div>
+                      <p class="text-sm text-gray-600 line-clamp-2"><%= sp.logline %></p>
+                      <div class="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                        <span><%= sp.page_count || "?" %> pages</span>
+                        <span class="flex items-center gap-1">
+                          <.icon name="hero-heart" class="w-4 h-4" />
+                          <%= sp.likes %>
+                        </span>
+                        <span class="flex items-center gap-1">
+                          <.icon name="hero-microphone" class="w-4 h-4" />
+                          <%= sp.audio_version_count || 0 %>
+                        </span>
+                      </div>
+                    </.link>
+                    <div class="flex items-center gap-2 ml-4 flex-shrink-0">
+                      <button
+                        phx-click="confirm_delete"
+                        phx-value-id={sp.id}
+                        class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                        title="Delete screenplay"
+                      >
+                        <.icon name="hero-trash" class="w-5 h-5" />
+                      </button>
+                      <.link navigate={~p"/screenplay/#{sp.id}"}>
+                        <.icon name="hero-chevron-right" class="w-5 h-5 text-gray-400" />
+                      </.link>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
           <% end %>
         </div>
       <% end %>
