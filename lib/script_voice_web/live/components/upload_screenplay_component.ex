@@ -19,17 +19,24 @@ defmodule ScriptVoiceWeb.UploadScreenplayComponent do
      |> assign(:logline, "")
      |> assign(:characters, [])
      |> assign(:error, nil)
-     |> allow_upload(:pdf, accept: ~w(.pdf), max_entries: 1, max_file_size: 10_000_000)}
+     |> allow_upload(:pdf, accept: ~w(.pdf), max_entries: 1, max_file_size: 10_000_000, auto_upload: true)}
   end
 
   @impl true
-  def handle_event("validate", %{"title" => title, "genre" => genre, "logline" => logline}, socket) do
-    {:noreply,
-     socket
-     |> assign(:title, title)
-     |> assign(:genre, genre)
-     |> assign(:logline, logline)
-     |> assign(:error, nil)}
+  def handle_event("validate", params, socket) do
+    socket =
+      socket
+      |> assign(:error, nil)
+      |> then(fn s -> if params["title"], do: assign(s, :title, params["title"]), else: s end)
+      |> then(fn s -> if params["genre"], do: assign(s, :genre, params["genre"]), else: s end)
+      |> then(fn s -> if params["logline"], do: assign(s, :logline, params["logline"]), else: s end)
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("cancel_upload", %{"ref" => ref}, socket) do
+    {:noreply, cancel_upload(socket, :pdf, ref)}
   end
 
   @impl true
@@ -124,6 +131,11 @@ defmodule ScriptVoiceWeb.UploadScreenplayComponent do
     |> Enum.join("; ")
   end
 
+  defp error_to_string(:too_large), do: "File is too large (max 10MB)"
+  defp error_to_string(:too_many_files), do: "Only one file allowed"
+  defp error_to_string(:not_accepted), do: "Only PDF files are accepted"
+  defp error_to_string(err), do: "Error: #{inspect(err)}"
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -141,7 +153,7 @@ defmodule ScriptVoiceWeb.UploadScreenplayComponent do
 
       <%= if @step == 1 do %>
         <!-- Step 1: Upload & Metadata -->
-        <form phx-change="validate" phx-target={@myself} class="space-y-4">
+        <form phx-change="validate" phx-submit="upload_and_extract" phx-target={@myself} class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
             <input
@@ -174,12 +186,25 @@ defmodule ScriptVoiceWeb.UploadScreenplayComponent do
             ><%= @logline %></textarea>
           </div>
 
-          <div class="border-2 border-dashed rounded-lg p-6 sm:p-8 text-center">
-            <.live_file_input upload={@uploads.pdf} class="hidden" />
-            <.icon name="hero-document-text" class="w-8 h-8 mx-auto mb-2 text-gray-400" />
-            <p class="text-sm text-gray-500">Drop PDF here or click to upload</p>
+          <div
+            class="border-2 border-dashed rounded-lg p-6 sm:p-8 text-center cursor-pointer hover:border-emerald-400 transition"
+            phx-drop-target={@uploads.pdf.ref}
+          >
+            <.live_file_input upload={@uploads.pdf} class="sr-only" />
+            <label for={@uploads.pdf.ref} class="cursor-pointer block">
+              <.icon name="hero-document-text" class="w-8 h-8 mx-auto mb-2 text-gray-400" />
+              <p class="text-sm text-gray-500">Drop PDF here or <span class="text-emerald-600 font-medium">click to upload</span></p>
+            </label>
             <%= for entry <- @uploads.pdf.entries do %>
-              <p class="text-sm text-emerald-600 mt-2"><%= entry.client_name %></p>
+              <div class="mt-3 bg-emerald-50 rounded-lg p-2">
+                <p class="text-sm text-emerald-600 font-medium"><%= entry.client_name %></p>
+                <div class="w-full bg-emerald-200 rounded-full h-1.5 mt-1">
+                  <div class="bg-emerald-600 h-1.5 rounded-full transition-all" style={"width: #{entry.progress}%"}></div>
+                </div>
+              </div>
+            <% end %>
+            <%= for err <- upload_errors(@uploads.pdf) do %>
+              <p class="text-red-500 text-sm mt-2"><%= error_to_string(err) %></p>
             <% end %>
           </div>
 
