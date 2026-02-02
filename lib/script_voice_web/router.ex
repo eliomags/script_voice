@@ -39,7 +39,8 @@ defmodule ScriptVoiceWeb.Router do
     delete "/session", SessionController, :delete
 
     # Commission routes
-    live "/commissions", CommissionDashboardLive, :index
+    # Redirect /commissions to dashboard with commissions tab
+    get "/commissions", SessionController, :redirect_to_commissions
     live "/commissions/payment/success", PaymentSuccessLive, :success
     live "/commissions/:id", CommissionDetailLive, :show
     live "/commissions/request/:screenplay_id", CommissionRequestLive, :new

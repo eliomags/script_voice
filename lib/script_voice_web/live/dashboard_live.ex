@@ -1345,12 +1345,14 @@ defmodule ScriptVoiceWeb.DashboardLive do
     active_count = Enum.count(all_commissions, & &1.status in ["accepted", "in_progress", "submitted", "revision_requested"])
     pending_count = Enum.count(all_commissions, & &1.status == "pending")
     completed_count = Enum.count(all_commissions, & &1.status == "completed")
+    cancelled_count = Enum.count(all_commissions, & &1.status in ["cancelled", "declined"])
 
     filtered = case assigns.filter do
       "all" -> all_commissions
       "active" -> Enum.filter(all_commissions, & &1.status in ["accepted", "in_progress", "submitted", "revision_requested"])
       "pending" -> Enum.filter(all_commissions, & &1.status == "pending")
       "completed" -> Enum.filter(all_commissions, & &1.status == "completed")
+      "cancelled" -> Enum.filter(all_commissions, & &1.status in ["cancelled", "declined"])
       _ -> all_commissions
     end
 
@@ -1359,6 +1361,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
     assigns = assign(assigns, :active_count, active_count)
     assigns = assign(assigns, :pending_count, pending_count)
     assigns = assign(assigns, :completed_count, completed_count)
+    assigns = assign(assigns, :cancelled_count, cancelled_count)
 
     ~H"""
     <div class="space-y-4">
@@ -1368,8 +1371,8 @@ defmodule ScriptVoiceWeb.DashboardLive do
 
       <!-- Filter Pills -->
       <div class="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
-        <% filter_counts = %{"all" => length(@all_commissions), "active" => @active_count, "pending" => @pending_count, "completed" => @completed_count} %>
-        <%= for {filter, label} <- [{"all", "All"}, {"active", "Active"}, {"pending", "Pending"}, {"completed", "Completed"}] do %>
+        <% filter_counts = %{"all" => length(@all_commissions), "active" => @active_count, "pending" => @pending_count, "completed" => @completed_count, "cancelled" => @cancelled_count} %>
+        <%= for {filter, label} <- [{"all", "All"}, {"active", "Active"}, {"pending", "Pending"}, {"completed", "Completed"}, {"cancelled", "Cancelled"}] do %>
           <% count = Map.get(filter_counts, filter, 0) %>
           <button
             phx-click="filter_commissions"

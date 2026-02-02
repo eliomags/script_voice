@@ -26,4 +26,8 @@ defmodule ScriptVoiceWeb.SessionController do
     |> put_flash(:info, "Logged out successfully")
     |> redirect(to: ~p"/")
   end
+
+  def redirect_to_commissions(conn, _params) do
+    redirect(conn, to: ~p"/dashboard?tab=commissions")
+  end
 end

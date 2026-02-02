@@ -27,13 +27,13 @@ defmodule ScriptVoiceWeb.CommissionDetailLive do
             {:ok,
              socket
              |> put_flash(:error, "Commission not found")
-             |> push_navigate(to: ~p"/commissions")}
+             |> push_navigate(to: ~p"/dashboard?tab=commissions")}
 
           commission.writer_id != user.id and commission.performer_id != user.id ->
             {:ok,
              socket
              |> put_flash(:error, "You don't have access to this commission")
-             |> push_navigate(to: ~p"/commissions")}
+             |> push_navigate(to: ~p"/dashboard?tab=commissions")}
 
           true ->
             # Subscribe to notifications
@@ -281,7 +281,7 @@ defmodule ScriptVoiceWeb.CommissionDetailLive do
     <div class="py-6 sm:py-8 px-4 sm:px-6">
       <div class="max-w-4xl mx-auto">
         <!-- Back Link -->
-        <.link navigate={~p"/commissions"} class="text-sm text-emerald-600 hover:underline mb-4 inline-block">
+        <.link navigate={~p"/dashboard?tab=commissions"} class="text-sm text-emerald-600 hover:underline mb-4 inline-block">
           &larr; Back to Commissions
         </.link>
 
