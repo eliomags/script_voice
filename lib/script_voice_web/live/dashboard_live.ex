@@ -104,13 +104,15 @@ defmodule ScriptVoiceWeb.DashboardLive do
   defp load_audio_versions(socket, _), do: assign(socket, :audio_versions, [])
 
   defp load_commissions(socket, user) do
-    # Load as both writer and performer
-    writer_commissions = Commissions.list_commission_requests_for_writer(user.id)
-    performer_commissions = Commissions.list_commission_requests_for_performer(user.id)
+    # Load commissions based on user type (no mixing)
+    commissions = case user.user_type do
+      "writer" -> Commissions.list_commission_requests_for_writer(user.id)
+      "voice_artist" -> Commissions.list_commission_requests_for_performer(user.id)
+      _ -> []
+    end
 
     socket
-    |> assign(:writer_commissions, writer_commissions)
-    |> assign(:performer_commissions, performer_commissions)
+    |> assign(:commissions, commissions)
     |> assign(:commission_filter, "all")
   end
 
@@ -667,13 +669,13 @@ defmodule ScriptVoiceWeb.DashboardLive do
               >
                 <.icon name={icon} class="w-4 h-4" />
                 <span><%= label %></span>
-                <%= if id == "commissions" && length(@writer_commissions ++ @performer_commissions) > 0 do %>
+                <%= if id == "commissions" && length(@commissions) > 0 do %>
                   <span class={[
                     "px-1.5 py-0.5 text-xs rounded-full",
                     id == @active_tab && "bg-white/20",
                     id != @active_tab && "bg-emerald-100 text-emerald-700"
                   ]}>
-                    <%= length(@writer_commissions ++ @performer_commissions) %>
+                    <%= length(@commissions) %>
                   </span>
                 <% end %>
               </button>
@@ -692,8 +694,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
                 audio_versions={@audio_versions}
                 notifications={@notifications}
                 unread_count={@unread_count}
-                writer_commissions={@writer_commissions}
-                performer_commissions={@performer_commissions}
+                commissions={@commissions}
                 pricing_set={assigns[:pricing_set]}
                 stripe_ready={assigns[:stripe_ready]}
               />
@@ -722,8 +723,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
             <% "commissions" -> %>
               <.commissions_tab
                 current_user={@current_user}
-                writer_commissions={@writer_commissions}
-                performer_commissions={@performer_commissions}
+                commissions={@commissions}
                 filter={@commission_filter}
               />
 
@@ -861,7 +861,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
       </div>
 
       <!-- Active Commissions Preview -->
-      <% active = Enum.filter(@writer_commissions ++ @performer_commissions, fn c -> c.status in ["accepted", "in_progress", "submitted"] end) %>
+      <% active = Enum.filter(@commissions, fn c -> c.status in ["accepted", "in_progress", "submitted"] end) %>
       <%= if length(active) > 0 do %>
         <div class="bg-white rounded-xl border p-4">
           <div class="flex items-center justify-between mb-3">
@@ -876,7 +876,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
                 <div class="truncate">
                   <div class="font-medium text-gray-900 truncate"><%= c.screenplay.title %></div>
                   <div class="text-sm text-gray-500">
-                    <%= if c.writer_id == @current_user.id, do: "with #{c.performer.name}", else: "for #{c.writer.name}" %>
+                    <%= if @current_user.user_type == "writer", do: "with #{c.performer.name}", else: "for #{c.writer.name}" %>
                   </div>
                 </div>
                 <.status_badge status={c.status} />
@@ -1339,7 +1339,12 @@ defmodule ScriptVoiceWeb.DashboardLive do
   # ===========================================================================
 
   defp commissions_tab(assigns) do
-    all_commissions = assigns.writer_commissions ++ assigns.performer_commissions
+    all_commissions = assigns.commissions
+
+    # Calculate counts for each filter
+    active_count = Enum.count(all_commissions, & &1.status in ["accepted", "in_progress", "submitted", "revision_requested"])
+    pending_count = Enum.count(all_commissions, & &1.status == "pending")
+    completed_count = Enum.count(all_commissions, & &1.status == "completed")
 
     filtered = case assigns.filter do
       "all" -> all_commissions
@@ -1351,6 +1356,9 @@ defmodule ScriptVoiceWeb.DashboardLive do
 
     assigns = assign(assigns, :filtered_commissions, filtered)
     assigns = assign(assigns, :all_commissions, all_commissions)
+    assigns = assign(assigns, :active_count, active_count)
+    assigns = assign(assigns, :pending_count, pending_count)
+    assigns = assign(assigns, :completed_count, completed_count)
 
     ~H"""
     <div class="space-y-4">
@@ -1360,7 +1368,9 @@ defmodule ScriptVoiceWeb.DashboardLive do
 
       <!-- Filter Pills -->
       <div class="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <% filter_counts = %{"all" => length(@all_commissions), "active" => @active_count, "pending" => @pending_count, "completed" => @completed_count} %>
         <%= for {filter, label} <- [{"all", "All"}, {"active", "Active"}, {"pending", "Pending"}, {"completed", "Completed"}] do %>
+          <% count = Map.get(filter_counts, filter, 0) %>
           <button
             phx-click="filter_commissions"
             phx-value-filter={filter}
@@ -1371,8 +1381,8 @@ defmodule ScriptVoiceWeb.DashboardLive do
             ]}
           >
             <%= label %>
-            <%= if filter == "all" do %>
-              (<%= length(@all_commissions) %>)
+            <%= if count > 0 do %>
+              (<%= count %>)
             <% end %>
           </button>
         <% end %>
@@ -1397,10 +1407,10 @@ defmodule ScriptVoiceWeb.DashboardLive do
                     <.status_badge status={c.status} />
                   </div>
                   <div class="text-sm text-gray-500">
-                    <%= if c.writer_id == @current_user.id do %>
-                      <span class="text-purple-600">As Writer</span> · with <%= c.performer.name %>
+                    <%= if @current_user.user_type == "writer" do %>
+                      with <%= c.performer.name %>
                     <% else %>
-                      <span class="text-pink-600">As Performer</span> · for <%= c.writer.name %>
+                      for <%= c.writer.name %>
                     <% end %>
                   </div>
                   <div class="text-sm text-gray-500 mt-1">

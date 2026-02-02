@@ -299,6 +299,38 @@ defmodule ScriptVoiceWeb.CommissionDetailLive do
                   Writer: <.link navigate={~p"/profile/#{@commission.writer_id}"} class="text-emerald-600 hover:underline"><%= @commission.writer.name %></.link>
                 <% end %>
               </p>
+              <!-- Screenplay Links -->
+              <div class="mt-3 flex flex-wrap gap-2">
+                <!-- View Screenplay Details -->
+                <.link
+                  navigate={~p"/screenplay/#{@commission.screenplay.id}?from=commission&commission_id=#{@commission.id}"}
+                  class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg font-medium hover:bg-emerald-100 transition"
+                >
+                  <.icon name="hero-information-circle" class="w-4 h-4" />
+                  Screenplay Details
+                </.link>
+                <!-- View Script -->
+                <%= cond do %>
+                  <% @commission.screenplay.script_content && String.length(@commission.screenplay.script_content) > 0 -> %>
+                    <.link
+                      navigate={~p"/screenplay/#{@commission.screenplay.id}/read?from=commission&commission_id=#{@commission.id}"}
+                      class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition"
+                    >
+                      <.icon name="hero-document-text" class="w-4 h-4" />
+                      Read Script
+                    </.link>
+                  <% @commission.screenplay.pdf_url -> %>
+                    <a
+                      href={@commission.screenplay.pdf_url}
+                      target="_blank"
+                      class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition"
+                    >
+                      <.icon name="hero-document-text" class="w-4 h-4" />
+                      Read Script (PDF)
+                    </a>
+                  <% true -> %>
+                <% end %>
+              </div>
             </div>
             <div class="text-right">
               <.status_badge status={@commission.status} />

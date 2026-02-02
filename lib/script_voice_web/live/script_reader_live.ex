@@ -9,8 +9,14 @@ defmodule ScriptVoiceWeb.ScriptReaderLive do
   alias ScriptVoice.Accounts
 
   @impl true
-  def mount(%{"id" => id}, session, socket) do
+  def mount(%{"id" => id} = params, session, socket) do
     current_user = get_current_user(session)
+
+    # Handle back navigation from commissions
+    back_to = case params do
+      %{"from" => "commission", "commission_id" => commission_id} -> ~p"/commissions/#{commission_id}"
+      _ -> nil
+    end
 
     case Screenplays.get_screenplay(id) do
       nil ->
@@ -27,6 +33,7 @@ defmodule ScriptVoiceWeb.ScriptReaderLive do
          |> assign(:current_user, current_user)
          |> assign(:screenplay, screenplay)
          |> assign(:is_author, is_author)
+         |> assign(:back_to, back_to)
          |> assign(:page_title, "#{screenplay.title} - Read Script")}
     end
   end
@@ -44,7 +51,11 @@ defmodule ScriptVoiceWeb.ScriptReaderLive do
     <div class="py-6 sm:py-8 px-4 sm:px-6">
       <div class="max-w-4xl mx-auto">
         <!-- Back Button -->
-        <.back navigate={~p"/screenplay/#{@screenplay.id}"}>Back to screenplay</.back>
+        <%= if @back_to do %>
+          <.back navigate={@back_to}>Back to commission</.back>
+        <% else %>
+          <.back navigate={~p"/screenplay/#{@screenplay.id}"}>Back to screenplay</.back>
+        <% end %>
 
         <!-- Script Header -->
         <div class="bg-white border rounded-xl p-4 sm:p-6 mt-4 mb-6">
@@ -106,10 +117,10 @@ defmodule ScriptVoiceWeb.ScriptReaderLive do
               <h2 class="font-semibold text-xl mb-2">Script not available</h2>
               <p class="text-gray-500 mb-6">The full script content hasn't been uploaded yet.</p>
               <.link
-                navigate={~p"/screenplay/#{@screenplay.id}"}
+                navigate={@back_to || ~p"/screenplay/#{@screenplay.id}"}
                 class="text-emerald-600 font-medium hover:underline"
               >
-                Back to screenplay
+                <%= if @back_to, do: "Back to commission", else: "Back to screenplay" %>
               </.link>
             </div>
         <% end %>

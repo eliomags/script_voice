@@ -49,19 +49,27 @@ defmodule ScriptVoiceWeb.CommissionDashboardLive do
     view_mode = socket.assigns.view_mode
     filter = socket.assigns.filter
 
-    statuses = case filter do
-      "active" -> ["pending", "accepted", "in_progress", "submitted", "revision_requested"]
-      "pending" -> ["pending"]
-      "completed" -> ["completed"]
-      "cancelled" -> ["cancelled", "declined"]
-      _ -> nil
+    # Load ALL commissions first for counting
+    all_commissions = case view_mode do
+      "writer" ->
+        Commissions.list_commission_requests_for_writer(user.id, status: nil)
+      "performer" ->
+        Commissions.list_commission_requests_for_performer(user.id, status: nil)
     end
 
-    commissions = case view_mode do
-      "writer" ->
-        Commissions.list_commission_requests_for_writer(user.id, status: statuses)
-      "performer" ->
-        Commissions.list_commission_requests_for_performer(user.id, status: statuses)
+    # Calculate counts for each filter tab
+    active_count = Enum.count(all_commissions, &(&1.status in ["pending", "accepted", "in_progress", "submitted", "revision_requested"]))
+    pending_count = Enum.count(all_commissions, &(&1.status == "pending"))
+    completed_count = Enum.count(all_commissions, &(&1.status == "completed"))
+    cancelled_count = Enum.count(all_commissions, &(&1.status in ["cancelled", "declined"]))
+
+    # Filter for display
+    commissions = case filter do
+      "active" -> Enum.filter(all_commissions, &(&1.status in ["pending", "accepted", "in_progress", "submitted", "revision_requested"]))
+      "pending" -> Enum.filter(all_commissions, &(&1.status == "pending"))
+      "completed" -> Enum.filter(all_commissions, &(&1.status == "completed"))
+      "cancelled" -> Enum.filter(all_commissions, &(&1.status in ["cancelled", "declined"]))
+      _ -> all_commissions
     end
 
     # Group by status for display
@@ -72,6 +80,10 @@ defmodule ScriptVoiceWeb.CommissionDashboardLive do
     |> assign(:pending_commissions, pending)
     |> assign(:active_commissions, active)
     |> assign(:needs_action, needs_action)
+    |> assign(:active_count, active_count)
+    |> assign(:pending_count, pending_count)
+    |> assign(:completed_count, completed_count)
+    |> assign(:cancelled_count, cancelled_count)
   end
 
   defp group_commissions(commissions, view_mode) do
@@ -89,14 +101,6 @@ defmodule ScriptVoiceWeb.CommissionDashboardLive do
     end
 
     {pending, active, needs_action}
-  end
-
-  @impl true
-  def handle_event("set_view_mode", %{"mode" => mode}, socket) do
-    {:noreply,
-     socket
-     |> assign(:view_mode, mode)
-     |> load_commissions()}
   end
 
   @impl true
@@ -121,33 +125,20 @@ defmodule ScriptVoiceWeb.CommissionDashboardLive do
         <!-- Header -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h1 class="text-2xl font-bold">My Commissions</h1>
-
-          <!-- View Mode Toggle (for users with both roles) -->
-          <%= if @current_user.user_type in ["writer", "voice_artist"] do %>
-            <div class="flex bg-gray-100 rounded-lg p-1">
-              <button
-                phx-click="set_view_mode"
-                phx-value-mode="writer"
-                class={"px-4 py-2 text-sm font-medium rounded-md transition-colors " <>
-                  if @view_mode == "writer", do: "bg-white shadow text-gray-900", else: "text-gray-600 hover:text-gray-900"}
-              >
-                As Writer
-              </button>
-              <button
-                phx-click="set_view_mode"
-                phx-value-mode="performer"
-                class={"px-4 py-2 text-sm font-medium rounded-md transition-colors " <>
-                  if @view_mode == "performer", do: "bg-white shadow text-gray-900", else: "text-gray-600 hover:text-gray-900"}
-              >
-                As Performer
-              </button>
-            </div>
-          <% end %>
+          <p class="text-sm text-gray-500">
+            <%= if @current_user.user_type == "voice_artist" do %>
+              Commissions you've received from writers
+            <% else %>
+              Commissions you've sent to voice artists
+            <% end %>
+          </p>
         </div>
 
         <!-- Filter Tabs -->
         <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+          <% filter_counts = %{"active" => @active_count, "pending" => @pending_count, "completed" => @completed_count, "cancelled" => @cancelled_count} %>
           <%= for {label, value} <- [{"Active", "active"}, {"Pending", "pending"}, {"Completed", "completed"}, {"Cancelled", "cancelled"}] do %>
+            <% count = Map.get(filter_counts, value, 0) %>
             <button
               phx-click="set_filter"
               phx-value-filter={value}
@@ -155,6 +146,9 @@ defmodule ScriptVoiceWeb.CommissionDashboardLive do
                 if @filter == value, do: "bg-emerald-100 text-emerald-700", else: "bg-gray-100 text-gray-600 hover:bg-gray-200"}
             >
               <%= label %>
+              <%= if count > 0 do %>
+                (<%= count %>)
+              <% end %>
             </button>
           <% end %>
         </div>

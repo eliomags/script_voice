@@ -17,8 +17,14 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
   ]
 
   @impl true
-  def mount(%{"id" => id}, session, socket) do
+  def mount(%{"id" => id} = params, session, socket) do
     current_user = get_current_user(session)
+
+    # Handle back navigation from commissions
+    back_to = case params do
+      %{"from" => "commission", "commission_id" => commission_id} -> ~p"/commissions/#{commission_id}"
+      _ -> nil
+    end
 
     case Screenplays.get_screenplay(id) do
       nil ->
@@ -52,6 +58,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
          |> assign(:is_author, is_author)
          |> assign(:playing_id, nil)
          |> assign(:show_submit_modal, false)
+         |> assign(:back_to, back_to)
          |> assign(:page_title, screenplay.title)}
     end
   end
@@ -198,10 +205,13 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
     <div class="py-6 sm:py-8 px-4 sm:px-6">
       <div class="max-w-4xl mx-auto">
         <!-- Back Button -->
-        <%= if @is_author do %>
-          <.back navigate={~p"/dashboard?tab=screenplays"}>Back to my scripts</.back>
-        <% else %>
-          <.back navigate={~p"/browse"}>Back to browse</.back>
+        <%= cond do %>
+          <% @back_to -> %>
+            <.back navigate={@back_to}>Back to commission</.back>
+          <% @is_author -> %>
+            <.back navigate={~p"/dashboard?tab=screenplays"}>Back to my scripts</.back>
+          <% true -> %>
+            <.back navigate={~p"/browse"}>Back to browse</.back>
         <% end %>
 
         <!-- Screenplay Header -->

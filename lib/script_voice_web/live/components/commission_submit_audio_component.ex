@@ -18,7 +18,7 @@ defmodule ScriptVoiceWeb.CommissionSubmitAudioComponent do
      |> assign(:notes, "")
      |> assign(:submitting, false)
      |> allow_upload(:audio,
-       accept: ~w(.mp3 .wav .m4a .ogg .flac),
+       accept: ~w(audio/*),
        max_entries: 1,
        max_file_size: 100_000_000,
        auto_upload: true
