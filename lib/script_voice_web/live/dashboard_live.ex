@@ -1060,16 +1060,49 @@ defmodule ScriptVoiceWeb.DashboardLive do
             <% end %>
           </div>
           <%= if Enum.empty?(@notifications) do %>
-            <p class="text-gray-500 text-sm">No notifications</p>
+            <p class="text-gray-500 text-sm">No notifications yet</p>
+            <p class="text-xs text-gray-400 mt-1">You'll see updates about your requests, collectives, and commissions here.</p>
           <% else %>
             <div class="space-y-2">
-              <%= for n <- Enum.take(@notifications, 4) do %>
-                <div class={["p-2 rounded-lg text-sm", is_nil(n.read_at) && "bg-emerald-50", !is_nil(n.read_at) && "bg-gray-50"]}>
-                  <div class="font-medium text-gray-900"><%= n.title %></div>
-                  <div class="text-xs text-gray-500 mt-0.5"><%= format_time_ago(n.inserted_at) %></div>
-                </div>
+              <%= for n <- Enum.take(@notifications, 5) do %>
+                <%= if n.action_url do %>
+                  <.link navigate={n.action_url} class={["block p-2 rounded-lg text-sm hover:bg-gray-100 transition", is_nil(n.read_at) && "bg-emerald-50", !is_nil(n.read_at) && "bg-gray-50"]}>
+                    <div class="flex items-start gap-2">
+                      <div class={["w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5", notification_icon_color(n.type)]}>
+                        <.icon name={notification_icon(n.type)} class="w-3 h-3" />
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="font-medium text-gray-900 truncate"><%= n.title %></div>
+                        <%= if n.body do %>
+                          <div class="text-xs text-gray-600 truncate"><%= n.body %></div>
+                        <% end %>
+                        <div class="text-xs text-gray-400 mt-0.5"><%= format_time_ago(n.inserted_at) %></div>
+                      </div>
+                    </div>
+                  </.link>
+                <% else %>
+                  <div class={["p-2 rounded-lg text-sm", is_nil(n.read_at) && "bg-emerald-50", !is_nil(n.read_at) && "bg-gray-50"]}>
+                    <div class="flex items-start gap-2">
+                      <div class={["w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5", notification_icon_color(n.type)]}>
+                        <.icon name={notification_icon(n.type)} class="w-3 h-3" />
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="font-medium text-gray-900 truncate"><%= n.title %></div>
+                        <%= if n.body do %>
+                          <div class="text-xs text-gray-600 truncate"><%= n.body %></div>
+                        <% end %>
+                        <div class="text-xs text-gray-400 mt-0.5"><%= format_time_ago(n.inserted_at) %></div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
               <% end %>
             </div>
+            <%= if length(@notifications) > 5 do %>
+              <button phx-click="change_tab" phx-value-tab="notifications" class="w-full mt-2 text-xs text-center text-emerald-600 hover:underline">
+                View all notifications
+              </button>
+            <% end %>
           <% end %>
         </div>
       </div>
@@ -2083,6 +2116,66 @@ defmodule ScriptVoiceWeb.DashboardLive do
       diff < 86400 -> "#{div(diff, 3600)}h ago"
       diff < 604_800 -> "#{div(diff, 86400)}d ago"
       true -> Calendar.strftime(datetime, "%b %d")
+    end
+  end
+
+  # Notification type to icon mapping
+  defp notification_icon(type) do
+    case type do
+      # Commissions
+      "commission_request_received" -> "hero-clipboard-document-list"
+      "commission_accepted" -> "hero-check-circle"
+      "commission_declined" -> "hero-x-circle"
+      "submission_received" -> "hero-microphone"
+      "revision_requested" -> "hero-arrow-path"
+      "commission_completed" -> "hero-trophy"
+      "commission_cancelled" -> "hero-x-mark"
+      "message_received" -> "hero-chat-bubble-left"
+      "payment_released" -> "hero-banknotes"
+      # Collectives
+      "collective_invitation" -> "hero-envelope"
+      "collective_member_joined" -> "hero-user-plus"
+      "collective_invitation_declined" -> "hero-user-minus"
+      "collective_join_request" -> "hero-hand-raised"
+      "collective_request_approved" -> "hero-check-badge"
+      "collective_request_rejected" -> "hero-x-circle"
+      "collective_removed" -> "hero-user-minus"
+      "collective_request_note" -> "hero-chat-bubble-left-ellipsis"
+      # Screenplays
+      "screenplay_updated" -> "hero-document-text"
+      "screenplay_deleted" -> "hero-trash"
+      # Default
+      _ -> "hero-bell"
+    end
+  end
+
+  # Notification type to color mapping
+  defp notification_icon_color(type) do
+    case type do
+      # Success/positive
+      "commission_accepted" -> "bg-green-100 text-green-600"
+      "commission_completed" -> "bg-green-100 text-green-600"
+      "collective_request_approved" -> "bg-green-100 text-green-600"
+      "collective_member_joined" -> "bg-green-100 text-green-600"
+      "payment_released" -> "bg-green-100 text-green-600"
+      # Negative
+      "commission_declined" -> "bg-red-100 text-red-600"
+      "commission_cancelled" -> "bg-red-100 text-red-600"
+      "collective_request_rejected" -> "bg-red-100 text-red-600"
+      "collective_removed" -> "bg-red-100 text-red-600"
+      "collective_invitation_declined" -> "bg-red-100 text-red-600"
+      "screenplay_deleted" -> "bg-red-100 text-red-600"
+      # Action needed
+      "commission_request_received" -> "bg-blue-100 text-blue-600"
+      "submission_received" -> "bg-blue-100 text-blue-600"
+      "collective_join_request" -> "bg-blue-100 text-blue-600"
+      "revision_requested" -> "bg-amber-100 text-amber-600"
+      # Messages/invitations
+      "collective_invitation" -> "bg-purple-100 text-purple-600"
+      "message_received" -> "bg-purple-100 text-purple-600"
+      "collective_request_note" -> "bg-purple-100 text-purple-600"
+      # Default
+      _ -> "bg-gray-100 text-gray-600"
     end
   end
 end
