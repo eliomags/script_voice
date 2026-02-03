@@ -1016,11 +1016,20 @@ defmodule ScriptVoiceWeb.DashboardLive do
               <div class="space-y-2">
                 <%= for audio <- Enum.take(@audio_versions, 3) do %>
                   <.link navigate={~p"/screenplay/#{audio.screenplay_id}?from=dashboard"} class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
-                    <div class="truncate">
-                      <div class="font-medium text-sm text-gray-900 truncate"><%= audio.screenplay.title %></div>
+                    <div class="truncate flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="font-medium text-sm text-gray-900 truncate"><%= audio.screenplay.title %></span>
+                        <%= if audio.collective_id do %>
+                          <span class="px-1.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded flex-shrink-0 flex items-center gap-1">
+                            <.icon name="hero-user-group" class="w-3 h-3" /> Group
+                          </span>
+                        <% else %>
+                          <span class="px-1.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded flex-shrink-0">Solo</span>
+                        <% end %>
+                      </div>
                       <div class="text-xs text-gray-500"><%= AudioVersion.display_duration(audio) %></div>
                     </div>
-                    <div class="flex items-center gap-1 text-gray-400 text-sm">
+                    <div class="flex items-center gap-1 text-gray-400 text-sm flex-shrink-0 ml-2">
                       <.icon name="hero-heart" class="w-3 h-3" />
                       <%= audio.likes %>
                     </div>
@@ -1509,8 +1518,16 @@ defmodule ScriptVoiceWeb.DashboardLive do
             <.link navigate={~p"/screenplay/#{audio.screenplay_id}?from=dashboard"} class={["block bg-white rounded-xl border p-4 transition", is_outdated && "border-amber-300", !is_outdated && "hover:border-emerald-300"]}>
               <div class="flex items-center justify-between">
                 <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 flex-wrap">
                     <h3 class="font-semibold text-gray-900 truncate"><%= audio.screenplay.title %></h3>
+                    <%= if audio.collective_id && audio.collective do %>
+                      <span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded-full flex items-center gap-1">
+                        <.icon name="hero-user-group" class="w-3 h-3" />
+                        <%= audio.collective.name %>
+                      </span>
+                    <% else %>
+                      <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">Solo</span>
+                    <% end %>
                     <%= if is_outdated do %>
                       <span class="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full flex items-center gap-1">
                         <.icon name="hero-exclamation-triangle" class="w-3 h-3" />
