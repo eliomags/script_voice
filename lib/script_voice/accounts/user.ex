@@ -48,6 +48,11 @@ defmodule ScriptVoice.Accounts.User do
     has_many :audio_versions, ScriptVoice.Audio.AudioVersion, foreign_key: :submitted_by_id
     has_many :likes, ScriptVoice.Social.Like
 
+    # Collective memberships
+    has_many :collective_memberships, ScriptVoice.Collectives.CollectiveMembership
+    has_many :collectives, through: [:collective_memberships, :collective]
+    has_many :created_collectives, ScriptVoice.Collectives.Collective, foreign_key: :creator_id
+
     timestamps(type: :utc_datetime)
   end
 

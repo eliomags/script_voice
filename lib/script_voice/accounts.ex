@@ -38,6 +38,20 @@ defmodule ScriptVoice.Accounts do
   end
 
   @doc """
+  Searches voice artists by name.
+  """
+  def search_voice_artists(search_term) when is_binary(search_term) do
+    search_pattern = "%#{search_term}%"
+
+    User
+    |> where([u], u.user_type == "voice_artist")
+    |> where([u], ilike(u.name, ^search_pattern))
+    |> order_by([u], asc: u.name)
+    |> limit(10)
+    |> Repo.all()
+  end
+
+  @doc """
   Gets a single user.
   Returns nil if the User does not exist.
   """

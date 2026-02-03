@@ -8,6 +8,7 @@ defmodule ScriptVoiceWeb.ProfileLive do
   alias ScriptVoice.Screenplays
   alias ScriptVoice.Audio
   alias ScriptVoice.Social
+  alias ScriptVoice.Collectives
 
   @impl true
   def mount(%{"id" => id} = params, session, socket) do
@@ -22,16 +23,17 @@ defmodule ScriptVoiceWeb.ProfileLive do
 
       profile_user ->
         # Load user's content
-        {screenplays, audio_versions} =
+        {screenplays, audio_versions, collectives} =
           case profile_user.user_type do
             "writer" ->
-              {Screenplays.list_screenplays(writer_id: profile_user.id), []}
+              {Screenplays.list_screenplays(writer_id: profile_user.id), [], []}
 
             "voice_artist" ->
-              {[], Audio.list_audio_versions_by_user(profile_user.id)}
+              {[], Audio.list_audio_versions_by_user(profile_user.id),
+               Collectives.list_collectives_for_user(profile_user.id)}
 
             _ ->
-              {[], []}
+              {[], [], []}
           end
 
         is_own_profile = current_user && current_user.id == profile_user.id
@@ -46,6 +48,9 @@ defmodule ScriptVoiceWeb.ProfileLive do
         # Determine back URL from referer param or default to browse
         back_url = case params["from"] do
           "screenplay:" <> screenplay_id -> ~p"/screenplay/#{screenplay_id}"
+          "collective:" <> collective_slug -> ~p"/collective/#{collective_slug}"
+          "collectives" -> ~p"/collectives"
+          "dashboard" -> ~p"/dashboard?tab=collectives"
           _ -> ~p"/browse"
         end
 
@@ -55,6 +60,7 @@ defmodule ScriptVoiceWeb.ProfileLive do
          |> assign(:profile_user, profile_user)
          |> assign(:screenplays, screenplays)
          |> assign(:audio_versions, audio_versions)
+         |> assign(:collectives, collectives)
          |> assign(:is_own_profile, is_own_profile)
          |> assign(:liked_screenplay_ids, liked_ids)
          |> assign(:back_url, back_url)
@@ -244,6 +250,27 @@ defmodule ScriptVoiceWeb.ProfileLive do
           </div>
         <% end %>
 
+        <!-- Collectives Section (for voice artists) -->
+        <%= if @profile_user.user_type == "voice_artist" and @collectives != [] do %>
+          <div class="bg-white border rounded-xl p-4 sm:p-6 mb-6">
+            <h2 class="font-semibold mb-3 flex items-center gap-2">
+              <.icon name="hero-user-group" class="w-5 h-5 text-purple-600" />
+              Member of
+            </h2>
+            <div class="flex flex-wrap gap-2">
+              <%= for collective <- @collectives do %>
+                <.link
+                  navigate={~p"/collective/#{collective.slug}"}
+                  class="flex items-center gap-2 bg-purple-50 hover:bg-purple-100 rounded-lg px-3 py-2 transition"
+                >
+                  <span class="font-medium text-purple-700"><%= collective.name %></span>
+                  <.icon name="hero-chevron-right" class="w-4 h-4 text-purple-400" />
+                </.link>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
         <!-- Content -->
         <%= if @profile_user.user_type == "writer" do %>
           <h2 class="text-lg font-bold mb-4">Screenplays</h2>
@@ -278,6 +305,23 @@ defmodule ScriptVoiceWeb.ProfileLive do
             <div class="space-y-3">
               <%= for av <- @audio_versions do %>
                 <div class="bg-white border rounded-xl p-4">
+                  <!-- Solo vs Collective Label -->
+                  <div class="flex items-center gap-2 mb-2">
+                    <%= if av.collective do %>
+                      <.link
+                        navigate={~p"/collective/#{av.collective.slug}"}
+                        class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full hover:bg-purple-200 flex items-center gap-1"
+                      >
+                        <.icon name="hero-user-group" class="w-3 h-3" />
+                        By <%= av.collective.name %>
+                      </.link>
+                    <% else %>
+                      <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <.icon name="hero-user" class="w-3 h-3" />
+                        Solo
+                      </span>
+                    <% end %>
+                  </div>
                   <.link navigate={~p"/screenplay/#{av.screenplay_id}"} class="text-sm text-emerald-600 font-medium hover:underline mb-2 block">
                     <%= if av.screenplay, do: av.screenplay.title, else: "Unknown Screenplay" %>
                   </.link>

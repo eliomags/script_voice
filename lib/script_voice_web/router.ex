@@ -50,6 +50,11 @@ defmodule ScriptVoiceWeb.Router do
 
     # Stripe Connect onboarding
     live "/settings/payments", StripeConnectLive, :index
+
+    # Collective routes
+    live "/collectives", CollectivesBrowseLive, :index
+    live "/collective/:slug", CollectiveLive, :show
+    live "/collective/:slug/settings", CollectiveSettingsLive, :edit
   end
 
   # Stripe webhook endpoint

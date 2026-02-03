@@ -26,6 +26,7 @@ defmodule ScriptVoice.Audio do
     |> where([av], av.screenplay_id == ^screenplay_id)
     |> apply_audio_sort(sort)
     |> Repo.all()
+    |> Repo.preload([:collective, :submitted_by])
   end
 
   defp apply_audio_sort(query, :recent), do: order_by(query, [av], desc: av.inserted_at)
@@ -52,7 +53,7 @@ defmodule ScriptVoice.Audio do
   def get_audio_version_with_preloads(id) do
     AudioVersion
     |> Repo.get(id)
-    |> Repo.preload([:screenplay, :submitted_by])
+    |> Repo.preload([:screenplay, :submitted_by, :collective])
   end
 
   @doc """
@@ -184,10 +185,36 @@ defmodule ScriptVoice.Audio do
   Gets all audio versions submitted by a user.
   """
   def list_audio_versions_by_user(user_id) do
+    # Get collective IDs where the user is a member
+    collective_ids = get_user_collective_ids(user_id)
+
+    # Get audio versions where user submitted them OR they're from user's collectives
     AudioVersion
-    |> where([av], av.submitted_by_id == ^user_id)
+    |> where([av], av.submitted_by_id == ^user_id or av.collective_id in ^collective_ids)
     |> order_by([av], desc: av.inserted_at)
     |> Repo.all()
-    |> Repo.preload(:screenplay)
+    |> Repo.preload([:screenplay, :collective])
+    |> Enum.uniq_by(& &1.id)  # Remove duplicates (if user both submitted and is in collective)
+  end
+
+  defp get_user_collective_ids(user_id) do
+    import Ecto.Query
+
+    from(m in ScriptVoice.Collectives.CollectiveMembership,
+      where: m.user_id == ^user_id,
+      select: m.collective_id
+    )
+    |> Repo.all()
+  end
+
+  @doc """
+  Gets all audio versions by a collective.
+  """
+  def list_audio_versions_by_collective(collective_id) do
+    AudioVersion
+    |> where([av], av.collective_id == ^collective_id)
+    |> order_by([av], desc: av.inserted_at)
+    |> Repo.all()
+    |> Repo.preload([:screenplay, :submitted_by])
   end
 end

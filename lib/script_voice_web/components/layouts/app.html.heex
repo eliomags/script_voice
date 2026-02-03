@@ -11,7 +11,10 @@
 
       <div class="flex items-center gap-2 sm:gap-4">
         <.link navigate={~p"/browse"} class="text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base px-2 py-1">
-          Browse
+          Scripts
+        </.link>
+        <.link navigate={~p"/collectives"} class="text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base px-2 py-1">
+          Collectives
         </.link>
 
         <%= if assigns[:current_user] do %>
@@ -72,6 +75,13 @@
                   Commissions
                 </.link>
                 <%= if @current_user.user_type == "voice_artist" do %>
+                  <.link
+                    navigate={~p"/dashboard?tab=collectives"}
+                    class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <.icon name="hero-user-group" class="w-4 h-4 text-gray-400" />
+                    My Collectives
+                  </.link>
                   <.link
                     navigate={~p"/settings/pricing"}
                     class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"

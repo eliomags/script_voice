@@ -6,7 +6,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
   """
   use ScriptVoiceWeb, :live_view
 
-  alias ScriptVoice.{Accounts, Commissions, Notifications, Screenplays, Audio}
+  alias ScriptVoice.{Accounts, Commissions, Notifications, Screenplays, Audio, Collectives}
   alias ScriptVoice.Audio.AudioVersion
   alias ScriptVoice.Screenplays.{Screenplay, Character}
 
@@ -20,6 +20,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
   @performer_tabs [
     {"overview", "Overview", "hero-home"},
     {"audio", "My Audio", "hero-microphone"},
+    {"collectives", "Collectives", "hero-user-group"},
     {"commissions", "Commissions", "hero-clipboard-document-list"},
     {"profile", "Profile", "hero-user"}
   ]
@@ -77,6 +78,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
     |> load_notifications(user)
     |> load_screenplays(user)
     |> load_audio_versions(user)
+    |> load_collectives(user)
     |> load_commissions(user)
     |> load_stats(user)
     |> init_upload_form()
@@ -102,6 +104,29 @@ defmodule ScriptVoiceWeb.DashboardLive do
     assign(socket, :audio_versions, audio_versions)
   end
   defp load_audio_versions(socket, _), do: assign(socket, :audio_versions, [])
+
+  defp load_collectives(socket, %{user_type: "voice_artist"} = user) do
+    memberships = Collectives.list_memberships_for_user(user.id)
+    pending_invitations = Collectives.list_pending_invitations_for_user(user.id)
+    pending_requests = Collectives.list_pending_join_requests_for_user_with_messages(user.id)
+    rejected_requests = Collectives.list_recent_rejected_requests_for_user(user.id) |> Map.values()
+
+    socket
+    |> assign(:memberships, memberships)
+    |> assign(:pending_invitations, pending_invitations)
+    |> assign(:pending_join_requests, pending_requests)
+    |> assign(:rejected_join_requests, rejected_requests)
+    |> assign(:show_create_collective, false)
+    |> assign(:new_collective_name, "")
+    |> assign(:new_collective_bio, "")
+  end
+  defp load_collectives(socket, _) do
+    socket
+    |> assign(:memberships, [])
+    |> assign(:pending_invitations, [])
+    |> assign(:pending_join_requests, [])
+    |> assign(:rejected_join_requests, [])
+  end
 
   defp load_commissions(socket, user) do
     # Load commissions based on user type (no mixing)
@@ -615,6 +640,174 @@ defmodule ScriptVoiceWeb.DashboardLive do
      |> put_flash(:info, notification.title)}
   end
 
+  # ===========================================================================
+  # Collectives Event Handlers
+  # ===========================================================================
+
+  @impl true
+  def handle_event("toggle_create_collective", _, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_create_collective, !socket.assigns.show_create_collective)
+     |> assign(:new_collective_name, "")
+     |> assign(:new_collective_bio, "")}
+  end
+
+  @impl true
+  def handle_event("validate_collective", %{"name" => name, "bio" => bio}, socket) do
+    {:noreply,
+     socket
+     |> assign(:new_collective_name, name)
+     |> assign(:new_collective_bio, bio)}
+  end
+
+  @impl true
+  def handle_event("create_collective", %{"name" => name, "bio" => bio}, socket) do
+    user = socket.assigns.current_user
+
+    case Collectives.create_collective(%{"name" => name, "bio" => bio}, user) do
+      {:ok, collective} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "#{collective.name} created! Invite members from the settings page.")
+         |> assign(:show_create_collective, false)
+         |> assign(:new_collective_name, "")
+         |> assign(:new_collective_bio, "")
+         |> load_collectives(user)
+         |> push_navigate(to: ~p"/collective/#{collective.slug}/settings")}
+
+      {:error, changeset} ->
+        error = format_errors(changeset)
+        {:noreply, put_flash(socket, :error, "Failed to create collective: #{error}")}
+    end
+  end
+
+  @impl true
+  def handle_event("accept_invitation", %{"id" => id}, socket) do
+    invitation = Collectives.get_invitation(id)
+
+    if invitation && invitation.invitee_id == socket.assigns.current_user.id do
+      case Collectives.accept_invitation(invitation) do
+        {:ok, _} ->
+          # TODO: Notify the inviter
+          {:noreply,
+           socket
+           |> put_flash(:info, "You've joined #{invitation.collective.name}!")
+           |> load_collectives(socket.assigns.current_user)}
+
+        {:error, :invitation_expired} ->
+          {:noreply, put_flash(socket, :error, "This invitation has expired")}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to accept invitation")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Invitation not found")}
+    end
+  end
+
+  @impl true
+  def handle_event("decline_invitation", %{"id" => id}, socket) do
+    invitation = Collectives.get_invitation(id)
+
+    if invitation && invitation.invitee_id == socket.assigns.current_user.id do
+      case Collectives.decline_invitation(invitation) do
+        {:ok, _} ->
+          {:noreply,
+           socket
+           |> put_flash(:info, "Invitation declined")
+           |> load_collectives(socket.assigns.current_user)}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to decline invitation")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Invitation not found")}
+    end
+  end
+
+  @impl true
+  def handle_event("cancel_join_request", %{"id" => id}, socket) do
+    request = Collectives.get_join_request(id)
+
+    if request && request.user_id == socket.assigns.current_user.id do
+      case Collectives.cancel_join_request(request) do
+        {:ok, _} ->
+          {:noreply,
+           socket
+           |> put_flash(:info, "Request cancelled")
+           |> load_collectives(socket.assigns.current_user)}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to cancel request")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Request not found")}
+    end
+  end
+
+  @impl true
+  def handle_event("leave_collective", %{"id" => collective_id}, socket) do
+    user = socket.assigns.current_user
+
+    case Collectives.leave_collective(collective_id, user.id) do
+      {:ok, _} ->
+        collective = Collectives.get_collective(collective_id)
+        name = if collective, do: collective.name, else: "the collective"
+        # TODO: Notify admins
+        {:noreply,
+         socket
+         |> put_flash(:info, "You've left #{name}")
+         |> load_collectives(user)}
+
+      {:error, :last_admin} ->
+        {:noreply, put_flash(socket, :error, "You can't leave - you're the last admin. Transfer admin to another member first.")}
+
+      {:error, :not_member} ->
+        {:noreply, put_flash(socket, :error, "You're not a member of this collective")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to leave collective")}
+    end
+  end
+
+  @impl true
+  def handle_event("send_request_message", %{"content" => content, "request_id" => request_id}, socket) do
+    user = socket.assigns.current_user
+    request = Collectives.get_join_request(request_id)
+
+    if request && request.user_id == user.id do
+      case Collectives.create_join_request_message(request_id, user.id, content) do
+        {:ok, _message} ->
+          # Notify collective admins
+          collective = Collectives.get_collective(request.collective_id)
+          if collective do
+            collective.memberships
+            |> Enum.filter(& &1.role == "admin")
+            |> Enum.each(fn membership ->
+              Notifications.notify_join_request_note(
+                membership.user_id,
+                user.name,
+                collective.name,
+                content,
+                collective.slug
+              )
+            end)
+          end
+
+          {:noreply,
+           socket
+           |> put_flash(:info, "Message sent.")
+           |> load_collectives(user)}
+
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Failed to send message.")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Request not found.")}
+    end
+  end
+
   defp get_current_user(session) do
     case session["user_id"] do
       nil -> nil
@@ -719,6 +912,18 @@ defmodule ScriptVoiceWeb.DashboardLive do
 
             <% "audio" -> %>
               <.audio_tab audio_versions={@audio_versions} />
+
+            <% "collectives" -> %>
+              <.collectives_tab
+                current_user={@current_user}
+                memberships={@memberships}
+                pending_invitations={@pending_invitations}
+                pending_join_requests={@pending_join_requests}
+                rejected_join_requests={@rejected_join_requests}
+                show_create_collective={@show_create_collective}
+                new_collective_name={@new_collective_name}
+                new_collective_bio={@new_collective_bio}
+              />
 
             <% "commissions" -> %>
               <.commissions_tab
@@ -1327,6 +1532,292 @@ defmodule ScriptVoiceWeb.DashboardLive do
                 <.icon name="hero-chevron-right" class="w-5 h-5 text-gray-400" />
               </div>
             </.link>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+    """
+  end
+
+  # ===========================================================================
+  # Collectives Tab (Performers)
+  # ===========================================================================
+
+  defp collectives_tab(assigns) do
+    ~H"""
+    <div class="space-y-4">
+      <div class="flex justify-between items-center">
+        <h2 class="text-lg font-semibold text-gray-900">Collectives</h2>
+        <button
+          phx-click="toggle_create_collective"
+          class={[
+            "inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition",
+            !@show_create_collective && "bg-emerald-600 text-white hover:bg-emerald-700",
+            @show_create_collective && "bg-gray-200 text-gray-700 hover:bg-gray-300"
+          ]}
+        >
+          <%= if @show_create_collective do %>
+            <.icon name="hero-x-mark" class="w-4 h-4" />
+            Cancel
+          <% else %>
+            <.icon name="hero-plus" class="w-4 h-4" />
+            Create
+          <% end %>
+        </button>
+      </div>
+
+      <!-- Create Collective Form -->
+      <%= if @show_create_collective do %>
+        <div class="bg-white rounded-xl border p-4 sm:p-6">
+          <h3 class="font-semibold text-gray-900 mb-4">Create a Collective</h3>
+          <form phx-change="validate_collective" phx-submit="create_collective" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Collective Name *</label>
+              <input
+                type="text"
+                name="name"
+                value={@new_collective_name}
+                class="w-full border rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:ring-emerald-500"
+                placeholder="e.g., The Voice Actors Guild"
+                required
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+              <textarea
+                name="bio"
+                rows="3"
+                class="w-full border rounded-lg px-3 py-2.5 focus:border-emerald-500 focus:ring-emerald-500"
+                placeholder="Tell people what your collective specializes in..."
+              ><%= @new_collective_bio %></textarea>
+            </div>
+            <p class="text-sm text-gray-500">
+              You'll be the admin of this collective. After creating, you can invite other voice artists to join.
+            </p>
+            <button type="submit" class="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-medium hover:bg-emerald-700 transition">
+              Create Collective
+            </button>
+          </form>
+        </div>
+      <% end %>
+
+      <!-- Pending Invitations -->
+      <%= if length(@pending_invitations) > 0 do %>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div class="flex items-center gap-2 mb-3">
+            <.icon name="hero-envelope" class="w-5 h-5 text-amber-600" />
+            <h3 class="font-semibold text-amber-900">Pending Invitations (<%= length(@pending_invitations) %>)</h3>
+          </div>
+          <div class="space-y-3">
+            <%= for invitation <- @pending_invitations do %>
+              <div class="bg-white rounded-lg p-4 border border-amber-200">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex-1">
+                    <h4 class="font-semibold text-gray-900"><%= invitation.collective.name %></h4>
+                    <p class="text-sm text-gray-600">
+                      Invited by <%= invitation.inviter.name %>
+                    </p>
+                    <%= if invitation.message do %>
+                      <p class="text-sm text-gray-700 mt-2 italic">"<%= invitation.message %>"</p>
+                    <% end %>
+                    <p class="text-xs text-gray-500 mt-2">
+                      Expires <%= format_time_ago(invitation.expires_at) %>
+                    </p>
+                  </div>
+                </div>
+                <div class="flex gap-2 mt-3">
+                  <button
+                    phx-click="decline_invitation"
+                    phx-value-id={invitation.id}
+                    class="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 text-sm font-medium"
+                  >
+                    Decline
+                  </button>
+                  <button
+                    phx-click="accept_invitation"
+                    phx-value-id={invitation.id}
+                    class="flex-1 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
+                  >
+                    Accept & Join
+                  </button>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- My Collectives -->
+      <div class="space-y-3">
+        <h3 class="font-medium text-gray-700">My Collectives</h3>
+        <%= if Enum.empty?(@memberships) do %>
+          <div class="bg-white rounded-xl border p-6 text-center">
+            <.icon name="hero-user-group" class="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <h4 class="font-semibold text-gray-900 mb-2">No collectives yet</h4>
+            <p class="text-gray-600 text-sm mb-4">
+              Create a collective to collaborate with other voice artists, or wait for an invitation.
+            </p>
+          </div>
+        <% else %>
+          <%= for membership <- @memberships do %>
+            <div class="bg-white rounded-xl border p-4 hover:border-emerald-300 transition">
+              <div class="flex items-start justify-between">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <%= if membership.role == "admin" do %>
+                      <.icon name="hero-star" class="w-4 h-4 text-amber-500" />
+                    <% end %>
+                    <h4 class="font-semibold text-gray-900 truncate"><%= membership.collective.name %></h4>
+                  </div>
+                  <p class="text-sm text-gray-500">
+                    <%= String.capitalize(membership.role) %> ·
+                    <%= length(membership.collective.memberships) %> member<%= if length(membership.collective.memberships) != 1, do: "s" %>
+                  </p>
+                  <p class="text-xs text-gray-400 mt-1">
+                    Joined <%= Calendar.strftime(membership.joined_at, "%b %d, %Y") %>
+                  </p>
+                </div>
+                <div class="flex items-center gap-2 ml-3 flex-shrink-0">
+                  <%= if membership.role == "admin" do %>
+                    <.link
+                      navigate={~p"/collective/#{membership.collective.slug}/settings"}
+                      class="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition"
+                      title="Settings"
+                    >
+                      <.icon name="hero-cog-6-tooth" class="w-5 h-5" />
+                    </.link>
+                  <% else %>
+                    <button
+                      phx-click="leave_collective"
+                      phx-value-id={membership.collective.id}
+                      data-confirm="Are you sure you want to leave this collective?"
+                      class="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
+                      title="Leave collective"
+                    >
+                      <.icon name="hero-arrow-right-on-rectangle" class="w-5 h-5" />
+                    </button>
+                  <% end %>
+                  <.link
+                    navigate={~p"/collective/#{membership.collective.slug}"}
+                    class="p-2 text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition"
+                    title="View profile"
+                  >
+                    <.icon name="hero-eye" class="w-5 h-5" />
+                  </.link>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+
+      <!-- Pending Join Requests -->
+      <%= if length(@pending_join_requests) > 0 do %>
+        <div class="space-y-3">
+          <h3 class="font-medium text-gray-700">Your Join Requests</h3>
+          <%= for request <- @pending_join_requests do %>
+            <div class="bg-white rounded-xl border p-4">
+              <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                  <.link navigate={~p"/collective/#{request.collective.slug}"} class="font-semibold text-gray-900 hover:text-emerald-600">
+                    <%= request.collective.name %>
+                  </.link>
+                  <p class="text-xs text-gray-500">
+                    Requested <%= format_time_ago(request.inserted_at) %>
+                  </p>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <span class="px-2 py-1 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">
+                    Pending
+                  </span>
+                  <button
+                    phx-click="cancel_join_request"
+                    phx-value-id={request.id}
+                    class="text-sm text-red-600 hover:text-red-700"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+
+              <!-- Full conversation thread -->
+              <% messages = request.messages || [] %>
+              <%= if (request.message && request.message != "") || length(messages) > 0 do %>
+                <div class="mt-3 space-y-2 max-h-40 overflow-y-auto">
+                  <!-- Your initial message -->
+                  <%= if request.message && request.message != "" do %>
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                      <p class="text-xs text-gray-500 mb-1">You:</p>
+                      <p class="text-sm text-gray-700">"<%= request.message %>"</p>
+                    </div>
+                  <% end %>
+                  <!-- Conversation messages -->
+                  <%= for msg <- messages do %>
+                    <% is_my_msg = msg.sender_id == @current_user.id %>
+                    <div class={[
+                      "p-3 rounded-lg",
+                      is_my_msg && "bg-gray-50",
+                      !is_my_msg && "bg-blue-50 border-l-2 border-blue-400"
+                    ]}>
+                      <p class={["text-xs mb-1", is_my_msg && "text-gray-500", !is_my_msg && "text-blue-600"]}>
+                        <%= if is_my_msg, do: "You:", else: "Collective:" %>
+                      </p>
+                      <p class="text-sm text-gray-700">"<%= msg.content %>"</p>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+
+              <!-- Reply input -->
+              <form phx-submit="send_request_message" class="mt-3">
+                <input type="hidden" name="request_id" value={request.id} />
+                <div class="flex gap-2">
+                  <input
+                    type="text"
+                    name="content"
+                    placeholder="Reply to collective..."
+                    class="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                    required
+                  />
+                  <button type="submit" class="px-3 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition">
+                    <.icon name="hero-paper-airplane" class="w-4 h-4" />
+                  </button>
+                </div>
+              </form>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
+      <!-- Rejected Join Requests -->
+      <%= if length(@rejected_join_requests) > 0 do %>
+        <div class="space-y-3">
+          <h3 class="font-medium text-gray-700">Declined Requests</h3>
+          <%= for request <- @rejected_join_requests do %>
+            <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+              <div class="flex items-start justify-between">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <h4 class="font-semibold text-gray-900"><%= request.collective.name %></h4>
+                    <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded-full">
+                      Declined
+                    </span>
+                  </div>
+                  <%= if request.response_message && request.response_message != "" do %>
+                    <p class="text-sm text-gray-700 mt-1 italic">"<%= request.response_message %>"</p>
+                  <% end %>
+                  <p class="text-xs text-gray-500 mt-1">
+                    Reviewed <%= format_time_ago(request.reviewed_at || request.updated_at) %>
+                  </p>
+                </div>
+                <.link
+                  navigate={~p"/collective/#{request.collective.slug}"}
+                  class="text-sm text-emerald-600 hover:text-emerald-700 font-medium whitespace-nowrap ml-3"
+                >
+                  Request Again
+                </.link>
+              </div>
+            </div>
           <% end %>
         </div>
       <% end %>

@@ -12,12 +12,14 @@ A Phoenix LiveView platform connecting screenplay writers with voice artists. Wr
 - [Project Structure](#project-structure)
 - [Key Routes](#key-routes)
 - [Database Schema](#database-schema)
+- [Collectives System](#collectives-system)
 - [Commission System](#commission-system)
 - [Payment Flow](#payment-flow)
 - [File Storage](#file-storage)
 - [Development](#development)
 - [Deployment](#deployment)
 - [API Integrations](#api-integrations)
+- [Recent Changes](#recent-changes)
 
 ## Features
 
@@ -66,6 +68,17 @@ A Phoenix LiveView platform connecting screenplay writers with voice artists. Wr
   - Express account onboarding flow
   - Automatic payouts on commission completion
   - Dashboard access for earnings tracking
+
+- **Collectives (Groups & Ensembles)**
+  - Create collectives for duo/group performances
+  - Invite members via search with personalized messages
+  - Manage member roles (admin/member)
+  - Accept/decline collective invitations
+  - Request to join existing collectives
+  - Approve/reject join requests (admins)
+  - Leave collectives (with last-admin protection)
+  - Submit recordings as a collective for proper attribution
+  - Collective profile pages with member listings
 
 - **Profile Building**
   - Bio and performer type (solo, duo, group/ensemble)
@@ -182,13 +195,27 @@ After running `mix ecto.setup`, the following demo accounts are available:
 | jake@example.com | Jake Morrison | Per page: $5/page, min $25 |
 | emma@example.com | Emma Stone | Per page: $8/page, min $50 |
 | michael@example.com | Michael Chang | Quote-based (flexible) |
+| lin@example.com | Lin Zhou | Per page: $6/page, min $30 |
+| david@example.com | David Kim | Per page/char: $4/page + $2/char |
+| rachel@example.com | Rachel Torres | Per page/char: $4/page + $2/char |
+| sam@example.com | Sam Peters | No pricing (free/passion projects) |
+| mia@example.com | Mia Chen | No pricing (free/passion projects) |
 
-### Group/Ensemble Voice Artists
+### Collectives
 
-| Email | Name | Pricing Model |
-|-------|------|---------------|
-| lighthouse@example.com | The Lighthouse Collective | Flat rate: $150, min $100 |
-| kimtorres@example.com | David Kim & Rachel Torres | Per page + per character |
+| Collective | Slug | Members | Description |
+|------------|------|---------|-------------|
+| The Lighthouse Collective | `/collective/the-lighthouse-collective` | Jake (admin), Lin, Sam, Mia | Full-cast dramatic readings |
+| David Kim & Rachel Torres | `/collective/david-kim-rachel-torres` | David (admin), Rachel (admin) | Husband-wife romantic duo |
+
+### Sample Invitations & Join Requests
+
+For testing collective workflows:
+
+| Scenario | Details |
+|----------|---------|
+| Pending Invitation | Emma Stone has an invitation to join The Lighthouse Collective |
+| Pending Join Request | Michael Chang has requested to join David Kim & Rachel Torres |
 
 **Note**: All demo accounts are pre-verified. In development mode, enter the email to sign in (no password required).
 
@@ -207,6 +234,13 @@ script_voice/
 │   │   ├── audio.ex                  # Audio version management
 │   │   ├── audio/
 │   │   │   └── audio_version.ex      # Audio schema
+│   │   ├── collectives.ex            # Collective management
+│   │   ├── collectives/
+│   │   │   ├── collective.ex         # Collective schema
+│   │   │   ├── collective_membership.ex      # Membership schema
+│   │   │   ├── collective_invitation.ex      # Invitation workflow
+│   │   │   ├── collective_join_request.ex    # Join request workflow
+│   │   │   └── join_request_message.ex       # Join request messaging
 │   │   ├── commissions.ex            # Commission workflow
 │   │   ├── commissions/
 │   │   │   ├── commission_request.ex # Commission schema
@@ -231,7 +265,9 @@ script_voice/
 │       │   ├── screenplay_live.ex    # Screenplay details
 │       │   ├── script_reader_live.ex # PDF/text reader
 │       │   ├── profile_live.ex       # User profiles
-│       │   ├── dashboard_live.ex     # Writer dashboard (tabbed)
+│       │   ├── collective_live.ex    # Collective profiles
+│       │   ├── collective_settings_live.ex   # Collective admin settings
+│       │   ├── dashboard_live.ex     # Writer/performer dashboard (tabbed)
 │       │   ├── commission_dashboard_live.ex  # Commission list
 │       │   ├── commission_detail_live.ex     # Commission details
 │       │   ├── commission_request_live.ex    # Request form
@@ -251,7 +287,7 @@ script_voice/
 │
 ├── priv/
 │   ├── repo/
-│   │   ├── migrations/               # 16 database migrations
+│   │   ├── migrations/               # Database migrations
 │   │   └── seeds.exs                 # Demo data
 │   └── static/
 │       └── uploads/                  # Local file storage fallback
@@ -269,9 +305,11 @@ script_voice/
 |------|-------------|
 | `/` | Landing page |
 | `/browse` | Browse all screenplays with filters |
+| `/collectives` | Browse and discover voice artist collectives |
 | `/screenplay/:id` | View screenplay details and audio versions |
 | `/screenplay/:id/read` | Full-screen script reader (PDF/text) |
 | `/profile/:id` | User profile page |
+| `/collective/:slug` | Collective profile page |
 | `/verify` | Phone/email verification flow |
 | `/demo-login` | Demo account login (development only) |
 
@@ -281,7 +319,15 @@ script_voice/
 |------|-------------|
 | `/dashboard` | Main dashboard with tabs: Overview, My Scripts, Commissions, Profile |
 | `/dashboard?tab=commissions` | Commissions tab (writers see Cancelled filter, performers see All) |
+| `/dashboard?tab=collectives` | Collectives tab (performers only) - manage memberships, invitations, requests |
 | `/commissions` | Redirects to `/dashboard?tab=commissions` |
+
+### Collective Routes
+
+| Path | Description |
+|------|-------------|
+| `/collective/:slug` | Collective profile with members and recordings |
+| `/collective/:slug/settings` | Collective settings (admins only) - members, invitations, requests |
 
 ### Commission Routes
 
@@ -315,8 +361,18 @@ script_voice/
 |-------|---------|
 | `users` | Writers, voice artists, and visitors with verification status |
 | `screenplays` | Scripts with version tracking, characters, and metadata |
-| `audio_versions` | Recorded performances with performer/casting info |
+| `audio_versions` | Recorded performances with performer/casting info and collective attribution |
 | `likes` | User likes on screenplays and audio versions |
+
+### Collectives System
+
+| Table | Purpose |
+|-------|---------|
+| `collectives` | Voice artist groups/ensembles with profile info |
+| `collective_memberships` | Member relationships with roles (admin/member) |
+| `collective_invitations` | Invitation workflow with status, messages, expiration |
+| `collective_join_requests` | Join request workflow with review status |
+| `join_request_messages` | Back-and-forth messaging for join requests |
 
 ### Commission System
 
@@ -335,6 +391,72 @@ script_voice/
 |-------|---------|
 | `verification_codes` | Phone/email OTP codes |
 | `notifications` | In-app notifications |
+
+## Collectives System
+
+Collectives allow voice artists to group together as duos, trios, or ensembles for collaborative performances.
+
+### Collective Types
+
+| Type | Members | Use Case |
+|------|---------|----------|
+| Duo | 2 | Romantic couples, debate scenes |
+| Trio | 3 | Small ensembles, family scenes |
+| Ensemble | 4+ | Full-cast dramatic readings |
+
+### Membership Roles
+
+| Role | Capabilities |
+|------|-------------|
+| **Admin** | Invite members, manage settings, approve join requests, remove members |
+| **Member** | Submit recordings as collective, leave collective |
+
+### Invitation Flow
+
+```
+Admin invites user ──→ User receives notification
+                           │
+                           ├──→ Accept ──→ Becomes member
+                           │
+                           └──→ Decline ──→ Invitation closed
+```
+
+### Join Request Flow
+
+```
+Non-member requests to join ──→ Admins see request with message
+         │                              │
+         │                              ├──→ Message back and forth
+         │                              │         │
+         │                              │         ├──→ Admin replies ──→ User notified
+         │                              │         └──→ User replies ──→ Admin notified
+         │                              │
+         │                              ├──→ Approve ──→ Becomes member
+         │                              │
+         │                              └──→ Reject (with reason) ──→ User sees rejection
+         │
+         └──→ User can cancel request anytime
+```
+
+Join requests support full back-and-forth messaging between the requestor and collective admins before any decision is made. Both parties can see the complete conversation thread.
+
+### Audio Attribution
+
+When a collective member submits a recording:
+
+1. Recording is linked to both the **submitter** (user) and the **collective**
+2. Clicking the performer name on audio cards navigates to the **collective profile** (not submitter)
+3. All collective members see the recording in their personal profile's "Recordings" section
+4. Collective profile shows all recordings submitted by any member
+
+### Dashboard Integration
+
+Voice artists see a "Collectives" tab in their dashboard with:
+
+- **My Collectives**: List of collectives where user is a member
+- **Create Collective**: Form to create a new collective
+- **Pending Invitations**: Invitations received from other collectives
+- **Pending Requests**: Join requests user has sent (with cancel option)
 
 ## Commission System
 
@@ -559,6 +681,37 @@ S3-compatible file storage:
 - **FFprobe**: Audio metadata extraction (duration, format)
 
 ## Recent Changes
+
+### Version 2.2 (February 2026)
+
+- **Join Request Messaging**: Full conversation support for join requests
+  - Back-and-forth messaging between requestor and collective admins
+  - Conversation thread visible on both sides (dashboard + collective page)
+  - Reply input for both requestor and admin
+  - Notifications sent when either party sends a message
+  - Rejection reasons displayed to requestor with decline status
+  - New `join_request_messages` table for persistent message storage
+
+### Version 2.1 (February 2026)
+
+- **Collectives Feature**: Complete implementation for voice artist groups
+  - Create and manage collectives (duos, groups, ensembles)
+  - **Browse Collectives page** (`/collectives`) - discover and search collectives
+  - Dashboard "Collectives" tab for performers to view and manage memberships
+  - Invitation-based member management with personalized messages
+  - Join request workflow for non-members to request membership
+  - Quick "Request to Join" directly from browse page
+  - Collective profile pages with member listings and recordings
+  - Admin settings page for managing members, invitations, and requests
+  - Proper audio attribution: recordings link to collective profiles
+  - Member recordings: collective members see group recordings in their profile
+  - Leave collective functionality with last-admin protection
+
+- **Navigation Updates**:
+  - Main nav now has "Scripts" and "Collectives" links
+  - Voice artist dropdown includes "My Collectives" quick link
+  - Audio version cards link to collective profile when applicable
+  - Collective member profiles show recordings from their collectives
 
 ### Version 2.0 (February 2026)
 

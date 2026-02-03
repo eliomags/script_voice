@@ -474,11 +474,18 @@ defmodule ScriptVoiceWeb.CoreComponents do
   attr :rest, :global
 
   def audio_version_card(assigns) do
-    # Build profile URL with optional from parameter for back navigation
-    profile_url = if assigns.screenplay_id do
-      "/profile/#{assigns.audio_version.submitted_by_id}?from=screenplay:#{assigns.screenplay_id}"
-    else
-      "/profile/#{assigns.audio_version.submitted_by_id}"
+    # Build profile URL - link to collective if this is a collective recording
+    profile_url = cond do
+      # If there's a collective with slug, link to collective profile
+      assigns.audio_version.collective && assigns.audio_version.collective.slug ->
+        "/collective/#{assigns.audio_version.collective.slug}"
+
+      # Otherwise link to the submitter's profile with back navigation
+      assigns.screenplay_id ->
+        "/profile/#{assigns.audio_version.submitted_by_id}?from=screenplay:#{assigns.screenplay_id}"
+
+      true ->
+        "/profile/#{assigns.audio_version.submitted_by_id}"
     end
     assigns = assign(assigns, :profile_url, profile_url)
 
@@ -826,9 +833,14 @@ defmodule ScriptVoiceWeb.CoreComponents do
       _ -> nil
     end)
 
+    # Extract phx-change from rest if present - this is the event name to push
+    {phx_change, rest} = Map.pop(assigns.rest, :"phx-change")
+
     assigns = assigns
     |> assign(:id, id)
     |> assign(:selected_label, selected_label)
+    |> assign(:phx_change, phx_change)
+    |> assign(:rest, rest)
 
     ~H"""
     <div class={@class} phx-click-away={hide_dropdown(@id)}>
@@ -861,23 +873,36 @@ defmodule ScriptVoiceWeb.CoreComponents do
               {l, v} -> {l, v}
               v -> {v, v}
             end %>
-            <button
-              type="button"
-              onclick={"
-                var input = document.getElementById('#{@id}-input');
-                input.value = '#{opt_value}';
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-                document.getElementById('#{@id}-options').classList.add('hidden');
-                document.getElementById('#{@id}-label').textContent = '#{opt_label}';
-              "}
-              class={[
-                "w-full px-4 py-2.5 text-left hover:bg-emerald-50 transition-colors text-sm",
-                to_string(opt_value) == to_string(@value) && "bg-emerald-50 text-emerald-700 font-medium"
-              ]}
-            >
-              <%= opt_label %>
-            </button>
+            <%= if @phx_change do %>
+              <button
+                type="button"
+                phx-click={JS.push(@phx_change, value: %{@name => opt_value}) |> JS.hide(to: "##{@id}-options")}
+                class={[
+                  "w-full px-4 py-2.5 text-left hover:bg-emerald-50 transition-colors text-sm",
+                  to_string(opt_value) == to_string(@value) && "bg-emerald-50 text-emerald-700 font-medium"
+                ]}
+              >
+                <%= opt_label %>
+              </button>
+            <% else %>
+              <button
+                type="button"
+                onclick={"
+                  var input = document.getElementById('#{@id}-input');
+                  input.value = '#{opt_value}';
+                  input.dispatchEvent(new Event('input', { bubbles: true }));
+                  input.dispatchEvent(new Event('change', { bubbles: true }));
+                  document.getElementById('#{@id}-options').classList.add('hidden');
+                  document.getElementById('#{@id}-label').textContent = '#{opt_label}';
+                "}
+                class={[
+                  "w-full px-4 py-2.5 text-left hover:bg-emerald-50 transition-colors text-sm",
+                  to_string(opt_value) == to_string(@value) && "bg-emerald-50 text-emerald-700 font-medium"
+                ]}
+              >
+                <%= opt_label %>
+              </button>
+            <% end %>
           <% end %>
         </div>
 

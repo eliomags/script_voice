@@ -186,6 +186,125 @@ defmodule ScriptVoice.Notifications do
   end
 
   # =============================================================================
+  # Collective Notification Helpers
+  # =============================================================================
+
+  @doc """
+  Notifies a user they've been invited to join a collective.
+  """
+  def notify_collective_invitation(invitee_id, collective_name, inviter_name, collective_slug) do
+    create_notification(
+      invitee_id,
+      "collective_invitation",
+      "Invitation to join #{collective_name}",
+      "#{inviter_name} invited you to join their collective",
+      related_type: "collective",
+      action_url: "/dashboard?tab=collectives"
+    )
+  end
+
+  @doc """
+  Notifies collective admins that an invitation was accepted.
+  """
+  def notify_invitation_accepted(admin_id, user_name, collective_name, collective_slug) do
+    create_notification(
+      admin_id,
+      "collective_member_joined",
+      "#{user_name} joined #{collective_name}",
+      "They accepted your invitation to join the collective",
+      related_type: "collective",
+      action_url: "/collective/#{collective_slug}"
+    )
+  end
+
+  @doc """
+  Notifies collective admins that an invitation was declined.
+  """
+  def notify_invitation_declined(admin_id, user_name, collective_name) do
+    create_notification(
+      admin_id,
+      "collective_invitation_declined",
+      "#{user_name} declined your invitation",
+      "They chose not to join #{collective_name}",
+      related_type: "collective"
+    )
+  end
+
+  @doc """
+  Notifies collective admins of a new join request.
+  """
+  def notify_join_request_received(admin_id, user_name, collective_name, collective_slug) do
+    create_notification(
+      admin_id,
+      "collective_join_request",
+      "New join request for #{collective_name}",
+      "#{user_name} wants to join your collective",
+      related_type: "collective",
+      action_url: "/collective/#{collective_slug}"
+    )
+  end
+
+  @doc """
+  Notifies a user their join request was approved.
+  """
+  def notify_join_request_approved(user_id, collective_name, collective_slug) do
+    create_notification(
+      user_id,
+      "collective_request_approved",
+      "Welcome to #{collective_name}!",
+      "Your request to join the collective was approved",
+      related_type: "collective",
+      action_url: "/collective/#{collective_slug}"
+    )
+  end
+
+  @doc """
+  Notifies a user their join request was rejected.
+  """
+  def notify_join_request_rejected(user_id, collective_name, reason \\ nil) do
+    body = if reason && reason != "" do
+      "Your request was not approved: #{reason}"
+    else
+      "Your request to join was not approved at this time"
+    end
+
+    create_notification(
+      user_id,
+      "collective_request_rejected",
+      "Request to join #{collective_name} declined",
+      body,
+      related_type: "collective"
+    )
+  end
+
+  @doc """
+  Notifies a user they were removed from a collective.
+  """
+  def notify_removed_from_collective(user_id, collective_name) do
+    create_notification(
+      user_id,
+      "collective_removed",
+      "Removed from #{collective_name}",
+      "You are no longer a member of this collective",
+      related_type: "collective"
+    )
+  end
+
+  @doc """
+  Notifies a user of a note/message from a collective admin about their join request.
+  """
+  def notify_join_request_note(user_id, admin_name, collective_name, note, collective_slug) do
+    create_notification(
+      user_id,
+      "collective_request_note",
+      "Message from #{collective_name}",
+      "#{admin_name} says: #{note}",
+      related_type: "collective",
+      action_url: "/collective/#{collective_slug}"
+    )
+  end
+
+  # =============================================================================
   # Reading Notifications
   # =============================================================================
 

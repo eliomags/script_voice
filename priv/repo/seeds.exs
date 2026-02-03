@@ -15,6 +15,8 @@ alias ScriptVoice.Accounts.User
 alias ScriptVoice.Screenplays.Screenplay
 alias ScriptVoice.Audio.AudioVersion
 alias ScriptVoice.Commissions.PerformerPricing
+alias ScriptVoice.Collectives.Collective
+alias ScriptVoice.Collectives.CollectiveMembership
 
 # ============================================================================
 # WRITERS
@@ -93,34 +95,68 @@ michael_chang = Repo.insert!(%User{
 })
 
 # ============================================================================
-# GROUP/ENSEMBLE VOICE ARTISTS
+# ADDITIONAL VOICE ARTISTS (for collectives)
 # ============================================================================
-IO.puts("Creating group voice artist accounts...")
+IO.puts("Creating additional voice artist accounts for collectives...")
 
-# The Lighthouse Collective - a voice acting ensemble
-lighthouse_collective = Repo.insert!(%User{
-  name: "The Lighthouse Collective",
-  email: "lighthouse@example.com",
+lin = Repo.insert!(%User{
+  name: "Lin Zhou",
+  email: "lin@example.com",
   user_type: "voice_artist",
-  performer_type: "group",
+  performer_type: "solo",
   verification_status: "verified",
   verified_via: "email",
   verified_at: DateTime.utc_now() |> DateTime.truncate(:second),
-  bio: "We are The Lighthouse Collective - an ensemble of four voice actors who specialize in full-cast dramatic readings. Our members: Jake Morrison, Lin Zhou, Sam Peters, and Mia Chen.",
-  social_links: ["https://stage32.com/lighthousecollective"]
+  bio: "Theater-trained voice actress with a passion for bringing complex female characters to life. Fluent in Mandarin and English.",
+  social_links: ["https://imdb.com/name/linzhou"]
 })
 
-# David Kim & Rachel Torres - a duo
-kim_torres_duo = Repo.insert!(%User{
-  name: "David Kim & Rachel Torres",
-  email: "kimtorres@example.com",
+sam = Repo.insert!(%User{
+  name: "Sam Peters",
+  email: "sam@example.com",
   user_type: "voice_artist",
-  performer_type: "group",
+  performer_type: "solo",
   verification_status: "verified",
   verified_via: "phone",
   verified_at: DateTime.utc_now() |> DateTime.truncate(:second),
-  bio: "Husband-wife voice acting duo specializing in romantic scripts and two-person dramas. We bring authentic chemistry to every performance.",
-  social_links: ["https://twitter.com/kimtorresduo"]
+  bio: "Voice actor and sound designer. I specialize in atmospheric narration and creature voices.",
+  social_links: []
+})
+
+mia = Repo.insert!(%User{
+  name: "Mia Chen",
+  email: "mia@example.com",
+  user_type: "voice_artist",
+  performer_type: "solo",
+  verification_status: "verified",
+  verified_via: "email",
+  verified_at: DateTime.utc_now() |> DateTime.truncate(:second),
+  bio: "Young voice talent specializing in child and teen roles. Also available for animation work.",
+  social_links: ["https://instagram.com/miachenva"]
+})
+
+david = Repo.insert!(%User{
+  name: "David Kim",
+  email: "david@example.com",
+  user_type: "voice_artist",
+  performer_type: "solo",
+  verification_status: "verified",
+  verified_via: "email",
+  verified_at: DateTime.utc_now() |> DateTime.truncate(:second),
+  bio: "Voice actor and husband to Rachel. Together we bring authentic chemistry to romantic scripts.",
+  social_links: ["https://twitter.com/davidkimva"]
+})
+
+rachel = Repo.insert!(%User{
+  name: "Rachel Torres",
+  email: "rachel@example.com",
+  user_type: "voice_artist",
+  performer_type: "solo",
+  verification_status: "verified",
+  verified_via: "phone",
+  verified_at: DateTime.utc_now() |> DateTime.truncate(:second),
+  bio: "Voice actress and wife to David. Our duo specializes in romantic dramas and emotional scenes.",
+  social_links: ["https://twitter.com/racheltorresva"]
 })
 
 # ============================================================================
@@ -169,25 +205,23 @@ Repo.insert!(%PerformerPricing{
   notes: "Happy to work on passion projects! Contact me for rates."
 })
 
-# The Lighthouse Collective - ensemble flat rate pricing
+# Lin Zhou - per page pricing
 Repo.insert!(%PerformerPricing{
-  user_id: lighthouse_collective.id,
-  pricing_model: "flat",
-  flat_rate_cents: 15000,
-  minimum_rate_cents: 10000,
+  user_id: lin.id,
+  pricing_model: "per_page",
+  per_page_rate_cents: 600,
+  minimum_rate_cents: 3000,
   included_retakes: 2,
-  retake_rate_cents: 1000,
-  rush_multiplier_percent: 75,
+  retake_rate_cents: 250,
   is_accepting_commissions: true,
-  max_concurrent_projects: 2,
-  typical_turnaround_days: 14,
-  currency: "USD",
-  notes: "Full ensemble cast with professional production."
+  max_concurrent_projects: 4,
+  typical_turnaround_days: 7,
+  currency: "USD"
 })
 
-# Kim & Torres Duo - per page per character pricing
+# David Kim - per page per character pricing
 Repo.insert!(%PerformerPricing{
-  user_id: kim_torres_duo.id,
+  user_id: david.id,
   pricing_model: "per_page_per_character",
   per_page_rate_cents: 400,
   per_character_rate_cents: 200,
@@ -198,8 +232,59 @@ Repo.insert!(%PerformerPricing{
   max_concurrent_projects: 4,
   typical_turnaround_days: 7,
   currency: "USD",
-  notes: "Specializing in romantic scripts and two-person dramas."
+  notes: "Also works as part of the Kim & Torres duo."
 })
+
+# Rachel Torres - per page per character pricing
+Repo.insert!(%PerformerPricing{
+  user_id: rachel.id,
+  pricing_model: "per_page_per_character",
+  per_page_rate_cents: 400,
+  per_character_rate_cents: 200,
+  minimum_rate_cents: 4000,
+  included_retakes: 2,
+  retake_rate_cents: 300,
+  is_accepting_commissions: true,
+  max_concurrent_projects: 4,
+  typical_turnaround_days: 7,
+  currency: "USD",
+  notes: "Also works as part of the Kim & Torres duo."
+})
+
+# ============================================================================
+# COLLECTIVES
+# ============================================================================
+IO.puts("Creating collectives...")
+
+# The Lighthouse Collective - a voice acting ensemble
+lighthouse = Repo.insert!(%Collective{
+  name: "The Lighthouse Collective",
+  slug: "the-lighthouse-collective",
+  bio: "An ensemble of four voice actors who specialize in full-cast dramatic readings. We bring screenplays to life with authentic multi-character performances.",
+  is_accepting_commissions: true,
+  creator_id: jake.id,
+  social_links: ["https://stage32.com/lighthousecollective"]
+})
+
+# Add members to The Lighthouse Collective
+Repo.insert!(%CollectiveMembership{collective_id: lighthouse.id, user_id: jake.id, role: "admin", joined_at: DateTime.utc_now() |> DateTime.truncate(:second)})
+Repo.insert!(%CollectiveMembership{collective_id: lighthouse.id, user_id: lin.id, role: "member", joined_at: DateTime.utc_now() |> DateTime.truncate(:second)})
+Repo.insert!(%CollectiveMembership{collective_id: lighthouse.id, user_id: sam.id, role: "member", joined_at: DateTime.utc_now() |> DateTime.truncate(:second)})
+Repo.insert!(%CollectiveMembership{collective_id: lighthouse.id, user_id: mia.id, role: "member", joined_at: DateTime.utc_now() |> DateTime.truncate(:second)})
+
+# David Kim & Rachel Torres - a duo
+kim_torres = Repo.insert!(%Collective{
+  name: "David Kim & Rachel Torres",
+  slug: "david-kim-rachel-torres",
+  bio: "Husband-wife voice acting duo specializing in romantic scripts and two-person dramas. We bring authentic chemistry to every performance.",
+  is_accepting_commissions: true,
+  creator_id: david.id,
+  social_links: ["https://twitter.com/kimtorresduo"]
+})
+
+# Add members to Kim & Torres
+Repo.insert!(%CollectiveMembership{collective_id: kim_torres.id, user_id: david.id, role: "admin", joined_at: DateTime.utc_now() |> DateTime.truncate(:second)})
+Repo.insert!(%CollectiveMembership{collective_id: kim_torres.id, user_id: rachel.id, role: "admin", joined_at: DateTime.utc_now() |> DateTime.truncate(:second)})
 
 # ============================================================================
 # SCREENPLAYS WITH ACTUAL SCRIPT CONTENT
@@ -872,15 +957,17 @@ sunday_dinner = Repo.insert!(%Screenplay{
 })
 
 # ============================================================================
-# AUDIO VERSIONS - NOW PROPERLY LINKED TO PERFORMER ACCOUNTS
+# AUDIO VERSIONS - NOW PROPERLY LINKED TO PERFORMER ACCOUNTS + COLLECTIVES
 # ============================================================================
-IO.puts("Creating audio versions with correct performer links...")
+IO.puts("Creating audio versions with correct performer and collective links...")
 
 # The Lighthouse Collective performs "The Last Light"
-# NOTE: submitted_by_id links to the collective's account
+# submitted_by_id: individual user who submitted
+# collective_id: the collective this was performed by
 Repo.insert!(%AudioVersion{
   screenplay_id: last_light.id,
-  submitted_by_id: lighthouse_collective.id,  # Correctly linked to group account
+  submitted_by_id: jake.id,  # Jake (admin) submitted for the collective
+  collective_id: lighthouse.id,  # Attribution to the collective
   performer_type: "group",
   group_name: "The Lighthouse Collective",
   performers: ["Jake Morrison", "Lin Zhou", "Sam Peters", "Mia Chen"],
@@ -894,10 +981,11 @@ Repo.insert!(%AudioVersion{
   date: "Jan 15, 2026"
 })
 
-# Emma Stone performs "The Last Light" solo
+# Emma Stone performs "The Last Light" solo (no collective)
 Repo.insert!(%AudioVersion{
   screenplay_id: last_light.id,
-  submitted_by_id: emma.id,  # Correctly linked to Emma's account
+  submitted_by_id: emma.id,
+  collective_id: nil,  # Solo recording - no collective
   performer_type: "solo",
   group_name: nil,
   performers: ["Emma Stone"],
@@ -914,7 +1002,8 @@ Repo.insert!(%AudioVersion{
 # David Kim & Rachel Torres perform "Coffee for Two"
 Repo.insert!(%AudioVersion{
   screenplay_id: coffee.id,
-  submitted_by_id: kim_torres_duo.id,  # Correctly linked to duo account
+  submitted_by_id: david.id,  # David (admin) submitted for the duo
+  collective_id: kim_torres.id,  # Attribution to the duo collective
   performer_type: "duo",
   group_name: "David Kim & Rachel Torres",
   performers: ["David Kim", "Rachel Torres"],
@@ -928,10 +1017,11 @@ Repo.insert!(%AudioVersion{
   date: "Jan 18, 2026"
 })
 
-# Michael Chang performs "Sunday Dinner" solo
+# Michael Chang performs "Sunday Dinner" solo (no collective)
 Repo.insert!(%AudioVersion{
   screenplay_id: sunday_dinner.id,
-  submitted_by_id: michael_chang.id,  # Correctly linked to Michael's account
+  submitted_by_id: michael_chang.id,
+  collective_id: nil,  # Solo recording - no collective
   performer_type: "solo",
   group_name: nil,
   performers: ["Michael Chang"],
@@ -945,10 +1035,11 @@ Repo.insert!(%AudioVersion{
   date: "Jan 19, 2026"
 })
 
-# Jake Morrison performs "Sunday Dinner" solo
+# Jake Morrison performs "Sunday Dinner" solo (no collective)
 Repo.insert!(%AudioVersion{
   screenplay_id: sunday_dinner.id,
-  submitted_by_id: jake.id,  # Correctly linked to Jake's account
+  submitted_by_id: jake.id,
+  collective_id: nil,  # Solo recording - no collective
   performer_type: "solo",
   group_name: nil,
   performers: ["Jake Morrison"],
@@ -960,6 +1051,32 @@ Repo.insert!(%AudioVersion{
   author_pick: false,
   verified: true,
   date: "Jan 20, 2026"
+})
+
+# ============================================================================
+# COLLECTIVE INVITATIONS & JOIN REQUESTS (for testing flows)
+# ============================================================================
+IO.puts("Creating sample invitations and join requests...")
+
+alias ScriptVoice.Collectives.CollectiveInvitation
+alias ScriptVoice.Collectives.CollectiveJoinRequest
+
+# Emma has a pending invitation to join The Lighthouse Collective
+Repo.insert!(%CollectiveInvitation{
+  collective_id: lighthouse.id,
+  inviter_id: jake.id,
+  invitee_id: emma.id,
+  status: "pending",
+  message: "Hey Emma! We loved your solo work on The Last Light. Would you like to join our collective for future projects?",
+  expires_at: DateTime.utc_now() |> DateTime.add(14, :day) |> DateTime.truncate(:second)
+})
+
+# Michael Chang requested to join Kim & Torres duo
+Repo.insert!(%CollectiveJoinRequest{
+  collective_id: kim_torres.id,
+  user_id: michael_chang.id,
+  status: "pending",
+  message: "Hi! I specialize in family dramas and would love to collaborate with you both on future projects."
 })
 
 IO.puts("")
@@ -974,14 +1091,27 @@ IO.puts("  - sarah@example.com (Sarah Chen)")
 IO.puts("  - marcus@example.com (Marcus Webb)")
 IO.puts("  - aisha@example.com (Aisha Patel)")
 IO.puts("")
-IO.puts("SOLO VOICE ARTISTS:")
+IO.puts("VOICE ARTISTS (with pricing):")
 IO.puts("  - jake@example.com (Jake Morrison) - Per page: $5/page, min $25")
 IO.puts("  - emma@example.com (Emma Stone) - Per page: $8/page, min $50")
 IO.puts("  - michael@example.com (Michael Chang) - Quote-based (flexible)")
+IO.puts("  - lin@example.com (Lin Zhou) - Per page: $6/page, min $30")
+IO.puts("  - david@example.com (David Kim) - Per page/char: $4/page + $2/char")
+IO.puts("  - rachel@example.com (Rachel Torres) - Per page/char: $4/page + $2/char")
 IO.puts("")
-IO.puts("GROUP VOICE ARTISTS:")
-IO.puts("  - lighthouse@example.com (The Lighthouse Collective) - Flat: $150, min $100")
-IO.puts("  - kimtorres@example.com (David Kim & Rachel Torres) - Per page + character")
+IO.puts("VOICE ARTISTS (no pricing yet):")
+IO.puts("  - sam@example.com (Sam Peters)")
+IO.puts("  - mia@example.com (Mia Chen)")
 IO.puts("")
-IO.puts("Use these accounts to test commission request flows!")
+IO.puts("COLLECTIVES:")
+IO.puts("  - The Lighthouse Collective (/collective/the-lighthouse-collective)")
+IO.puts("    Members: Jake (admin), Lin, Sam, Mia")
+IO.puts("  - David Kim & Rachel Torres (/collective/david-kim-rachel-torres)")
+IO.puts("    Members: David (admin), Rachel (admin)")
+IO.puts("")
+IO.puts("INVITATIONS & JOIN REQUESTS:")
+IO.puts("  - Emma Stone has a pending invitation to The Lighthouse Collective")
+IO.puts("  - Michael Chang has requested to join David Kim & Rachel Torres")
+IO.puts("")
+IO.puts("Use these accounts to test commission request and collective flows!")
 IO.puts("============================================")
