@@ -13,6 +13,7 @@ A Phoenix LiveView platform connecting screenplay writers with voice artists. Wr
 - [Key Routes](#key-routes)
 - [Database Schema](#database-schema)
 - [Collectives System](#collectives-system)
+- [Projects System](#projects-system)
 - [Commission System](#commission-system)
 - [Payment Flow](#payment-flow)
 - [File Storage](#file-storage)
@@ -31,6 +32,15 @@ A Phoenix LiveView platform connecting screenplay writers with voice artists. Wr
   - Automatic character extraction from scripts
   - Edit title, genre, logline, and metadata
   - Delete screenplays with cascade to related audio versions
+
+- **Projects (Series/Anthology Organization)**
+  - Create projects for TV series, limited series, anthologies, or miniseries
+  - Organize episodes into seasons (hierarchical) or flat episode lists
+  - Series bible documents with world-building, tone/style guides, and themes
+  - Recurring character management across episodes with role types
+  - Episode numbering with automatic codes (S01E05 format)
+  - Track project status: active, completed, hiatus, archived
+  - Genre and episode format metadata (30min, 60min, feature, short)
 
 - **Commission Voice Artists**
   - Browse available voice artists with pricing info
@@ -230,7 +240,12 @@ script_voice/
 │   │   │   └── user.ex               # User schema
 │   │   ├── screenplays.ex            # Screenplay CRUD, versioning
 │   │   ├── screenplays/
-│   │   │   └── screenplay.ex         # Screenplay schema
+│   │   │   ├── screenplay.ex         # Screenplay schema (with episode fields)
+│   │   │   ├── screenplay_project.ex # Project schema (series/anthology)
+│   │   │   ├── screenplay_season.ex  # Season schema
+│   │   │   ├── series_bible.ex       # Series bible schema
+│   │   │   └── project_character.ex  # Recurring character schema
+│   │   ├── projects.ex               # Projects context (series management)
 │   │   ├── audio.ex                  # Audio version management
 │   │   ├── audio/
 │   │   │   └── audio_version.ex      # Audio schema
@@ -266,6 +281,7 @@ script_voice/
 │       │   ├── script_reader_live.ex # PDF/text reader
 │       │   ├── profile_live.ex       # User profiles
 │       │   ├── collective_live.ex    # Collective profiles
+│       │   ├── project_live.ex       # Project management (series/anthology)
 │       │   ├── collective_settings_live.ex   # Collective admin settings
 │       │   ├── dashboard_live.ex     # Writer/performer dashboard (tabbed)
 │       │   ├── commission_dashboard_live.ex  # Commission list
@@ -329,6 +345,15 @@ script_voice/
 | `/collective/:slug` | Collective profile with members and recordings |
 | `/collective/:slug/settings` | Collective settings (admins only) - members, invitations, requests |
 
+### Project Routes
+
+| Path | Description |
+|------|-------------|
+| `/project/:id` | Project detail view with seasons, episodes, and series bible |
+| `/project/:id/episode/new` | Add new episode to project |
+| `/project/:id/season/:season_id` | View specific season within project |
+| `/project/:id/bible` | Series bible editor |
+
 ### Commission Routes
 
 | Path | Description |
@@ -373,6 +398,17 @@ script_voice/
 | `collective_invitations` | Invitation workflow with status, messages, expiration |
 | `collective_join_requests` | Join request workflow with review status |
 | `join_request_messages` | Back-and-forth messaging for join requests |
+
+### Projects System (Series/Anthology)
+
+| Table | Purpose |
+|-------|---------|
+| `screenplay_projects` | Series/anthology containers with metadata (type, genre, status) |
+| `screenplay_seasons` | Optional season organization within projects |
+| `series_bibles` | Project documentation (world-building, tone, themes) |
+| `project_characters` | Recurring characters with role types and arc tracking |
+
+**Note:** The `screenplays` table includes episode fields (`project_id`, `season_id`, `episode_number`, `episode_code`, `screenplay_type`) allowing screenplays to be standalone or part of a project.
 
 ### Commission System
 
@@ -457,6 +493,108 @@ Voice artists see a "Collectives" tab in their dashboard with:
 - **Create Collective**: Form to create a new collective
 - **Pending Invitations**: Invitations received from other collectives
 - **Pending Requests**: Join requests user has sent (with cancel option)
+
+## Projects System
+
+Projects allow writers to organize screenplays into series, anthologies, limited series, or miniseries with optional season-based hierarchy.
+
+### Project Types
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| **Series** | Ongoing TV series with multiple seasons | Long-running dramas, sitcoms |
+| **Anthology** | Standalone episodes with shared theme | Twilight Zone-style collections |
+| **Miniseries** | Limited episode count, complete story | 6-10 episode limited series |
+
+### Organization Modes
+
+Projects support two organization modes:
+
+**Flat Organization:**
+```
+Project "The Quiet Ones"
+├── Episode 1: "Arrival"
+├── Episode 2: "Discovery"
+├── Episode 3: "Confrontation"
+└── Episode 4: "Resolution"
+```
+
+**Hierarchical Organization (Seasons):**
+```
+Project "Midnight Chronicles"
+├── Season 1: "The Beginning"
+│   ├── S01E01: "Pilot"
+│   ├── S01E02: "Dark Waters"
+│   └── S01E03: "Revelations"
+├── Season 2: "Rising Conflict"
+│   ├── S02E01: "New Dawn"
+│   └── S02E02: "Breaking Point"
+└── Season 3: "Reckoning"
+    └── ...
+```
+
+### Episode Codes
+
+Episodes automatically receive formatted codes:
+- **With Season**: `S01E05` (Season 1, Episode 5)
+- **Without Season**: `E005` (Episode 5)
+
+### Series Bible
+
+Each project can have a series bible document containing:
+
+| Section | Description |
+|---------|-------------|
+| **Content** | Main bible document text |
+| **World Building** | Setting, rules, history |
+| **Tone & Style** | Visual/audio direction, mood |
+| **Themes** | Core themes and motifs |
+
+### Project Characters
+
+Recurring characters can be tracked at the project level:
+
+| Field | Description |
+|-------|-------------|
+| **Name** | Character name |
+| **Role Type** | Lead, Supporting, Recurring, Guest |
+| **Description** | Character background and personality |
+| **Gender** | Character gender |
+| **Age Range** | Age bracket (child, teen, young adult, adult, senior) |
+| **Character Arc** | Development across the series |
+| **First Appearance** | Episode where character debuts |
+| **Active Status** | Whether character is still in the series |
+
+### Project Status
+
+| Status | Description |
+|--------|-------------|
+| `active` | Currently in development/production |
+| `completed` | All episodes finished |
+| `hiatus` | Temporarily paused |
+| `archived` | No longer active |
+
+### Dashboard Integration
+
+Writers see projects in their dashboard alongside standalone screenplays:
+
+- **Projects Tab**: List of all projects with episode counts
+- **Create Project**: Form with title, type, genre, logline
+- **Project View**: Accordion-based season/episode browser
+- **Series Bible Editor**: Full editor for project documentation
+- **Episode Management**: Add, edit, reorder episodes
+
+### Backward Compatibility
+
+Existing standalone screenplays continue to work unchanged. The `screenplay_type` field distinguishes:
+
+| Type | Description |
+|------|-------------|
+| `standalone` | Independent screenplay (default) |
+| `episode` | Regular series episode |
+| `pilot` | Series premiere episode |
+| `finale` | Season or series finale |
+| `special` | Holiday or special episode |
 
 ## Commission System
 
@@ -681,6 +819,31 @@ S3-compatible file storage:
 - **FFprobe**: Audio metadata extraction (duration, format)
 
 ## Recent Changes
+
+### Version 2.3 (February 2026)
+
+- **Projects System**: Complete multi-episode/series screenplay organization
+  - Create projects for TV series, limited series, anthologies, or miniseries
+  - Organize episodes with flat structure or hierarchical seasons
+  - Series bible documents with world-building, tone/style, and themes
+  - Recurring character management with role types (lead, supporting, recurring, guest)
+  - Episode numbering with automatic codes (S01E05 format)
+  - Project status tracking: active, completed, hiatus, archived
+  - Dashboard integration with project creation and management
+  - Dedicated project view with accordion-based season browser
+  - Full backward compatibility with existing standalone screenplays
+
+- **New Database Tables**:
+  - `screenplay_projects`: Project containers with metadata
+  - `screenplay_seasons`: Season organization within projects
+  - `series_bibles`: Project documentation storage
+  - `project_characters`: Recurring character tracking
+
+- **New Routes**:
+  - `/project/:id`: Project detail view
+  - `/project/:id/episode/new`: Add episode
+  - `/project/:id/season/:season_id`: Season view
+  - `/project/:id/bible`: Series bible editor
 
 ### Version 2.2 (February 2026)
 
