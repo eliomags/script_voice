@@ -55,6 +55,12 @@ defmodule ScriptVoiceWeb.Router do
     live "/collectives", CollectivesBrowseLive, :index
     live "/collective/:slug", CollectiveLive, :show
     live "/collective/:slug/settings", CollectiveSettingsLive, :edit
+
+    # Project routes (series/anthology management)
+    live "/project/:id", ProjectLive, :show
+    live "/project/:id/episode/new", ProjectLive, :new_episode
+    live "/project/:id/season/:season_id", ProjectLive, :show_season
+    live "/project/:id/bible", ProjectLive, :bible
   end
 
   # Stripe webhook endpoint

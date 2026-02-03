@@ -6,9 +6,9 @@ defmodule ScriptVoiceWeb.DashboardLive do
   """
   use ScriptVoiceWeb, :live_view
 
-  alias ScriptVoice.{Accounts, Commissions, Notifications, Screenplays, Audio, Collectives}
+  alias ScriptVoice.{Accounts, Commissions, Notifications, Screenplays, Audio, Collectives, Projects}
   alias ScriptVoice.Audio.AudioVersion
-  alias ScriptVoice.Screenplays.{Screenplay, Character}
+  alias ScriptVoice.Screenplays.{Screenplay, Character, ScreenplayProject}
 
   @writer_tabs [
     {"overview", "Overview", "hero-home"},
@@ -95,9 +95,25 @@ defmodule ScriptVoiceWeb.DashboardLive do
 
   defp load_screenplays(socket, %{user_type: "writer"} = user) do
     screenplays = Screenplays.list_screenplays(writer_id: user.id)
-    assign(socket, :screenplays, screenplays)
+    projects = Projects.list_projects_for_writer(user.id)
+    standalone_screenplays = Projects.get_standalone_screenplays_for_writer(user.id)
+
+    socket
+    |> assign(:screenplays, screenplays)
+    |> assign(:projects, projects)
+    |> assign(:standalone_screenplays, standalone_screenplays)
+    |> assign(:show_create_project, false)
+    |> assign(:new_project_title, "")
+    |> assign(:new_project_genre, "Drama")
+    |> assign(:new_project_logline, "")
+    |> assign(:new_project_type, "series")
   end
-  defp load_screenplays(socket, _), do: assign(socket, :screenplays, [])
+  defp load_screenplays(socket, _) do
+    socket
+    |> assign(:screenplays, [])
+    |> assign(:projects, [])
+    |> assign(:standalone_screenplays, [])
+  end
 
   defp load_audio_versions(socket, %{user_type: "voice_artist"} = user) do
     audio_versions = Audio.list_audio_versions_by_user(user.id)
@@ -213,6 +229,49 @@ defmodule ScriptVoiceWeb.DashboardLive do
      |> assign(:upload_page_count, nil)
      |> assign(:upload_characters, [])
      |> assign(:upload_error, nil)}
+  end
+
+  # Project creation events
+  @impl true
+  def handle_event("toggle_create_project", _, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_create_project, !socket.assigns[:show_create_project])
+     |> assign(:new_project_title, "")
+     |> assign(:new_project_genre, "Drama")
+     |> assign(:new_project_logline, "")
+     |> assign(:new_project_type, "series")}
+  end
+
+  @impl true
+  def handle_event("create_project", params, socket) do
+    user = socket.assigns.current_user
+
+    project_attrs = %{
+      "title" => params["title"],
+      "genre" => params["genre"],
+      "logline" => params["logline"],
+      "project_type" => params["project_type"]
+    }
+
+    case Projects.create_project(project_attrs, user) do
+      {:ok, project} ->
+        projects = Projects.list_projects_for_writer(user.id)
+        {:noreply,
+         socket
+         |> assign(:projects, projects)
+         |> assign(:show_create_project, false)
+         |> put_flash(:info, "Project '#{project.title}' created successfully!")
+         |> push_navigate(to: ~p"/project/#{project.id}")}
+
+      {:error, changeset} ->
+        error_msg = case changeset.errors do
+          [{:title, {msg, _}} | _] -> "Title: #{msg}"
+          [{:logline, {msg, _}} | _] -> "Logline: #{msg}"
+          _ -> "Failed to create project"
+        end
+        {:noreply, put_flash(socket, :error, error_msg)}
+    end
   end
 
   @impl true
@@ -895,7 +954,10 @@ defmodule ScriptVoiceWeb.DashboardLive do
             <% "screenplays" -> %>
               <.screenplays_tab
                 screenplays={@screenplays}
+                projects={@projects}
+                standalone_screenplays={@standalone_screenplays}
                 show_upload_form={@show_upload_form}
+                show_create_project={@show_create_project}
                 upload_title={@upload_title}
                 upload_genre={@upload_genre}
                 upload_logline={@upload_logline}
@@ -1143,26 +1205,95 @@ defmodule ScriptVoiceWeb.DashboardLive do
   defp screenplays_tab(assigns) do
     ~H"""
     <div class="space-y-4">
-      <!-- Upload Button / Form Toggle -->
-      <div class="flex justify-between items-center">
-        <h2 class="text-lg font-semibold text-gray-900">My Screenplays</h2>
-        <button
-          phx-click="toggle_upload_form"
-          class={[
-            "inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition",
-            !@show_upload_form && "bg-emerald-600 text-white hover:bg-emerald-700",
-            @show_upload_form && "bg-gray-200 text-gray-700 hover:bg-gray-300"
-          ]}
-        >
-          <%= if @show_upload_form do %>
-            <.icon name="hero-x-mark" class="w-4 h-4" />
-            Cancel
-          <% else %>
-            <.icon name="hero-plus" class="w-4 h-4" />
-            New Script
-          <% end %>
-        </button>
+      <!-- Header with Action Buttons -->
+      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <h2 class="text-lg font-semibold text-gray-900">My Work</h2>
+        <div class="flex gap-2">
+          <button
+            phx-click="toggle_create_project"
+            class={[
+              "inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition text-sm",
+              !@show_create_project && "bg-purple-600 text-white hover:bg-purple-700",
+              @show_create_project && "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            ]}
+          >
+            <%= if @show_create_project do %>
+              <.icon name="hero-x-mark" class="w-4 h-4" />
+              Cancel
+            <% else %>
+              <.icon name="hero-folder-plus" class="w-4 h-4" />
+              New Project
+            <% end %>
+          </button>
+          <button
+            phx-click="toggle_upload_form"
+            class={[
+              "inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition text-sm",
+              !@show_upload_form && "bg-emerald-600 text-white hover:bg-emerald-700",
+              @show_upload_form && "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            ]}
+          >
+            <%= if @show_upload_form do %>
+              <.icon name="hero-x-mark" class="w-4 h-4" />
+              Cancel
+            <% else %>
+              <.icon name="hero-plus" class="w-4 h-4" />
+              New Script
+            <% end %>
+          </button>
+        </div>
       </div>
+
+      <!-- Create Project Form -->
+      <%= if @show_create_project do %>
+        <div class="bg-purple-50 border border-purple-200 rounded-xl p-4 sm:p-6">
+          <h3 class="font-semibold text-gray-900 mb-4">Create New Project (Series/Anthology)</h3>
+          <form phx-submit="create_project" class="space-y-4">
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                <input
+                  type="text"
+                  name="title"
+                  required
+                  placeholder="Your project title"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <select name="project_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                  <option value="series">TV Series</option>
+                  <option value="miniseries">Limited/Mini Series</option>
+                  <option value="anthology">Anthology</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Genre *</label>
+              <select name="genre" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                <%= for genre <- ScreenplayProject.genres() do %>
+                  <option value={genre}><%= genre %></option>
+                <% end %>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Logline *</label>
+              <textarea
+                name="logline"
+                required
+                rows="2"
+                minlength="10"
+                placeholder="A brief summary of your series premise..."
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              ></textarea>
+            </div>
+            <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-xl font-medium hover:bg-purple-700 transition-colors">
+              Create Project
+            </button>
+          </form>
+        </div>
+      <% end %>
 
       <!-- Upload Form (Inline) -->
       <%= if @show_upload_form do %>
@@ -1318,16 +1449,44 @@ defmodule ScriptVoiceWeb.DashboardLive do
         </div>
       <% end %>
 
-      <!-- Screenplays List -->
-      <%= if Enum.empty?(@screenplays) && !@show_upload_form do %>
+      <!-- Projects List -->
+      <%= if length(@projects) > 0 do %>
+        <div class="space-y-3">
+          <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Projects</h3>
+          <%= for project <- @projects do %>
+            <.link navigate={~p"/project/#{project.id}"} class="block bg-white rounded-xl border hover:border-purple-300 hover:shadow-sm transition p-4">
+              <div class="flex items-start justify-between">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <h4 class="font-semibold text-gray-900 truncate"><%= project.title %></h4>
+                    <span class={"px-2 py-0.5 rounded-full text-xs font-medium #{project_type_badge_color(project.project_type)}"}>
+                      <%= String.capitalize(project.project_type) %>
+                    </span>
+                    <.genre_badge genre={project.genre} />
+                  </div>
+                  <p class="text-sm text-gray-600 line-clamp-2"><%= project.logline %></p>
+                </div>
+                <.icon name="hero-chevron-right" class="w-5 h-5 text-gray-400 flex-shrink-0 ml-2" />
+              </div>
+            </.link>
+          <% end %>
+        </div>
+      <% end %>
+
+      <!-- Standalone Screenplays List -->
+      <%= if Enum.empty?(@screenplays) && Enum.empty?(@projects) && !@show_upload_form && !@show_create_project do %>
         <div class="bg-white rounded-xl border p-8 text-center">
           <.icon name="hero-document-text" class="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 class="font-semibold text-gray-900 mb-2">No screenplays yet</h3>
-          <p class="text-gray-600 mb-4">Upload your first screenplay to get started</p>
+          <h3 class="font-semibold text-gray-900 mb-2">No work yet</h3>
+          <p class="text-gray-600 mb-4">Create a project or upload a standalone screenplay to get started</p>
         </div>
       <% else %>
-        <div class="space-y-3">
-          <%= for sp <- @screenplays do %>
+        <%= if length(@screenplays) > 0 do %>
+          <div class="space-y-3">
+            <%= if length(@projects) > 0 do %>
+              <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mt-6">Standalone Scripts</h3>
+            <% end %>
+            <%= for sp <- @screenplays do %>
             <div class="bg-white rounded-xl border hover:border-emerald-300 transition">
               <%= cond do %>
                 <% @delete_confirm_id == sp.id -> %>
@@ -1512,11 +1671,17 @@ defmodule ScriptVoiceWeb.DashboardLive do
               <% end %>
             </div>
           <% end %>
-        </div>
+          </div>
+        <% end %>
       <% end %>
     </div>
     """
   end
+
+  defp project_type_badge_color("series"), do: "bg-blue-100 text-blue-700"
+  defp project_type_badge_color("anthology"), do: "bg-purple-100 text-purple-700"
+  defp project_type_badge_color("miniseries"), do: "bg-amber-100 text-amber-700"
+  defp project_type_badge_color(_), do: "bg-gray-100 text-gray-700"
 
   # ===========================================================================
   # Audio Tab (Performers)
