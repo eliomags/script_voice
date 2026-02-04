@@ -33,6 +33,7 @@ defmodule ScriptVoiceWeb.Router do
     live "/profile/:id", ProfileLive, :show
 
     # Auth routes
+    live "/login", LoginLive, :index
     live "/verify", VerifyLive, :index
     live "/demo-login", DemoLoginLive, :index
     get "/session/login/:user_id", SessionController, :create

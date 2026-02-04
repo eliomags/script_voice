@@ -699,9 +699,17 @@ defmodule ScriptVoiceWeb.VerifyLive do
           </.button>
         </div>
 
+        <!-- Already have an account link -->
+        <p class="text-center mt-6 text-sm text-gray-600">
+          Already have an account?
+          <.link navigate={~p"/login"} class="text-emerald-600 font-medium hover:underline">
+            Log in
+          </.link>
+        </p>
+
         <!-- Skip Link for Visitors -->
         <%= if @user_type == "visitor" do %>
-          <p class="text-center mt-4 text-sm text-gray-500">
+          <p class="text-center mt-2 text-sm text-gray-500">
             <.link navigate={~p"/browse"} class="hover:underline">
               Skip for now and browse as guest →
             </.link>

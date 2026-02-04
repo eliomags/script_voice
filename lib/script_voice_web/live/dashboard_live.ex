@@ -48,7 +48,7 @@ defmodule ScriptVoiceWeb.DashboardLive do
        |> assign_tabs()
        |> load_all_data()}
     else
-      {:ok, push_navigate(socket, to: ~p"/demo-login")}
+      {:ok, push_navigate(socket, to: ~p"/login")}
     end
   end
 
