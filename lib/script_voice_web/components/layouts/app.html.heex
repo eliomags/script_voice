@@ -10,17 +10,14 @@
       </.link>
 
       <div class="flex items-center gap-2 sm:gap-4">
-        <.link navigate={~p"/browse"} class="text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base px-2 py-1">
+        <.link navigate={~p"/browse"} data-path="/browse" class="top-nav-link text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base px-2 py-1">
           Scripts
         </.link>
-        <.link navigate={~p"/collectives"} class="text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base px-2 py-1">
+        <.link navigate={~p"/collectives"} data-path="/collectives" class="top-nav-link text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base px-2 py-1">
           Collectives
         </.link>
 
         <%= if assigns[:current_user] do %>
-          <.link navigate={~p"/dashboard"} class="text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base px-2 py-1">
-            Dashboard
-          </.link>
           <!-- User Menu with Dropdown -->
           <div class="relative" id="user-menu">
             <button
@@ -39,61 +36,33 @@
 
             <!-- Dropdown Menu -->
             <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border py-2 z-50">
-              <!-- Current Role -->
-              <div class="px-4 py-2 border-b">
-                <p class="text-xs text-gray-500">Signed in as</p>
-                <p class="font-medium text-sm">
-                  <%= case @current_user.user_type do
-                    "writer" -> "Writer"
-                    "voice_artist" -> "Voice Artist"
-                    _ -> "Visitor"
-                  end %>
-                </p>
-              </div>
-
-              <!-- Quick Links -->
-              <div class="py-2 border-b">
+              <!-- Settings Links -->
+              <div class="py-1 border-b">
                 <.link
-                  navigate={~p"/dashboard"}
-                  class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  <.icon name="hero-home" class="w-4 h-4 text-gray-400" />
-                  Dashboard
-                </.link>
-                <.link
-                  navigate={~p"/dashboard?tab=profile"}
+                  navigate={~p"/profile/#{@current_user.id}"}
                   class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                 >
                   <.icon name="hero-user" class="w-4 h-4 text-gray-400" />
-                  My Profile
+                  View Public Profile
                 </.link>
                 <.link
-                  navigate={~p"/dashboard?tab=commissions"}
+                  navigate={~p"/settings/pricing"}
                   class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                 >
-                  <.icon name="hero-clipboard-document-list" class="w-4 h-4 text-gray-400" />
-                  Commissions
+                  <.icon name="hero-currency-dollar" class="w-4 h-4 text-gray-400" />
+                  Pricing Settings
                 </.link>
-                <%= if @current_user.user_type == "voice_artist" do %>
-                  <.link
-                    navigate={~p"/dashboard?tab=collectives"}
-                    class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    <.icon name="hero-user-group" class="w-4 h-4 text-gray-400" />
-                    My Collectives
-                  </.link>
-                  <.link
-                    navigate={~p"/settings/pricing"}
-                    class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    <.icon name="hero-currency-dollar" class="w-4 h-4 text-gray-400" />
-                    Pricing Settings
-                  </.link>
-                <% end %>
+                <.link
+                  navigate={~p"/settings/payments"}
+                  class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <.icon name="hero-credit-card" class="w-4 h-4 text-gray-400" />
+                  Payment Settings
+                </.link>
               </div>
 
               <!-- Logout -->
-              <div class="py-2">
+              <div class="py-1">
                 <.link
                   href={~p"/session"}
                   method="delete"
@@ -117,7 +86,7 @@
     </div>
   </nav>
 
-  <!-- Click outside to close dropdown -->
+  <!-- Click outside to close dropdown + Top nav highlighting -->
   <script>
     document.addEventListener('click', function(e) {
       var dropdown = document.getElementById('user-dropdown');
@@ -126,11 +95,96 @@
         dropdown.classList.add('hidden');
       }
     });
+
+    // Highlight active top nav links
+    function updateTopNav() {
+      const path = window.location.pathname;
+      document.querySelectorAll('.top-nav-link').forEach(link => {
+        const linkPath = link.dataset.path;
+        if (path === linkPath || path.startsWith(linkPath + '/')) {
+          link.classList.remove('text-gray-600');
+          link.classList.add('text-emerald-600');
+        } else {
+          link.classList.remove('text-emerald-600');
+          link.classList.add('text-gray-600');
+        }
+      });
+    }
+    updateTopNav();
+    window.addEventListener('phx:page-loading-stop', updateTopNav);
   </script>
 
   <!-- Main Content -->
-  <main class="flex-1">
+  <main class={["flex-1", assigns[:current_user] && "pb-16 sm:pb-0"]}>
     <.flash_group flash={@flash} />
     <%= @inner_content %>
   </main>
+
+  <!-- Bottom Navigation - Mobile only, dashboard tabs for logged in users -->
+  <%= if assigns[:current_user] do %>
+    <nav id="bottom-nav" class="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-40 safe-area-inset-bottom">
+      <div class="flex justify-around items-center py-2 max-w-lg mx-auto">
+        <!-- Overview/Home -->
+        <.link navigate={~p"/dashboard"} data-tab="overview" class="bottom-nav-link flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500">
+          <.icon name="hero-home" class="w-6 h-6" />
+          <span class="text-xs">Home</span>
+        </.link>
+
+        <!-- Writer: My Scripts / Performer: My Audio -->
+        <%= if @current_user.user_type == "writer" do %>
+          <.link navigate={~p"/dashboard?tab=screenplays"} data-tab="screenplays" class="bottom-nav-link flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500">
+            <.icon name="hero-document-text" class="w-6 h-6" />
+            <span class="text-xs">Scripts</span>
+          </.link>
+        <% else %>
+          <.link navigate={~p"/dashboard?tab=audio"} data-tab="audio" class="bottom-nav-link flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500">
+            <.icon name="hero-microphone" class="w-6 h-6" />
+            <span class="text-xs">Audio</span>
+          </.link>
+        <% end %>
+
+        <!-- Commissions -->
+        <.link navigate={~p"/dashboard?tab=commissions"} data-tab="commissions" class="bottom-nav-link flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500">
+          <.icon name="hero-clipboard-document-list" class="w-6 h-6" />
+          <span class="text-xs">Jobs</span>
+        </.link>
+
+        <!-- Voice Artist: Collectives -->
+        <%= if @current_user.user_type == "voice_artist" do %>
+          <.link navigate={~p"/dashboard?tab=collectives"} data-tab="collectives" class="bottom-nav-link flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500">
+            <.icon name="hero-user-group" class="w-6 h-6" />
+            <span class="text-xs">Groups</span>
+          </.link>
+        <% end %>
+
+        <!-- Profile -->
+        <.link navigate={~p"/dashboard?tab=profile"} data-tab="profile" class="bottom-nav-link flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500">
+          <.icon name="hero-user" class="w-6 h-6" />
+          <span class="text-xs">Profile</span>
+        </.link>
+      </div>
+    </nav>
+
+    <script>
+      // Highlight active bottom nav tab
+      function updateBottomNav() {
+        const path = window.location.pathname;
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab') || 'overview';
+
+        document.querySelectorAll('.bottom-nav-link').forEach(link => {
+          const linkTab = link.dataset.tab;
+          if (path === '/dashboard' && linkTab === tab) {
+            link.classList.remove('text-gray-500');
+            link.classList.add('text-emerald-600');
+          } else {
+            link.classList.remove('text-emerald-600');
+            link.classList.add('text-gray-500');
+          }
+        });
+      }
+      updateBottomNav();
+      window.addEventListener('phx:page-loading-stop', updateBottomNav);
+    </script>
+  <% end %>
 </div>

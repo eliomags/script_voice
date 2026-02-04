@@ -906,8 +906,8 @@ defmodule ScriptVoiceWeb.DashboardLive do
           </h1>
         </div>
 
-        <!-- Tabs - Horizontal scroll on mobile -->
-        <div class="mb-4 sm:mb-6 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <!-- Tabs - Hidden on mobile (bottom nav used instead) -->
+        <div class="hidden sm:block mb-4 sm:mb-6 -mx-4 px-4 sm:mx-0 sm:px-0">
           <div class="flex gap-1 overflow-x-auto pb-2 scrollbar-hide">
             <%= for {id, label, icon} <- @tabs do %>
               <button
