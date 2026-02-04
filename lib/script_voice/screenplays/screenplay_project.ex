@@ -14,10 +14,10 @@ defmodule ScriptVoice.Screenplays.ScreenplayProject do
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
 
-  @project_types ~w(series anthology miniseries)
-  @statuses ~w(active completed hiatus archived)
-  @genres ~w(Drama Comedy Thriller Sci-Fi Romance Horror Action Other)
-  @episode_formats ~w(30min 60min feature short)
+  @project_types ~w(series limited_series miniseries anthology web_series feature_film documentary_series podcast_drama short_film_collection)
+  @statuses ~w(active in_development completed hiatus cancelled archived)
+  @genres ~w(Drama Comedy Thriller Sci-Fi Fantasy Romance Horror Action Adventure Crime Mystery Documentary Animation Musical Western Historical Family Other)
+  @episode_formats ~w(15min 30min 45min 60min 90min feature short variable)
 
   schema "screenplay_projects" do
     field :title, :string
@@ -32,6 +32,7 @@ defmodule ScriptVoice.Screenplays.ScreenplayProject do
     field :episode_format, :string
     field :likes, :integer, default: 0
     field :owner_name, :string
+    field :is_public, :boolean, default: false
 
     belongs_to :owner, User
     has_one :series_bible, SeriesBible, foreign_key: :project_id
@@ -47,7 +48,7 @@ defmodule ScriptVoice.Screenplays.ScreenplayProject do
     |> cast(attrs, [
       :title, :project_type, :genre, :logline, :description,
       :cover_image_url, :status, :total_seasons, :total_episodes,
-      :episode_format, :owner_id, :owner_name
+      :episode_format, :owner_id, :owner_name, :is_public
     ])
     |> validate_required([:title, :genre, :logline, :owner_id])
     |> validate_inclusion(:project_type, @project_types)

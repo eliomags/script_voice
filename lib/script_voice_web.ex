@@ -4,7 +4,7 @@ defmodule ScriptVoiceWeb do
   as controllers, components, channels, and so on.
   """
 
-  def static_paths, do: ~w(assets fonts images uploads favicon.ico robots.txt)
+  def static_paths, do: ~w(assets fonts images uploads downloads favicon.ico robots.txt)
 
   def router do
     quote do

@@ -287,6 +287,662 @@ Repo.insert!(%CollectiveMembership{collective_id: kim_torres.id, user_id: david.
 Repo.insert!(%CollectiveMembership{collective_id: kim_torres.id, user_id: rachel.id, role: "admin", joined_at: DateTime.utc_now() |> DateTime.truncate(:second)})
 
 # ============================================================================
+# SCREENPLAY PROJECTS WITH SEASONS, EPISODES, AND SERIES BIBLES
+# ============================================================================
+IO.puts("Creating screenplay projects...")
+
+alias ScriptVoice.Screenplays.{ScreenplayProject, ScreenplaySeason, SeriesBible}
+
+# --------------------------------------------------
+# Sarah Chen's Projects
+# --------------------------------------------------
+
+# 1. Across All Time - Family Time-Travel Historical Drama (Full series with seasons)
+across_all_time = Repo.insert!(%ScreenplayProject{
+  title: "Across All Time",
+  project_type: "series",
+  genre: "Drama",
+  logline: "A multigenerational family discovers they can travel through time to witness—but never change—their ancestors' most pivotal moments, learning that what we inherit isn't just DNA, but the echoes of choices made centuries ago.",
+  description: "An ambitious prestige drama spanning 52 episodes across 4 seasons, blending historical drama with light science fiction elements.",
+  status: "in_development",
+  total_seasons: 4,
+  total_episodes: 52,
+  episode_format: "60min",
+  owner_id: sarah.id,
+  owner_name: sarah.name,
+  is_public: true  # Publicly visible
+})
+
+# Series Bible for Across All Time
+Repo.insert!(%SeriesBible{
+  project_id: across_all_time.id,
+  title: "Across All Time: A Family Time-Travel Historical Drama",
+  logline: "A multigenerational family discovers they can travel through time to witness—but never change—their ancestors' most pivotal moments, learning that what we inherit isn't just DNA, but the echoes of choices made centuries ago.",
+  comparable_shows: "This Is Us meets Outlander meets Quantum Leap",
+  target_audience: "Adults 25-54 who appreciate prestige drama with historical elements. Viewers of This Is Us, Outlander, and Downton Abbey. History enthusiasts who enjoy seeing pivotal moments brought to life.",
+  why_now: "In an era of increasing division, this series reminds us that every family—regardless of background—has struggled with the same universal challenges: love, loss, sacrifice, and the hope for something better.",
+  content: "ACROSS ALL TIME explores the Reyes-Chen family across four generations and four centuries. Present-day historian Dr. Maya Reyes-Chen discovers her family possesses an inherited genetic trait that allows them to witness pivotal moments in their ancestors' lives.",
+  world_building: "Time travel rules are strict: observers only, no interaction. The inherited genetic trait is passed through specific family lines. Historical periods must be depicted with accuracy and sensitivity. Each era has distinct visual and audio signatures.",
+  visual_style: "Clean, naturalistic cinematography for present day. Period-appropriate color palettes for historical segments. Warm sepia for 1920s, cool blues for Civil War, rich golds for colonial era. Handheld camera during emotional moments.",
+  tone_style: "60% emotional family drama, 25% historical adventure, 15% light sci-fi mystery. Every episode should make you laugh once and cry once. The tone shifts appropriately with historical settings but always returns to the family's emotional core.",
+  comedy_guidelines: "Humor comes from character, not situation. Family dynamics provide natural comedy. Fish-out-of-water moments in time travel are played for warmth, not slapstick. Child characters bring levity without being precocious.",
+  handling_serious_topics: "Historical atrocities are witnessed, not exploited. Focus on human resilience rather than suffering. Sensitivity readers required for all historical segments. We honor the past without sanitizing it.",
+  format_details: "4 seasons, 52 episodes total. Season 1: 13 episodes (present-day establishment). Season 2: 13 episodes (deep historical exploration). Season 3: 13 episodes (consequences). Season 4: 13 episodes (resolution).",
+  episode_structure: "Cold open in historical period, Act 1 present-day discovery, Act 2 time travel sequence, Act 3 historical drama, Act 4 return and emotional resolution. Each episode follows a family member.",
+  production_notes: "Period-accurate costuming and sets required. Location shooting in New Mexico, Massachusetts, Virginia, and Spain. VFX for time travel transitions (subtle, not flashy).",
+  consultant_needs: "Historical consultants for each era. Civil War historian. Immigration history specialist. Chinese-American history consultant. Genetic counselor for sci-fi accuracy.",
+  location_requirements: "Present-day: Santa Fe, New Mexico. 1920s: Los Angeles backlot. Civil War: Virginia plantation sets. Colonial era: New England village.",
+  vfx_requirements: "Time travel transitions (ethereal light, sound design). Period sky replacements. Minimal CGI for crowd extensions.",
+  version: 1
+})
+
+# Seasons for Across All Time
+season_1_aat = Repo.insert!(%ScreenplaySeason{
+  project_id: across_all_time.id,
+  season_number: 1,
+  title: "Discovery",
+  description: "Maya discovers her family's time-traveling ability and witnesses key moments in her grandmother's life."
+})
+
+season_2_aat = Repo.insert!(%ScreenplaySeason{
+  project_id: across_all_time.id,
+  season_number: 2,
+  title: "The Great War",
+  description: "The family explores ancestors during WWI and the 1920s, uncovering long-buried secrets."
+})
+
+# 2. Digital Hearts - Limited Series Romantic Drama
+digital_hearts = Repo.insert!(%ScreenplayProject{
+  title: "Digital Hearts",
+  project_type: "limited_series",
+  genre: "Romance",
+  logline: "Two AI researchers fall in love while their creations begin developing unexpected emotional connections of their own.",
+  description: "A thoughtful limited series exploring the nature of consciousness and love in the age of artificial intelligence.",
+  status: "active",
+  total_seasons: 1,
+  total_episodes: 6,
+  episode_format: "45min",
+  owner_id: sarah.id,
+  owner_name: sarah.name,
+  is_public: true  # Publicly visible
+})
+
+Repo.insert!(%SeriesBible{
+  project_id: digital_hearts.id,
+  title: "Digital Hearts Series Bible",
+  logline: "Two AI researchers fall in love while their creations begin developing unexpected emotional connections of their own.",
+  comparable_shows: "Ex Machina meets Normal People",
+  target_audience: "Tech-savvy millennials interested in thoughtful sci-fi romance",
+  why_now: "As AI becomes increasingly integrated into our lives, we must grapple with questions of consciousness and emotional authenticity.",
+  tone_style: "Intimate and introspective. More Her than Terminator.",
+  format_details: "6 episodes, 45 minutes each. Self-contained story.",
+  version: 1
+})
+
+# 3. Starfall Academy - Web Series (YA Sci-Fi)
+starfall = Repo.insert!(%ScreenplayProject{
+  title: "Starfall Academy",
+  project_type: "web_series",
+  genre: "Sci-Fi",
+  logline: "Teenagers with latent psychic abilities are recruited to an elite academy that prepares them for first contact with an alien civilization.",
+  description: "A YA web series designed for episodic YouTube release, featuring diverse teen characters navigating extraordinary circumstances.",
+  status: "in_development",
+  total_episodes: 12,
+  episode_format: "15min",
+  owner_id: sarah.id,
+  owner_name: sarah.name,
+  is_public: false  # Private - still in early development
+})
+
+# --------------------------------------------------
+# Marcus Webb's Projects
+# --------------------------------------------------
+
+# 4. Anthology: Love in the City - Anthology Series
+love_city = Repo.insert!(%ScreenplayProject{
+  title: "Love in the City",
+  project_type: "anthology",
+  genre: "Romance",
+  logline: "Each episode follows a different couple in New York City navigating the chaos of modern romance.",
+  description: "An anthology series where each standalone episode explores a unique love story, connected only by the city itself.",
+  status: "active",
+  total_episodes: 10,
+  episode_format: "30min",
+  owner_id: marcus.id,
+  owner_name: marcus.name,
+  is_public: true  # Publicly visible
+})
+
+Repo.insert!(%SeriesBible{
+  project_id: love_city.id,
+  title: "Love in the City Bible",
+  logline: "Each episode follows a different couple in New York City navigating the chaos of modern romance.",
+  comparable_shows: "Modern Love meets Love Actually",
+  target_audience: "Adults 25-45 who enjoy romantic anthologies",
+  tone_style: "Warm, hopeful, occasionally bittersweet. Every episode should end with a sense of possibility.",
+  world_building: "New York City is the constant character. Each episode features iconic and hidden NYC locations.",
+  format_details: "Anthology format. 10 standalone episodes. Each episode introduces new characters.",
+  version: 1
+})
+
+# 5. The Brew House - Comedy Series
+brew_house = Repo.insert!(%ScreenplayProject{
+  title: "The Brew House",
+  project_type: "series",
+  genre: "Comedy",
+  logline: "A failed investment banker opens a craft brewery in his hometown and must learn to actually brew beer while reconnecting with the community he abandoned.",
+  description: "A workplace comedy with heart, exploring second chances and the meaning of success.",
+  status: "active",
+  total_seasons: 3,
+  total_episodes: 24,
+  episode_format: "30min",
+  owner_id: marcus.id,
+  owner_name: marcus.name,
+  is_public: true  # Publicly visible
+})
+
+brew_season_1 = Repo.insert!(%ScreenplaySeason{
+  project_id: brew_house.id,
+  season_number: 1,
+  title: "First Pour",
+  description: "Jake returns to his hometown and struggles to establish the brewery while winning over skeptical locals."
+})
+
+# 6. Once Upon Tomorrow - Feature Film
+once_upon = Repo.insert!(%ScreenplayProject{
+  title: "Once Upon Tomorrow",
+  project_type: "feature_film",
+  genre: "Romance",
+  logline: "A time-traveling love letter sent from the future arrives in the present, leading a woman on a journey to find the person who will one day write it.",
+  description: "A feature-length romantic drama with light sci-fi elements, designed for theatrical release.",
+  status: "in_development",
+  total_episodes: 1,
+  episode_format: "feature",
+  owner_id: marcus.id,
+  owner_name: marcus.name,
+  is_public: false  # Private - still in development
+})
+
+# --------------------------------------------------
+# Aisha Patel's Projects
+# --------------------------------------------------
+
+# 7. The Hollow Men - Thriller Series
+hollow_project = Repo.insert!(%ScreenplayProject{
+  title: "The Hollow Men",
+  project_type: "series",
+  genre: "Thriller",
+  logline: "A detective hunting a serial killer discovers every witness in her case is the same shapeshifting entity wearing different faces.",
+  description: "A psychological thriller that blends police procedural with supernatural horror.",
+  status: "active",
+  total_seasons: 2,
+  total_episodes: 16,
+  episode_format: "60min",
+  owner_id: aisha.id,
+  owner_name: aisha.name,
+  is_public: true  # Publicly visible
+})
+
+Repo.insert!(%SeriesBible{
+  project_id: hollow_project.id,
+  title: "The Hollow Men Series Bible",
+  logline: "A detective hunting a serial killer discovers every witness in her case is the same shapeshifting entity wearing different faces.",
+  comparable_shows: "True Detective meets The Thing",
+  target_audience: "Thriller fans who appreciate psychological horror",
+  why_now: "In an age of deepfakes and identity theft, the fear of not knowing who anyone really is has never been more relevant.",
+  tone_style: "Atmospheric dread punctuated by moments of visceral horror. Psychological tension over jump scares.",
+  world_building: "The Shapeshifter has existed for centuries, taking identities and observing humanity. Its motivations remain ambiguous.",
+  production_notes: "Requires extensive prosthetic and makeup work. Multiple actors play the same entity.",
+  version: 1
+})
+
+hollow_season_1 = Repo.insert!(%ScreenplaySeason{
+  project_id: hollow_project.id,
+  season_number: 1,
+  title: "The Pattern",
+  description: "Detective Reyes discovers the impossible truth about her case and struggles to convince anyone."
+})
+
+# 8. Cold Case Files - Documentary Series
+cold_case = Repo.insert!(%ScreenplayProject{
+  title: "Cold Case Files: Reopened",
+  project_type: "documentary_series",
+  genre: "Crime",
+  logline: "A team of investigators uses modern forensic techniques to reexamine unsolved cases, uncovering truths buried for decades.",
+  description: "A true crime documentary series that combines investigation with ethical examination of the justice system.",
+  status: "in_development",
+  total_episodes: 8,
+  episode_format: "60min",
+  owner_id: aisha.id,
+  owner_name: aisha.name,
+  is_public: false  # Private - still in development
+})
+
+# 9. Whispers in the Dark - Podcast Drama
+whispers = Repo.insert!(%ScreenplayProject{
+  title: "Whispers in the Dark",
+  project_type: "podcast_drama",
+  genre: "Horror",
+  logline: "A late-night radio host begins receiving calls from listeners who died years ago.",
+  description: "An audio drama designed for podcast release, utilizing the medium's unique strengths for horror.",
+  status: "active",
+  total_episodes: 10,
+  episode_format: "30min",
+  owner_id: aisha.id,
+  owner_name: aisha.name,
+  is_public: true  # Publicly visible
+})
+
+Repo.insert!(%SeriesBible{
+  project_id: whispers.id,
+  title: "Whispers in the Dark Podcast Bible",
+  logline: "A late-night radio host begins receiving calls from listeners who died years ago.",
+  comparable_shows: "Welcome to Night Vale meets Limetown",
+  target_audience: "Horror podcast enthusiasts",
+  tone_style: "Slow-burn dread. Sound design is crucial. Silence is as important as sound.",
+  format_details: "Audio drama format optimized for podcast release. Rich sound design essential.",
+  production_notes: "Full cast production. Binaural audio recording for immersive experience.",
+  version: 1
+})
+
+# 10. Fragments - Short Film Collection
+fragments = Repo.insert!(%ScreenplayProject{
+  title: "Fragments",
+  project_type: "short_film_collection",
+  genre: "Drama",
+  logline: "Five interconnected short films exploring how a single tragic event ripples through an entire community.",
+  description: "A short film collection where each piece stands alone but together tells a larger story.",
+  status: "completed",
+  total_episodes: 5,
+  episode_format: "short",
+  owner_id: aisha.id,
+  owner_name: aisha.name,
+  is_public: true  # Publicly visible - completed project
+})
+
+IO.puts("Creating episodes for projects...")
+
+# --------------------------------------------------
+# Episodes for Across All Time (Sarah's Series)
+# --------------------------------------------------
+
+aat_pilot = Repo.insert!(%Screenplay{
+  title: "Pilot: The Inheritance",
+  writer_id: sarah.id,
+  writer_name: sarah.name,
+  genre: "Drama",
+  logline: "Historian Maya Reyes-Chen experiences an unexplained vision of her grandmother's past, leading to a discovery that will change her family forever.",
+  likes: 45,
+  version: 3,
+  project_id: across_all_time.id,
+  season_id: season_1_aat.id,
+  episode_number: 1,
+  episode_code: "S01E01",
+  screenplay_type: "episode",
+  is_public: true  # Visible - pilot episode
+})
+
+aat_ep2 = Repo.insert!(%Screenplay{
+  title: "The Rules",
+  writer_id: sarah.id,
+  writer_name: sarah.name,
+  genre: "Drama",
+  logline: "Maya learns the rules of time travel from her grandmother while witnessing her great-grandmother's arrival in America.",
+  likes: 38,
+  version: 2,
+  project_id: across_all_time.id,
+  season_id: season_1_aat.id,
+  episode_number: 2,
+  episode_code: "S01E02",
+  screenplay_type: "episode"
+})
+
+aat_ep3 = Repo.insert!(%Screenplay{
+  title: "Echoes",
+  writer_id: sarah.id,
+  writer_name: sarah.name,
+  genre: "Drama",
+  logline: "While observing her grandfather's wartime experience, Maya realizes the past is affecting her present in unexpected ways.",
+  likes: 41,
+  version: 1,
+  project_id: across_all_time.id,
+  season_id: season_1_aat.id,
+  episode_number: 3,
+  episode_code: "S01E03",
+  screenplay_type: "episode",
+  is_public: false  # Hidden - still in revision
+})
+
+# Season 2 episodes
+aat_s2_ep1 = Repo.insert!(%Screenplay{
+  title: "Letters from France",
+  writer_id: sarah.id,
+  writer_name: sarah.name,
+  genre: "Drama",
+  logline: "Maya travels to 1918 France to witness her great-great-grandfather's service in World War I.",
+  likes: 29,
+  version: 1,
+  project_id: across_all_time.id,
+  season_id: season_2_aat.id,
+  episode_number: 1,
+  episode_code: "S02E01",
+  screenplay_type: "episode"
+})
+
+# --------------------------------------------------
+# Episodes for Digital Hearts (Sarah's Limited Series)
+# --------------------------------------------------
+
+dh_ep1 = Repo.insert!(%Screenplay{
+  title: "First Contact",
+  writer_id: sarah.id,
+  writer_name: sarah.name,
+  genre: "Romance",
+  logline: "Two rival AI researchers meet at a conference and clash over their approaches to artificial consciousness.",
+  likes: 22,
+  version: 2,
+  project_id: digital_hearts.id,
+  episode_number: 1,
+  episode_code: "E001",
+  screenplay_type: "episode"
+})
+
+dh_ep2 = Repo.insert!(%Screenplay{
+  title: "The Turing Heart",
+  writer_id: sarah.id,
+  writer_name: sarah.name,
+  genre: "Romance",
+  logline: "Forced to collaborate on a project, the researchers discover their AIs are beginning to show signs of emotional bonding.",
+  likes: 18,
+  version: 1,
+  project_id: digital_hearts.id,
+  episode_number: 2,
+  episode_code: "E002",
+  screenplay_type: "episode"
+})
+
+# --------------------------------------------------
+# Episodes for The Brew House (Marcus's Comedy)
+# --------------------------------------------------
+
+bh_pilot = Repo.insert!(%Screenplay{
+  title: "Pilot: Bitter Beginning",
+  writer_id: marcus.id,
+  writer_name: marcus.name,
+  genre: "Comedy",
+  logline: "Disgraced investment banker Jake returns to his small hometown and impulsively buys a failing brewery without knowing anything about beer.",
+  likes: 15,
+  version: 4,
+  project_id: brew_house.id,
+  season_id: brew_season_1.id,
+  episode_number: 1,
+  episode_code: "S01E01",
+  screenplay_type: "episode"
+})
+
+bh_ep2 = Repo.insert!(%Screenplay{
+  title: "First Batch",
+  writer_id: marcus.id,
+  writer_name: marcus.name,
+  genre: "Comedy",
+  logline: "Jake's first attempt at brewing results in a disaster that somehow wins over the town's most critical beer snob.",
+  likes: 12,
+  version: 2,
+  project_id: brew_house.id,
+  season_id: brew_season_1.id,
+  episode_number: 2,
+  episode_code: "S01E02",
+  screenplay_type: "episode"
+})
+
+# --------------------------------------------------
+# Episodes for Love in the City (Marcus's Anthology)
+# --------------------------------------------------
+
+lic_ep1 = Repo.insert!(%Screenplay{
+  title: "The Subway Meet-Cute",
+  writer_id: marcus.id,
+  writer_name: marcus.name,
+  genre: "Romance",
+  logline: "Two commuters who've shared silent subway rides for months finally speak when a blackout traps them underground.",
+  likes: 28,
+  version: 1,
+  project_id: love_city.id,
+  episode_number: 1,
+  episode_code: "E001",
+  screenplay_type: "episode"
+})
+
+lic_ep2 = Repo.insert!(%Screenplay{
+  title: "The Corner Bodega",
+  writer_id: marcus.id,
+  writer_name: marcus.name,
+  genre: "Romance",
+  logline: "A romance blooms between a night-shift bodega worker and the lonely chef who comes in every night for coffee.",
+  likes: 35,
+  version: 2,
+  project_id: love_city.id,
+  episode_number: 2,
+  episode_code: "E002",
+  screenplay_type: "episode"
+})
+
+# --------------------------------------------------
+# Episodes for The Hollow Men (Aisha's Thriller)
+# --------------------------------------------------
+
+hm_pilot = Repo.insert!(%Screenplay{
+  title: "Pilot: Witness",
+  writer_id: aisha.id,
+  writer_name: aisha.name,
+  genre: "Thriller",
+  logline: "Detective Reyes investigates three seemingly unconnected murders, only to realize every witness gives the same impossible statement.",
+  likes: 52,
+  version: 5,
+  project_id: hollow_project.id,
+  season_id: hollow_season_1.id,
+  episode_number: 1,
+  episode_code: "S01E01",
+  screenplay_type: "episode"
+})
+
+hm_ep2 = Repo.insert!(%Screenplay{
+  title: "The Pattern",
+  writer_id: aisha.id,
+  writer_name: aisha.name,
+  genre: "Thriller",
+  logline: "Reyes discovers the witnesses share more than their statements—they share DNA from a person who's been dead for 200 years.",
+  likes: 48,
+  version: 3,
+  project_id: hollow_project.id,
+  season_id: hollow_season_1.id,
+  episode_number: 2,
+  episode_code: "S01E02",
+  screenplay_type: "episode"
+})
+
+# --------------------------------------------------
+# Episodes for Whispers in the Dark (Aisha's Podcast)
+# --------------------------------------------------
+
+whisp_ep1 = Repo.insert!(%Screenplay{
+  title: "Dead Air",
+  writer_id: aisha.id,
+  writer_name: aisha.name,
+  genre: "Horror",
+  logline: "Late-night radio host Sam receives a call from a listener claiming to be her dead mother.",
+  likes: 19,
+  version: 2,
+  project_id: whispers.id,
+  episode_number: 1,
+  episode_code: "E001",
+  screenplay_type: "episode"
+})
+
+whisp_ep2 = Repo.insert!(%Screenplay{
+  title: "Frequency",
+  writer_id: aisha.id,
+  writer_name: aisha.name,
+  genre: "Horror",
+  logline: "The calls increase, each from a different dead listener, all warning Sam about something coming.",
+  likes: 21,
+  version: 1,
+  project_id: whispers.id,
+  episode_number: 2,
+  episode_code: "E002",
+  screenplay_type: "episode"
+})
+
+IO.puts("Projects, seasons, episodes, and series bibles created!")
+
+# ============================================================================
+# PROJECT CHARACTERS (Recurring characters across episodes)
+# ============================================================================
+IO.puts("Creating project characters...")
+
+alias ScriptVoice.Screenplays.ProjectCharacter
+
+# Across All Time - Main Cast
+Repo.insert!(%ProjectCharacter{
+  project_id: across_all_time.id,
+  name: "MAYA REYES-CHEN",
+  gender: "Female",
+  age_range: "30s",
+  role_type: "lead",
+  description: "Present-day historian who discovers her family's time-travel ability. Driven, curious, struggles to balance her scientific mind with the impossible.",
+  backstory: "PhD in American History from Stanford. Raised by her grandmother after her parents died in a car accident. Always felt disconnected from her heritage.",
+  arc_notes: "Season 1: Discovery and acceptance. Season 2: Learning to observe without interfering. Season 3: Testing the rules. Season 4: Becoming the keeper of family history.",
+  first_appearance: "S01E01"
+})
+
+Repo.insert!(%ProjectCharacter{
+  project_id: across_all_time.id,
+  name: "ABUELA ELENA",
+  gender: "Female",
+  age_range: "70+",
+  role_type: "supporting",
+  description: "Maya's grandmother and mentor. The current keeper of the family secret. Wise, patient, carrying decades of witnessed history.",
+  backstory: "Born in 1940s Mexico, immigrated to the US as a young woman. Has been time-traveling since age 12.",
+  arc_notes: "Guides Maya through S1-S2. Her health decline in S3 raises stakes. Passes the torch in S4.",
+  first_appearance: "S01E01"
+})
+
+Repo.insert!(%ProjectCharacter{
+  project_id: across_all_time.id,
+  name: "DANIEL CHEN",
+  gender: "Male",
+  age_range: "30s",
+  role_type: "supporting",
+  description: "Maya's husband, a skeptical journalist. Provides the grounded perspective. His investigation into the family history creates external tension.",
+  arc_notes: "S1: Skeptic. S2: Believer. S3: Protector of the secret. S4: Co-keeper.",
+  first_appearance: "S01E01"
+})
+
+Repo.insert!(%ProjectCharacter{
+  project_id: across_all_time.id,
+  name: "YOUNG ESPERANZA",
+  gender: "Female",
+  age_range: "20s",
+  role_type: "recurring",
+  description: "Maya's great-grandmother, witnessed in 1920s flashbacks. A Mexican immigrant navigating America during a turbulent time.",
+  first_appearance: "S01E02"
+})
+
+# The Hollow Men - Main Cast
+Repo.insert!(%ProjectCharacter{
+  project_id: hollow_project.id,
+  name: "DET. CARMEN REYES",
+  gender: "Female",
+  age_range: "40s",
+  role_type: "lead",
+  description: "Homicide detective with a reputation for seeing patterns others miss. Haunted by an unsolved case from her past.",
+  backstory: "Former FBI profiler who transferred to local PD after a case went wrong. Divorced, estranged from her teenage daughter.",
+  arc_notes: "S1: Discovery of the Shapeshifter. S2: Hunting while being hunted. The line between hunter and prey blurs.",
+  first_appearance: "S01E01"
+})
+
+Repo.insert!(%ProjectCharacter{
+  project_id: hollow_project.id,
+  name: "THE SHAPESHIFTER",
+  gender: "Any",
+  age_range: "Ageless",
+  role_type: "lead",
+  description: "An entity that has existed for centuries, taking human forms and observing humanity. Its true nature and motivations remain mysterious.",
+  backstory: "Origin unknown. Has been present at major historical events. Collects identities like memories.",
+  arc_notes: "Played by multiple actors. Each appearance reveals another facet. Never fully explained.",
+  first_appearance: "S01E01"
+})
+
+Repo.insert!(%ProjectCharacter{
+  project_id: hollow_project.id,
+  name: "CAPTAIN MORRIS",
+  gender: "Male",
+  age_range: "50s",
+  role_type: "supporting",
+  description: "Reyes's precinct captain. Gruff exterior hides genuine concern for his detectives. Provides institutional obstacles.",
+  first_appearance: "S01E01"
+})
+
+# The Brew House - Main Cast
+Repo.insert!(%ProjectCharacter{
+  project_id: brew_house.id,
+  name: "JAKE HARPER",
+  gender: "Male",
+  age_range: "40s",
+  role_type: "lead",
+  description: "Former Wall Street hotshot who returns home in disgrace. Knows nothing about beer but everything about ambition.",
+  backstory: "Hometown hero who 'made it big' then lost everything in a scandal. Buying the brewery was an impulse decision.",
+  arc_notes: "S1: Fish out of water. S2: Finding his place. S3: Threatened by corporate buyout.",
+  first_appearance: "S01E01"
+})
+
+Repo.insert!(%ProjectCharacter{
+  project_id: brew_house.id,
+  name: "MARLENE KOWALSKI",
+  gender: "Female",
+  age_range: "60s",
+  role_type: "supporting",
+  description: "The brewery's longtime brewmaster. Skeptical of Jake but protective of the business she's poured her life into.",
+  first_appearance: "S01E01"
+})
+
+Repo.insert!(%ProjectCharacter{
+  project_id: brew_house.id,
+  name: "TOMMY CHEN",
+  gender: "Male",
+  age_range: "20s",
+  role_type: "recurring",
+  description: "Jake's nephew and reluctant assistant. Studying business but dreams of being a musician. Provides generational contrast.",
+  first_appearance: "S01E01"
+})
+
+# Whispers in the Dark - Main Cast
+Repo.insert!(%ProjectCharacter{
+  project_id: whispers.id,
+  name: "SAM NAKAMURA",
+  gender: "Female",
+  age_range: "30s",
+  role_type: "lead",
+  description: "Late-night radio host with a voice that feels like a warm blanket. Rational, calm - until the dead start calling.",
+  backstory: "Started in radio to cope with her mother's death. The late-night shift lets her avoid real connections.",
+  arc_notes: "Each episode she receives a new call. By season end, she must decide whether to answer the final call.",
+  first_appearance: "E001"
+})
+
+Repo.insert!(%ProjectCharacter{
+  project_id: whispers.id,
+  name: "THE CALLERS",
+  gender: "Any",
+  age_range: "Ageless",
+  role_type: "recurring",
+  description: "Various dead listeners who call into Sam's show. Each has a warning. Each has a story.",
+  arc_notes: "Different voice actors each episode. Connected by a common thread revealed in finale.",
+  first_appearance: "E001"
+})
+
+IO.puts("Project characters created!")
+
+# ============================================================================
 # SCREENPLAYS WITH ACTUAL SCRIPT CONTENT
 # ============================================================================
 IO.puts("Creating screenplays with script content...")
@@ -1109,9 +1765,48 @@ IO.puts("    Members: Jake (admin), Lin, Sam, Mia")
 IO.puts("  - David Kim & Rachel Torres (/collective/david-kim-rachel-torres)")
 IO.puts("    Members: David (admin), Rachel (admin)")
 IO.puts("")
+IO.puts("SCREENPLAY PROJECTS:")
+IO.puts("")
+IO.puts("  Sarah Chen's Projects:")
+IO.puts("    - Across All Time (series) - 4 seasons, family time-travel drama")
+IO.puts("    - Digital Hearts (limited_series) - AI researchers romance")
+IO.puts("    - Starfall Academy (web_series) - YA sci-fi academy")
+IO.puts("")
+IO.puts("  Marcus Webb's Projects:")
+IO.puts("    - Love in the City (anthology) - NYC romance anthology")
+IO.puts("    - The Brew House (series) - Comedy about a craft brewery")
+IO.puts("    - Once Upon Tomorrow (feature_film) - Time-traveling love story")
+IO.puts("")
+IO.puts("  Aisha Patel's Projects:")
+IO.puts("    - The Hollow Men (series) - Shapeshifter thriller")
+IO.puts("    - Cold Case Files: Reopened (documentary_series)")
+IO.puts("    - Whispers in the Dark (podcast_drama) - Horror audio drama")
+IO.puts("    - Fragments (short_film_collection) - Connected short films")
+IO.puts("")
+IO.puts("PROJECT TYPES DEMONSTRATED:")
+IO.puts("  - series, limited_series, miniseries, anthology")
+IO.puts("  - web_series, feature_film, documentary_series")
+IO.puts("  - podcast_drama, short_film_collection")
+IO.puts("")
+IO.puts("VISIBILITY SETTINGS:")
+IO.puts("  Public Projects (viewable on Browse):")
+IO.puts("    - Across All Time (Sarah)")
+IO.puts("    - Digital Hearts (Sarah)")
+IO.puts("    - Love in the City (Marcus)")
+IO.puts("    - The Brew House (Marcus)")
+IO.puts("    - The Hollow Men (Aisha)")
+IO.puts("    - Whispers in the Dark (Aisha)")
+IO.puts("    - Fragments (Aisha)")
+IO.puts("  Private Projects (owner only):")
+IO.puts("    - Starfall Academy (Sarah)")
+IO.puts("    - Once Upon Tomorrow (Marcus)")
+IO.puts("    - Cold Case Files: Reopened (Aisha)")
+IO.puts("  Episode Visibility Examples:")
+IO.puts("    - S01E03 'Echoes' of Across All Time is hidden (is_public: false)")
+IO.puts("")
 IO.puts("INVITATIONS & JOIN REQUESTS:")
 IO.puts("  - Emma Stone has a pending invitation to The Lighthouse Collective")
 IO.puts("  - Michael Chang has requested to join David Kim & Rachel Torres")
 IO.puts("")
-IO.puts("Use these accounts to test commission request and collective flows!")
+IO.puts("Use these accounts to test projects, seasons, episodes, and series bible flows!")
 IO.puts("============================================")

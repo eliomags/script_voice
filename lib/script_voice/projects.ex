@@ -174,6 +174,43 @@ defmodule ScriptVoice.Projects do
   end
 
   @doc """
+  Deletes a season but keeps episodes by moving them to unorganized.
+  """
+  def delete_season_keep_episodes(%ScreenplaySeason{} = season) do
+    season = Repo.preload(season, :episodes)
+
+    Repo.transaction(fn ->
+      # Move all episodes to unorganized (nil season_id)
+      for episode <- season.episodes do
+        new_code = Screenplay.generate_episode_code(nil, episode.episode_number)
+        episode
+        |> Screenplay.changeset(%{"season_id" => nil, "episode_code" => new_code})
+        |> Repo.update!()
+      end
+
+      # Delete the season
+      Repo.delete!(season)
+    end)
+  end
+
+  @doc """
+  Deletes a season and all its episodes permanently.
+  """
+  def delete_season_with_episodes(%ScreenplaySeason{} = season) do
+    season = Repo.preload(season, :episodes)
+
+    Repo.transaction(fn ->
+      # Delete all episodes
+      for episode <- season.episodes do
+        Repo.delete!(episode)
+      end
+
+      # Delete the season
+      Repo.delete!(season)
+    end)
+  end
+
+  @doc """
   Returns a changeset for tracking season changes.
   """
   def change_season(%ScreenplaySeason{} = season, attrs \\ %{}) do
@@ -276,10 +313,30 @@ defmodule ScriptVoice.Projects do
   end
 
   @doc """
-  Moves an episode to a different season.
+  Moves an episode to a different season or to unorganized (nil).
+  Accepts a season struct, season_id string, or nil for unorganized.
   """
-  def move_episode_to_season(%Screenplay{} = screenplay, %ScreenplaySeason{} = season, episode_number \\ nil) do
-    episode_number = episode_number || get_next_episode_number(season.project_id, season.id)
+  def move_episode_to_season(%Screenplay{} = screenplay, nil) do
+    # Move to unorganized
+    episode_number = get_next_episode_number(screenplay.project_id, nil)
+    episode_code = Screenplay.generate_episode_code(nil, episode_number)
+
+    screenplay
+    |> Screenplay.changeset(%{
+      "season_id" => nil,
+      "episode_number" => episode_number,
+      "episode_code" => episode_code
+    })
+    |> Repo.update()
+  end
+
+  def move_episode_to_season(%Screenplay{} = screenplay, season_id) when is_binary(season_id) do
+    season = get_season!(season_id)
+    move_episode_to_season(screenplay, season)
+  end
+
+  def move_episode_to_season(%Screenplay{} = screenplay, %ScreenplaySeason{} = season) do
+    episode_number = get_next_episode_number(season.project_id, season.id)
     episode_code = Screenplay.generate_episode_code(season.season_number, episode_number)
 
     screenplay

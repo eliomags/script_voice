@@ -36,11 +36,24 @@ A Phoenix LiveView platform connecting screenplay writers with voice artists. Wr
 - **Projects (Series/Anthology Organization)**
   - Create projects for TV series, limited series, anthologies, or miniseries
   - Organize episodes into seasons (hierarchical) or flat episode lists
-  - Series bible documents with world-building, tone/style guides, and themes
+  - **Story Bible** documents with world-building, tone/style guides, and themes
   - Recurring character management across episodes with role types
   - Episode numbering with automatic codes (S01E05 format)
   - Track project status: active, completed, hiatus, archived
   - Genre and episode format metadata (30min, 60min, feature, short)
+
+- **Story Bible System**
+  - Universal "Story Bible" terminology (works across TV, film, audio drama, documentary)
+  - **Dynamic template download** based on project type:
+    - TV Series: Full series bible with episode structure, recurring elements
+    - Feature Film: Treatment-style with themes, character arcs, visual style
+    - Audio Drama/Podcast: Sonic identity, soundscape design, voice casting profiles
+    - Documentary: Interview subjects, archival material, research status
+  - **File import** via drag-and-drop or file picker (TXT, PDF support)
+  - Client-side file reading for instant import (no upload delays)
+  - Inline editing with live preview (no modals)
+  - Expandable read-only view for public visitors
+  - Automatic field parsing from imported templates
 
 - **Commission Voice Artists**
   - Browse available voice artists with pricing info
@@ -298,7 +311,8 @@ script_voice/
 │       │       └── upload_screenplay_component.ex
 │       ├── controllers/
 │       │   ├── session_controller.ex
-│       │   └── stripe_webhook_controller.ex
+│       │   ├── stripe_webhook_controller.ex
+│       │   └── bible_template_controller.ex  # Dynamic Story Bible templates
 │       └── router.ex
 │
 ├── priv/
@@ -349,10 +363,10 @@ script_voice/
 
 | Path | Description |
 |------|-------------|
-| `/project/:id` | Project detail view with seasons, episodes, and series bible |
+| `/project/:id` | Project detail view with seasons, episodes, and Story Bible |
 | `/project/:id/episode/new` | Add new episode to project |
 | `/project/:id/season/:season_id` | View specific season within project |
-| `/project/:id/bible` | Series bible editor |
+| `/project/:id/bible` | Story Bible editor with import/export |
 
 ### Commission Routes
 
@@ -377,6 +391,7 @@ script_voice/
 | `/session/:user_id` | GET | Demo login (dev only) |
 | `/session` | DELETE | Logout |
 | `/webhooks/stripe` | POST | Stripe webhook handler |
+| `/api/bible-template/:project_id` | GET | Download dynamic Story Bible template |
 
 ## Database Schema
 
@@ -405,7 +420,7 @@ script_voice/
 |-------|---------|
 | `screenplay_projects` | Series/anthology containers with metadata (type, genre, status) |
 | `screenplay_seasons` | Optional season organization within projects |
-| `series_bibles` | Project documentation (world-building, tone, themes) |
+| `series_bibles` | Story Bible documents (world-building, tone, themes) |
 | `project_characters` | Recurring characters with role types and arc tracking |
 
 **Note:** The `screenplays` table includes episode fields (`project_id`, `season_id`, `episode_number`, `episode_code`, `screenplay_type`) allowing screenplays to be standalone or part of a project.
@@ -539,9 +554,9 @@ Episodes automatically receive formatted codes:
 - **With Season**: `S01E05` (Season 1, Episode 5)
 - **Without Season**: `E005` (Episode 5)
 
-### Series Bible
+### Story Bible
 
-Each project can have a series bible document containing:
+Each project can have a Story Bible document. The term "Story Bible" is industry-standard terminology that works universally across TV series, feature films, audio dramas, and documentaries.
 
 | Section | Description |
 |---------|-------------|
@@ -549,6 +564,21 @@ Each project can have a series bible document containing:
 | **World Building** | Setting, rules, history |
 | **Tone & Style** | Visual/audio direction, mood |
 | **Themes** | Core themes and motifs |
+
+**Import & Export:**
+- Download dynamic templates tailored to your project type
+- Import existing bible documents via drag-and-drop or file picker
+- Client-side file reading for instant import without upload delays
+- Automatic field parsing from template format
+
+**Project Type Templates:**
+
+| Project Type | Template Style |
+|--------------|----------------|
+| TV Series | Full series bible with episode structure, recurring elements, format details |
+| Feature Film | Treatment-style with themes, character arcs, visual style, production notes |
+| Audio Drama/Podcast | Sonic identity, soundscape design, voice casting profiles, narration style |
+| Documentary | Interview subjects, archival material, research status, ethical considerations |
 
 ### Project Characters
 
@@ -581,7 +611,7 @@ Writers see projects in their dashboard alongside standalone screenplays:
 - **Projects Tab**: List of all projects with episode counts
 - **Create Project**: Form with title, type, genre, logline
 - **Project View**: Accordion-based season/episode browser
-- **Series Bible Editor**: Full editor for project documentation
+- **Story Bible Editor**: Inline editor with import/export and dynamic templates
 - **Episode Management**: Add, edit, reorder episodes
 
 ### Backward Compatibility
@@ -820,12 +850,26 @@ S3-compatible file storage:
 
 ## Recent Changes
 
+### Version 2.4 (February 2026)
+
+- **Story Bible Enhancements**: Complete inline editing and import system
+  - Renamed "Series Bible" to "Story Bible" (industry-standard universal term)
+  - Dynamic template generation based on project type (TV, film, audio drama, documentary)
+  - Client-side file import via JavaScript FileReader (instant, no upload delays)
+  - Drag-and-drop file upload support
+  - Automatic field parsing from imported template files
+  - Inline editing with live preview (no modals - consistent with app UX)
+  - Expandable read-only view for public visitors
+  - New `/api/bible-template/:project_id` endpoint for template downloads
+  - New `BibleTemplateController` with type-specific templates
+  - New `BibleFileReader` JavaScript hook for client-side file handling
+
 ### Version 2.3 (February 2026)
 
 - **Projects System**: Complete multi-episode/series screenplay organization
   - Create projects for TV series, limited series, anthologies, or miniseries
   - Organize episodes with flat structure or hierarchical seasons
-  - Series bible documents with world-building, tone/style, and themes
+  - Story Bible documents with world-building, tone/style, and themes
   - Recurring character management with role types (lead, supporting, recurring, guest)
   - Episode numbering with automatic codes (S01E05 format)
   - Project status tracking: active, completed, hiatus, archived
@@ -836,14 +880,14 @@ S3-compatible file storage:
 - **New Database Tables**:
   - `screenplay_projects`: Project containers with metadata
   - `screenplay_seasons`: Season organization within projects
-  - `series_bibles`: Project documentation storage
+  - `series_bibles`: Story Bible document storage
   - `project_characters`: Recurring character tracking
 
 - **New Routes**:
   - `/project/:id`: Project detail view
   - `/project/:id/episode/new`: Add episode
   - `/project/:id/season/:season_id`: Season view
-  - `/project/:id/bible`: Series bible editor
+  - `/project/:id/bible`: Story Bible editor
 
 ### Version 2.2 (February 2026)
 

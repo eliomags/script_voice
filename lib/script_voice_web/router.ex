@@ -28,6 +28,7 @@ defmodule ScriptVoiceWeb.Router do
     live "/dashboard", DashboardLive, :index
     live "/browse", BrowseLive, :index
     live "/screenplay/:id", ScreenplayLive, :show
+    live "/screenplay/:id/edit", ScreenplayEditLive, :edit
     live "/screenplay/:id/read", ScriptReaderLive, :show
     live "/profile/:id", ProfileLive, :show
 
@@ -61,6 +62,9 @@ defmodule ScriptVoiceWeb.Router do
     live "/project/:id/episode/new", ProjectLive, :new_episode
     live "/project/:id/season/:season_id", ProjectLive, :show_season
     live "/project/:id/bible", ProjectLive, :bible
+
+    # API-style routes (still in browser pipeline for session access)
+    get "/api/bible-template/:project_id", BibleTemplateController, :show
   end
 
   # Stripe webhook endpoint

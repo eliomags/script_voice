@@ -9,6 +9,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
   alias ScriptVoice.Screenplays
   alias ScriptVoice.Audio
   alias ScriptVoice.Social
+  alias ScriptVoice.Projects
 
   @audio_sort_options [
     {"Most Recent", "recent"},
@@ -52,6 +53,14 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
 
         is_author = current_user && current_user.id == screenplay.writer_id
 
+        # Load project characters if this screenplay has character_ids
+        project_characters = if screenplay.project_id && screenplay.character_ids && length(screenplay.character_ids) > 0 do
+          all_chars = Projects.list_characters_for_project(screenplay.project_id)
+          Enum.filter(all_chars, fn c -> c.id in screenplay.character_ids end)
+        else
+          []
+        end
+
         {:ok,
          socket
          |> assign(:current_user, current_user)
@@ -66,7 +75,8 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
          |> assign(:show_submit_modal, false)
          |> assign(:back_to, back_to)
          |> assign(:back_label, back_label)
-         |> assign(:page_title, screenplay.title)}
+         |> assign(:page_title, screenplay.title)
+         |> assign(:project_characters, project_characters)}
     end
   end
 
@@ -206,6 +216,11 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
     end
   end
 
+  defp has_content?(screenplay) do
+    (screenplay.script_content && String.trim(screenplay.script_content) != "") ||
+    (screenplay.pdf_url && String.trim(screenplay.pdf_url) != "")
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -248,6 +263,15 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
                 phx-value-id={@screenplay.id}
               />
               <%= if @is_author do %>
+                <!-- Edit Script button for authors -->
+                <.link
+                  navigate={~p"/screenplay/#{@screenplay.id}/edit"}
+                  class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white hover:bg-gray-50 transition"
+                >
+                  <.icon name="hero-pencil-square" class="w-4 h-4" />
+                  <span class="hidden sm:inline"><%= if has_content?(@screenplay), do: "Edit Script", else: "Add Script" %></span>
+                  <span class="sm:hidden"><%= if has_content?(@screenplay), do: "Edit", else: "Add" %></span>
+                </.link>
                 <.link
                   navigate={~p"/commissions/request/#{@screenplay.id}"}
                   class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition"
@@ -257,7 +281,8 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
                   <span class="sm:hidden">Commission</span>
                 </.link>
               <% end %>
-<%= cond do %>
+<!-- Read Script button (for scripts that have content) -->
+              <%= cond do %>
                 <% @screenplay.script_content && String.length(@screenplay.script_content) > 0 -> %>
                   <.link
                     navigate={~p"/screenplay/#{@screenplay.id}/read"}
@@ -274,23 +299,46 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
                     class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white hover:bg-gray-50"
                   >
                     <.icon name="hero-document-text" class="w-4 h-4" />
-                    <span class="hidden sm:inline">Read Script</span>
-                    <span class="sm:hidden">Read</span>
+                    <span class="hidden sm:inline">View PDF</span>
+                    <span class="sm:hidden">View</span>
                   </a>
-                <% true -> %>
-                  <span class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg font-medium text-gray-400 bg-gray-50 cursor-not-allowed">
-                    <.icon name="hero-document-text" class="w-4 h-4" />
-                    <span class="hidden sm:inline">No Script</span>
-                    <span class="sm:hidden">N/A</span>
+                <% !@is_author -> %>
+                  <!-- Non-authors see "Script coming soon" when no content -->
+                  <span class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg font-medium text-gray-400 bg-gray-50 italic text-sm">
+                    <.icon name="hero-clock" class="w-4 h-4" />
+                    <span>Coming soon</span>
                   </span>
+                <% true -> %>
+                  <!-- Authors already have Edit/Add button above, so nothing needed here -->
               <% end %>
             </div>
           </div>
 
           <p class="text-gray-700 text-base sm:text-lg mb-4"><%= @screenplay.logline %></p>
 
+          <!-- Version Info -->
+          <div class="flex items-center gap-3 text-sm text-gray-500 mb-4">
+            <span class="bg-gray-100 px-2 py-1 rounded">Version <%= @screenplay.version %></span>
+            <%= if @screenplay.last_updated_at do %>
+              <span>Updated <%= Calendar.strftime(@screenplay.last_updated_at, "%b %d, %Y") %></span>
+            <% end %>
+          </div>
+
+          <!-- Version Notes (if any) -->
+          <%= if @screenplay.version_notes && String.trim(@screenplay.version_notes) != "" do %>
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+              <h4 class="text-sm font-medium text-amber-800 mb-1">Latest Changes (v<%= @screenplay.version %>)</h4>
+              <p class="text-sm text-amber-700"><%= @screenplay.version_notes %></p>
+            </div>
+          <% end %>
+
           <!-- Character List -->
-          <.character_list characters={@screenplay.characters} />
+          <!-- Show project characters if linked, otherwise show embedded characters -->
+          <%= if length(@project_characters) > 0 do %>
+            <.project_character_list characters={@project_characters} />
+          <% else %>
+            <.character_list characters={@screenplay.characters} />
+          <% end %>
         </div>
 
         <!-- Audio Versions Section -->

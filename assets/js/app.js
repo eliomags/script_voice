@@ -546,6 +546,64 @@ Hooks.LazyLoad = {
   }
 }
 
+// Bible file reader - reads file client-side and sends content to server
+Hooks.BibleFileReader = {
+  mounted() {
+    const fileInput = this.el.querySelector('input[type="file"]')
+    if (!fileInput) return
+
+    // Handle file selection
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0]
+      if (!file) return
+      this.readAndSendFile(file)
+    })
+
+    // Handle drag and drop
+    this.el.addEventListener('dragover', (e) => {
+      e.preventDefault()
+      this.el.classList.add('border-purple-400', 'bg-purple-50')
+    })
+
+    this.el.addEventListener('dragleave', (e) => {
+      e.preventDefault()
+      this.el.classList.remove('border-purple-400', 'bg-purple-50')
+    })
+
+    this.el.addEventListener('drop', (e) => {
+      e.preventDefault()
+      this.el.classList.remove('border-purple-400', 'bg-purple-50')
+      const file = e.dataTransfer.files[0]
+      if (file && (file.name.endsWith('.txt') || file.name.endsWith('.pdf'))) {
+        this.readAndSendFile(file)
+      }
+    })
+  },
+
+  readAndSendFile(file) {
+    // Show loading state
+    const label = this.el.querySelector('label')
+    if (label) {
+      label.innerHTML = `<span class="text-purple-600 animate-pulse">Reading ${file.name}...</span>`
+    }
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const content = e.target.result
+      this.pushEvent('import_bible_content', {
+        content: content,
+        filename: file.name
+      })
+    }
+    reader.onerror = () => {
+      if (label) {
+        label.innerHTML = `<span class="text-red-500">Error reading file</span>`
+      }
+    }
+    reader.readAsText(file)
+  }
+}
+
 // LiveSocket configuration
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {

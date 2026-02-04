@@ -1247,47 +1247,45 @@ defmodule ScriptVoiceWeb.DashboardLive do
       <!-- Create Project Form -->
       <%= if @show_create_project do %>
         <div class="bg-purple-50 border border-purple-200 rounded-xl p-4 sm:p-6">
-          <h3 class="font-semibold text-gray-900 mb-4">Create New Project (Series/Anthology)</h3>
+          <h3 class="font-semibold text-gray-900 mb-4">Create New Project</h3>
           <form phx-submit="create_project" class="space-y-4">
             <div class="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-                <input
-                  type="text"
-                  name="title"
-                  required
-                  placeholder="Your project title"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                <select name="project_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                  <option value="series">TV Series</option>
-                  <option value="miniseries">Limited/Mini Series</option>
-                  <option value="anthology">Anthology</option>
-                </select>
-              </div>
+              <.styled_input
+                name="title"
+                label="Title"
+                required={true}
+                placeholder="Your project title"
+              />
+              <.styled_dropdown
+                name="project_type"
+                label="Project Type"
+                value="series"
+                options={[
+                  {"TV Series", "series"},
+                  {"Limited Series", "limited_series"},
+                  {"Miniseries", "miniseries"},
+                  {"Anthology", "anthology"},
+                  {"Web Series", "web_series"},
+                  {"Feature Film", "feature_film"},
+                  {"Documentary Series", "documentary_series"},
+                  {"Podcast Drama", "podcast_drama"},
+                  {"Short Film Collection", "short_film_collection"}
+                ]}
+              />
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Genre *</label>
-              <select name="genre" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                <%= for genre <- ScreenplayProject.genres() do %>
-                  <option value={genre}><%= genre %></option>
-                <% end %>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Logline *</label>
-              <textarea
-                name="logline"
-                required
-                rows="2"
-                minlength="10"
-                placeholder="A brief summary of your series premise..."
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              ></textarea>
-            </div>
+            <.styled_dropdown
+              name="genre"
+              label="Genre"
+              required={true}
+              options={ScreenplayProject.genres()}
+            />
+            <.styled_textarea
+              name="logline"
+              label="Logline"
+              required={true}
+              rows={2}
+              placeholder="A brief summary of your series premise..."
+            />
             <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-xl font-medium hover:bg-purple-700 transition-colors">
               Create Project
             </button>
@@ -1679,8 +1677,14 @@ defmodule ScriptVoiceWeb.DashboardLive do
   end
 
   defp project_type_badge_color("series"), do: "bg-blue-100 text-blue-700"
+  defp project_type_badge_color("limited_series"), do: "bg-indigo-100 text-indigo-700"
   defp project_type_badge_color("anthology"), do: "bg-purple-100 text-purple-700"
   defp project_type_badge_color("miniseries"), do: "bg-amber-100 text-amber-700"
+  defp project_type_badge_color("web_series"), do: "bg-cyan-100 text-cyan-700"
+  defp project_type_badge_color("feature_film"), do: "bg-rose-100 text-rose-700"
+  defp project_type_badge_color("documentary_series"), do: "bg-teal-100 text-teal-700"
+  defp project_type_badge_color("podcast_drama"), do: "bg-orange-100 text-orange-700"
+  defp project_type_badge_color("short_film_collection"), do: "bg-pink-100 text-pink-700"
   defp project_type_badge_color(_), do: "bg-gray-100 text-gray-700"
 
   # ===========================================================================

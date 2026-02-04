@@ -3,11 +3,13 @@ defmodule ScriptVoiceWeb.BrowseLive do
   Browse page LiveView - Browse screenplays with filters and sorting.
   Mobile-first design with horizontal scrolling filters.
   Includes inline upload form for writers.
+  Organizes content into Projects and Standalone Scripts.
   """
   use ScriptVoiceWeb, :live_view
 
   alias ScriptVoice.Screenplays
   alias ScriptVoice.Screenplays.{Screenplay, Character}
+  alias ScriptVoice.Projects
   alias ScriptVoice.Social
 
   @genres ["All" | Screenplay.genres()]
@@ -38,8 +40,9 @@ defmodule ScriptVoiceWeb.BrowseLive do
      |> assign(:liked_screenplay_ids, liked_ids)
      |> assign(:show_upload_form, false)
      |> assign(:page_title, "Browse Screenplays")
+     |> assign(:view_mode, "all")  # "all", "projects", "standalone"
      |> init_upload_form()
-     |> load_screenplays()}
+     |> load_content()}
   end
 
   defp init_upload_form(socket) do
@@ -57,20 +60,51 @@ defmodule ScriptVoiceWeb.BrowseLive do
   def handle_params(params, _uri, socket) do
     genre = Map.get(params, "genre", "All")
     sort = Map.get(params, "sort", "recent")
+    view_mode = Map.get(params, "view", "all")
 
     {:noreply,
      socket
      |> assign(:selected_genre, genre)
      |> assign(:selected_sort, sort)
-     |> load_screenplays()}
+     |> assign(:view_mode, view_mode)
+     |> load_content()}
   end
 
-  defp load_screenplays(socket) do
+  defp load_content(socket) do
     genre = socket.assigns.selected_genre
     sort = parse_sort(socket.assigns.selected_sort)
 
-    screenplays = Screenplays.list_screenplays(sort: sort, genre: genre)
-    assign(socket, :screenplays, screenplays)
+    # Load all projects with their episodes
+    projects = list_all_projects_with_episodes(genre)
+
+    # Load standalone screenplays (not part of any project)
+    standalone_screenplays = Screenplays.list_standalone_screenplays(sort: sort, genre: genre)
+
+    socket
+    |> assign(:projects, projects)
+    |> assign(:standalone_screenplays, standalone_screenplays)
+  end
+
+  defp list_all_projects_with_episodes(genre) do
+    # Get all PUBLIC projects and filter by genre if needed
+    import Ecto.Query
+    alias ScriptVoice.Repo
+    alias ScriptVoice.Screenplays.ScreenplayProject
+
+    query = from p in ScreenplayProject,
+      where: p.is_public == true,
+      left_join: e in assoc(p, :episodes),
+      left_join: w in assoc(p, :owner),
+      preload: [episodes: e, owner: w],
+      order_by: [desc: p.updated_at]
+
+    query = if genre != "All" do
+      where(query, [p], p.genre == ^genre)
+    else
+      query
+    end
+
+    Repo.all(query)
   end
 
   defp parse_sort("recent"), do: :recent
@@ -284,7 +318,7 @@ defmodule ScriptVoiceWeb.BrowseLive do
   end
 
   defp update_screenplay_likes(socket, id, change) do
-    update(socket, :screenplays, fn screenplays ->
+    update(socket, :standalone_screenplays, fn screenplays ->
       Enum.map(screenplays, fn sp ->
         if sp.id == id do
           %{sp | likes: max(0, sp.likes + change)}
@@ -310,6 +344,86 @@ defmodule ScriptVoiceWeb.BrowseLive do
     end)
     |> Enum.map(fn {field, errors} -> "#{field}: #{Enum.join(errors, ", ")}" end)
     |> Enum.join("; ")
+  end
+
+  # Project card for browse page
+  attr :project, :map, required: true
+
+  defp project_browse_card(assigns) do
+    ~H"""
+    <div class="bg-white border rounded-xl overflow-hidden hover:border-purple-300 hover:shadow-md transition">
+      <.link navigate={~p"/project/#{@project.id}"} class="block p-4 sm:p-5">
+        <div class="flex flex-col sm:flex-row sm:items-start gap-3">
+          <!-- Project Info -->
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+              <h3 class="font-semibold text-gray-900 truncate"><%= @project.title %></h3>
+              <span class={"px-2 py-0.5 text-xs font-medium rounded-full #{project_type_color(@project.project_type)}"}>
+                <%= format_project_type(@project.project_type) %>
+              </span>
+              <.genre_badge genre={@project.genre} />
+            </div>
+
+            <p class="text-sm text-gray-500 mb-2">
+              by <%= @project.owner_name || "Unknown" %>
+            </p>
+
+            <p class="text-gray-600 text-sm line-clamp-2 mb-3"><%= @project.logline %></p>
+
+            <!-- Episodes Preview -->
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs text-gray-500">
+                <.icon name="hero-document-text" class="w-3.5 h-3.5 inline" />
+                <%= length(@project.episodes) %> episodes
+              </span>
+              <%= if @project.total_seasons && @project.total_seasons > 0 do %>
+                <span class="text-xs text-gray-500">
+                  <.icon name="hero-folder" class="w-3.5 h-3.5 inline" />
+                  <%= @project.total_seasons %> seasons planned
+                </span>
+              <% end %>
+              <%= if length(@project.episodes) > 0 do %>
+                <div class="flex items-center gap-1 ml-auto">
+                  <%= for ep <- Enum.take(@project.episodes, 3) do %>
+                    <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">
+                      <%= ep.episode_code || "E#{ep.episode_number}" %>
+                    </span>
+                  <% end %>
+                  <%= if length(@project.episodes) > 3 do %>
+                    <span class="text-xs text-gray-400">+<%= length(@project.episodes) - 3 %> more</span>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+
+          <!-- Arrow -->
+          <div class="hidden sm:flex items-center">
+            <.icon name="hero-chevron-right" class="w-5 h-5 text-gray-400" />
+          </div>
+        </div>
+      </.link>
+    </div>
+    """
+  end
+
+  defp project_type_color("series"), do: "bg-blue-100 text-blue-700"
+  defp project_type_color("limited_series"), do: "bg-indigo-100 text-indigo-700"
+  defp project_type_color("anthology"), do: "bg-purple-100 text-purple-700"
+  defp project_type_color("miniseries"), do: "bg-amber-100 text-amber-700"
+  defp project_type_color("web_series"), do: "bg-cyan-100 text-cyan-700"
+  defp project_type_color("feature_film"), do: "bg-rose-100 text-rose-700"
+  defp project_type_color("documentary_series"), do: "bg-teal-100 text-teal-700"
+  defp project_type_color("podcast_drama"), do: "bg-orange-100 text-orange-700"
+  defp project_type_color("short_film_collection"), do: "bg-pink-100 text-pink-700"
+  defp project_type_color(_), do: "bg-gray-100 text-gray-700"
+
+  defp format_project_type(type) do
+    type
+    |> String.replace("_", " ")
+    |> String.split(" ")
+    |> Enum.map(&String.capitalize/1)
+    |> Enum.join(" ")
   end
 
   @impl true
@@ -520,39 +634,63 @@ defmodule ScriptVoiceWeb.BrowseLive do
           </div>
         </div>
 
-        <!-- Screenplay List -->
-        <%= if Enum.empty?(@screenplays) do %>
-          <div class="bg-white border rounded-xl p-8 text-center">
-            <.icon name="hero-document-magnifying-glass" class="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 class="font-semibold text-lg mb-2">No screenplays found</h3>
-            <p class="text-gray-600 mb-4">
-              <%= if @selected_genre != "All" do %>
-                Try selecting a different genre or clearing your filters.
-              <% else %>
-                Be the first to upload a screenplay!
+        <!-- Projects Section -->
+        <%= if length(@projects) > 0 do %>
+          <div class="mb-8">
+            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <.icon name="hero-folder" class="w-5 h-5 text-purple-600" />
+              Projects
+              <span class="text-sm font-normal text-gray-500">(<%= length(@projects) %>)</span>
+            </h2>
+            <div class="grid gap-4">
+              <%= for project <- @projects do %>
+                <.project_browse_card project={project} />
               <% end %>
-            </p>
-            <%= if @selected_genre != "All" do %>
-              <button
-                phx-click="filter_genre"
-                phx-value-genre="All"
-                class="text-emerald-600 font-medium hover:underline"
-              >
-                Clear filters
-              </button>
-            <% end %>
-          </div>
-        <% else %>
-          <div class="grid gap-4">
-            <%= for sp <- @screenplays do %>
-              <.screenplay_card
-                screenplay={sp}
-                liked={sp.id in @liked_screenplay_ids}
-                phx-click={JS.navigate(~p"/screenplay/#{sp.id}?from=browse")}
-              />
-            <% end %>
+            </div>
           </div>
         <% end %>
+
+        <!-- Standalone Scripts Section -->
+        <div>
+          <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <.icon name="hero-document-text" class="w-5 h-5 text-emerald-600" />
+            Standalone Scripts
+            <span class="text-sm font-normal text-gray-500">(<%= length(@standalone_screenplays) %>)</span>
+          </h2>
+
+          <%= if Enum.empty?(@standalone_screenplays) do %>
+            <div class="bg-white border rounded-xl p-8 text-center">
+              <.icon name="hero-document-magnifying-glass" class="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <h3 class="font-semibold text-lg mb-2">No standalone scripts found</h3>
+              <p class="text-gray-600 mb-4">
+                <%= if @selected_genre != "All" do %>
+                  Try selecting a different genre or clearing your filters.
+                <% else %>
+                  Be the first to upload a screenplay!
+                <% end %>
+              </p>
+              <%= if @selected_genre != "All" do %>
+                <button
+                  phx-click="filter_genre"
+                  phx-value-genre="All"
+                  class="text-emerald-600 font-medium hover:underline"
+                >
+                  Clear filters
+                </button>
+              <% end %>
+            </div>
+          <% else %>
+            <div class="grid gap-4">
+              <%= for sp <- @standalone_screenplays do %>
+                <.screenplay_card
+                  screenplay={sp}
+                  liked={sp.id in @liked_screenplay_ids}
+                  phx-click={JS.navigate(~p"/screenplay/#{sp.id}?from=browse")}
+                />
+              <% end %>
+            </div>
+          <% end %>
+        </div>
       </div>
     </div>
     """

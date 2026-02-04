@@ -51,6 +51,28 @@ defmodule ScriptVoice.Screenplays do
   defp apply_limit(query, limit), do: limit(query, ^limit)
 
   @doc """
+  Returns the list of standalone screenplays (not part of any project).
+  These are screenplays where project_id is nil.
+
+  Options:
+  - `:sort` - :recent, :popular, :needs_audio
+  - `:genre` - filter by genre
+  - `:limit` - limit results
+  """
+  def list_standalone_screenplays(opts \\ []) do
+    sort = Keyword.get(opts, :sort, :recent)
+    genre = Keyword.get(opts, :genre)
+    limit = Keyword.get(opts, :limit)
+
+    Screenplay
+    |> where([s], is_nil(s.project_id))
+    |> apply_genre_filter(genre)
+    |> apply_sort(sort)
+    |> apply_limit(limit)
+    |> Repo.all()
+  end
+
+  @doc """
   Gets a single screenplay.
   """
   def get_screenplay(id) when is_binary(id) do

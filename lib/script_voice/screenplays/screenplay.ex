@@ -39,11 +39,15 @@ defmodule ScriptVoice.Screenplays.Screenplay do
     field :episode_code, :string  # "S01E05", "E005", etc.
     field :screenplay_type, :string, default: "standalone"
     field :is_published, :boolean, default: true
+    field :is_public, :boolean, default: true  # Controls visibility within projects
     field :air_date, :date
     field :cold_open, :string
     field :act_breaks, {:array, :integer}
 
-    # Characters as embedded schema
+    # Project character IDs that appear in this episode
+    field :character_ids, {:array, :binary_id}, default: []
+
+    # Characters as embedded schema (for standalone screenplays)
     embeds_many :characters, Character, on_replace: :delete
 
     belongs_to :writer, ScriptVoice.Accounts.User
@@ -63,7 +67,8 @@ defmodule ScriptVoice.Screenplays.Screenplay do
       :title, :genre, :logline, :page_count, :pdf_url, :script_content,
       :writer_id, :writer_name, :version, :version_notes, :last_updated_at,
       :project_id, :season_id, :episode_number, :episode_code,
-      :screenplay_type, :is_published, :air_date, :cold_open, :act_breaks
+      :screenplay_type, :is_published, :is_public, :air_date, :cold_open, :act_breaks,
+      :character_ids
     ])
     |> cast_embed(:characters)
     |> validate_required([:title, :genre, :logline, :writer_id])
