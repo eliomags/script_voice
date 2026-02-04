@@ -15,7 +15,7 @@ defmodule ScriptVoiceWeb.SessionController do
       _user ->
         conn
         |> put_session(:user_id, user_id)
-        |> put_flash(:info, "Welcome to ScriptVoice!")
+        |> put_flash(:info, "Welcome to ScriptVivo!")
         |> redirect(to: ~p"/dashboard")
     end
   end

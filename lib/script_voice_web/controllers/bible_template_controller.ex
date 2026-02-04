@@ -53,7 +53,7 @@ Project Type: #{humanize_type(project.project_type)}
 Genre: #{project.genre || "Not specified"}
 
 Instructions: Fill in each section below with your series information.
-After completing, upload this file to ScriptVoice to import your Bible.
+After completing, upload this file to ScriptVivo to import your Bible.
 Delete these instruction lines before uploading.
 
 ================================================================================

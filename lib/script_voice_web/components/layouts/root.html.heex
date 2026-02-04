@@ -4,15 +4,33 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <.live_title suffix=" · ScriptVoice">
-      <%= assigns[:page_title] || "ScriptVoice" %>
+    <.live_title suffix=" — Where Scripts Come Alive">
+      <%= assigns[:page_title] || "ScriptVivo" %>
     </.live_title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="ScriptVivo connects screenwriters with voice artists. Upload your screenplay, get it performed, and bring your scripts to life. Build your portfolio and discover new talent." />
+    <meta name="keywords" content="screenplay, voice acting, screenwriting, audio drama, script reading, voice artists, writers platform, screenplay portfolio" />
+    <meta name="author" content="ScriptVivo" />
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="ScriptVivo — Where Scripts Come Alive" />
+    <meta property="og:description" content="Connect screenwriters with voice artists. Upload your screenplay, get it performed, and bring your scripts to life." />
+    <meta property="og:site_name" content="ScriptVivo" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ScriptVivo — Where Scripts Come Alive" />
+    <meta name="twitter:description" content="Connect screenwriters with voice artists. Upload your screenplay and bring your scripts to life." />
+
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
     </script>
     <!-- Apple Touch Icon for iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="ScriptVivo" />
     <meta name="theme-color" content="#059669" />
   </head>
   <body class="bg-gray-50 antialiased">

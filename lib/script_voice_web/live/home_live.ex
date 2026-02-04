@@ -25,7 +25,7 @@ defmodule ScriptVoiceWeb.HomeLive do
      |> assign(:current_user, current_user)
      |> assign(:popular_screenplays, popular_screenplays)
      |> assign(:liked_screenplay_ids, liked_ids)
-     |> assign(:page_title, "Scripts Meet Voices")}
+     |> assign(:page_title, "Home")}
   end
 
   @impl true
@@ -80,9 +80,9 @@ defmodule ScriptVoiceWeb.HomeLive do
       <!-- Hero Section -->
       <div class="bg-gradient-to-br from-emerald-600 to-teal-700 text-white py-12 sm:py-16 px-4 sm:px-6">
         <div class="max-w-4xl mx-auto text-center">
-          <h1 class="text-3xl sm:text-4xl font-bold mb-4">Scripts Meet Voices</h1>
+          <h1 class="text-3xl sm:text-4xl font-bold mb-4">Where Scripts Come Alive</h1>
           <p class="text-lg sm:text-xl text-emerald-100 mb-8 px-4">
-            Writers publish screenplays. Voice artists bring them to life. Everyone builds their portfolio.
+            ScriptVivo your screenplay. Writers publish, voice artists perform, and together you build portfolios that get noticed.
           </p>
 
           <%= if @current_user do %>
@@ -208,16 +208,16 @@ defmodule ScriptVoiceWeb.HomeLive do
       <!-- CTA Section -->
       <div class="bg-emerald-50 py-10 sm:py-12 px-4 sm:px-6">
         <div class="max-w-4xl mx-auto text-center">
-          <h2 class="text-xl sm:text-2xl font-bold mb-4">Ready to get started?</h2>
+          <h2 class="text-xl sm:text-2xl font-bold mb-4">Ready to bring your scripts alive?</h2>
           <p class="text-gray-600 mb-6 px-4">
-            Join our community of writers and voice artists building their portfolios together.
+            Join writers and voice artists who are building portfolios, making connections, and creating together.
           </p>
           <.link
             navigate={~p"/verify"}
             class="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-emerald-700 touch-manipulation"
           >
             <.icon name="hero-user-plus" class="w-5 h-5" />
-            Join ScriptVoice
+            Get Started Free
           </.link>
         </div>
       </div>

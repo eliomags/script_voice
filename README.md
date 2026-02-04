@@ -1,4 +1,6 @@
-# ScriptVoice
+# ScriptVivo
+
+**Where Scripts Come Alive**
 
 A Phoenix LiveView platform connecting screenplay writers with voice artists. Writers upload scripts, voice artists bring them to life with audio performances, and the community discovers new talent.
 
@@ -341,6 +343,7 @@ script_voice/
 | `/profile/:id` | User profile page |
 | `/collective/:slug` | Collective profile page |
 | `/verify` | Phone/email verification flow |
+| `/login` | Login for registered users |
 | `/demo-login` | Demo account login (development only) |
 
 ### Dashboard Routes
@@ -663,7 +666,7 @@ pending ──┬──→ accepted ──→ in_progress ──→ submitted �
 
 ### Escrow Model
 
-ScriptVoice uses an escrow payment model to protect both writers and performers:
+ScriptVivo uses an escrow payment model to protect both writers and performers:
 
 ```
 1. Writer requests commission
@@ -711,7 +714,7 @@ Voice artists connect their Stripe accounts via Express onboarding:
 1. Navigate to `/settings/payments`
 2. Click "Connect with Stripe"
 3. Complete Stripe's onboarding flow
-4. Return to ScriptVoice with connected account
+4. Return to ScriptVivo with connected account
 5. Start accepting paid commissions
 
 ## File Storage
@@ -849,6 +852,44 @@ S3-compatible file storage:
 - **FFprobe**: Audio metadata extraction (duration, format)
 
 ## Recent Changes
+
+### Version 2.5 (February 2026)
+
+- **ScriptVivo Rebrand**: Renamed app from "ScriptVoice" to "ScriptVivo" in all UI-visible places
+  - New tagline: "Where Scripts Come Alive"
+  - Hero section: "ScriptVivo your screenplay. Writers publish, voice artists perform..."
+  - Updated title suffix and welcome messages
+
+- **Login Page for Registered Users**: New `/login` route for returning users
+  - Separate from demo login (for testing) and signup flow
+  - Auto-detects email vs phone number input
+  - Looks up existing users and sends verification code
+  - "Already have an account?" link added to signup page
+
+- **Navigation Redesign**: Improved mobile-first navigation
+  - Removed Dashboard button from top nav (was cluttering logged-in experience)
+  - Added "Log In" link next to "Get Started" for non-logged-in users
+  - New bottom navigation bar for mobile (dashboard tabs: Home, Scripts/Audio, Jobs, Groups, Profile)
+  - Top nav shows only Scripts and Collectives links
+  - Active state highlighting (emerald green) for both top and bottom navigation
+  - JavaScript-powered nav updates work with Phoenix LiveView navigation
+
+- **Simplified User Dropdown Menu**: Cleaner settings access
+  - View Public Profile
+  - Pricing Settings
+  - Payment Settings
+  - Sign Out
+
+- **SEO Improvements**: Better metadata for search engines and social sharing
+  - Meta description and keywords
+  - Open Graph tags (og:title, og:description, og:site_name)
+  - Twitter Card tags
+  - Apple mobile web app meta tags
+  - Theme color for mobile browsers
+
+- **New Routes**:
+  - `/login`: Login page for registered users
+  - `/session/login/:user_id`: Session creation for login flow
 
 ### Version 2.4 (February 2026)
 
