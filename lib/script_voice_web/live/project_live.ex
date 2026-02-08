@@ -40,7 +40,7 @@ defmodule ScriptVoiceWeb.ProjectLive do
            |> assign(:project, project)
            |> assign(:stats, stats)
            |> assign(:is_owner, is_owner)
-           |> assign(:expanded_seasons, MapSet.new())
+           |> assign(:expanded_seasons, MapSet.new(Enum.map(project.seasons, & &1.id)))
            |> assign(:show_add_season, false)
            |> assign(:show_add_episode, false)
            |> assign(:show_edit_project, false)
@@ -1887,8 +1887,11 @@ How do you balance main plot with subplots?
 
   # Helper to check if an episode has actual script content
   defp has_script_content?(episode) do
-    (episode.script_content && String.trim(episode.script_content) != "") ||
-    (episode.pdf_url && String.trim(episode.pdf_url) != "")
+    # Check page_count as lightweight indicator (works with optimized listing queries
+    # that don't load script_content/blocks). Falls back to checking actual content fields.
+    (episode.page_count && episode.page_count > 0) ||
+    (is_binary(episode.script_content) && String.trim(episode.script_content) != "") ||
+    (is_binary(episode.pdf_url) && String.trim(episode.pdf_url) != "")
   end
 
   defp episode_card(assigns) do
