@@ -7,6 +7,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
   use ScriptVoiceWeb, :live_view
 
   alias ScriptVoice.Screenplays
+  alias ScriptVoice.Screenplays.Screenplay
   alias ScriptVoice.Audio
   alias ScriptVoice.Social
   alias ScriptVoice.Projects
@@ -28,7 +29,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
       %{"from" => "browse"} ->
         {~p"/browse", "Back to browse"}
       %{"from" => "dashboard"} ->
-        {~p"/dashboard?tab=screenplays", "Back to my scripts"}
+        {~p"/dashboard?tab=screenplays", "Back to my stories"}
       _ ->
         {nil, nil}
     end
@@ -37,7 +38,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
       nil ->
         {:ok,
          socket
-         |> put_flash(:error, "Screenplay not found")
+         |> put_flash(:error, "Story not found")
          |> push_navigate(to: ~p"/browse")}
 
       screenplay ->
@@ -61,6 +62,13 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
           []
         end
 
+        has_blocks = Screenplay.has_blocks?(screenplay)
+        story_stats = if has_blocks do
+          Screenplays.compute_story_stats(screenplay.blocks)
+        else
+          nil
+        end
+
         {:ok,
          socket
          |> assign(:current_user, current_user)
@@ -76,7 +84,9 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
          |> assign(:back_to, back_to)
          |> assign(:back_label, back_label)
          |> assign(:page_title, screenplay.title)
-         |> assign(:project_characters, project_characters)}
+         |> assign(:project_characters, project_characters)
+         |> assign(:has_blocks, has_blocks)
+         |> assign(:story_stats, story_stats)}
     end
   end
 
@@ -217,6 +227,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
   end
 
   defp has_content?(screenplay) do
+    Screenplay.has_blocks?(screenplay) ||
     (screenplay.script_content && String.trim(screenplay.script_content) != "") ||
     (screenplay.pdf_url && String.trim(screenplay.pdf_url) != "")
   end
@@ -231,7 +242,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
           <% @back_to && @back_label -> %>
             <.back navigate={@back_to}><%= @back_label %></.back>
           <% @is_author -> %>
-            <.back navigate={~p"/dashboard?tab=screenplays"}>Back to my scripts</.back>
+            <.back navigate={~p"/dashboard?tab=screenplays"}>Back to my stories</.back>
           <% true -> %>
             <.back navigate={~p"/browse"}>Back to browse</.back>
         <% end %>
@@ -246,10 +257,14 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
               </div>
               <p class="text-gray-500 text-sm sm:text-base">
                 by <.link navigate={~p"/profile/#{@screenplay.writer_id}"} class="text-emerald-600 font-medium hover:underline"><%= @screenplay.writer_name %></.link>
-                · <%= @screenplay.page_count || "?" %> pages
+                <%= if @story_stats do %>
+                  · ~<%= @story_stats.estimated_duration_minutes %> min · <%= @story_stats.total_words %> words
+                <% else %>
+                  · <%= @screenplay.page_count || "?" %> pages
+                <% end %>
                 <%= if @is_author do %>
                   <span class="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
-                    Your Script
+                    Your Story
                   </span>
                 <% end %>
               </p>
@@ -263,13 +278,13 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
                 phx-value-id={@screenplay.id}
               />
               <%= if @is_author do %>
-                <!-- Edit Script button for authors -->
+                <!-- Edit Story button for authors -->
                 <.link
                   navigate={~p"/screenplay/#{@screenplay.id}/edit"}
                   class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white hover:bg-gray-50 transition"
                 >
                   <.icon name="hero-pencil-square" class="w-4 h-4" />
-                  <span class="hidden sm:inline"><%= if has_content?(@screenplay), do: "Edit Script", else: "Add Script" %></span>
+                  <span class="hidden sm:inline"><%= if has_content?(@screenplay), do: "Edit Story", else: "Add Story" %></span>
                   <span class="sm:hidden"><%= if has_content?(@screenplay), do: "Edit", else: "Add" %></span>
                 </.link>
                 <.link
@@ -281,15 +296,15 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
                   <span class="sm:hidden">Commission</span>
                 </.link>
               <% end %>
-<!-- Read Script button (for scripts that have content) -->
+              <!-- Read Story button (for stories that have content) -->
               <%= cond do %>
-                <% @screenplay.script_content && String.length(@screenplay.script_content) > 0 -> %>
+                <% @has_blocks || (@screenplay.script_content && String.length(@screenplay.script_content) > 0) -> %>
                   <.link
                     navigate={~p"/screenplay/#{@screenplay.id}/read"}
                     class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white hover:bg-gray-50"
                   >
                     <.icon name="hero-document-text" class="w-4 h-4" />
-                    <span class="hidden sm:inline">Read Script</span>
+                    <span class="hidden sm:inline">Read Story</span>
                     <span class="sm:hidden">Read</span>
                   </.link>
                 <% @screenplay.pdf_url -> %>
@@ -303,7 +318,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
                     <span class="sm:hidden">View</span>
                   </a>
                 <% !@is_author -> %>
-                  <!-- Non-authors see "Script coming soon" when no content -->
+                  <!-- Non-authors see "Story coming soon" when no content -->
                   <span class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg font-medium text-gray-400 bg-gray-50 italic text-sm">
                     <.icon name="hero-clock" class="w-4 h-4" />
                     <span>Coming soon</span>
@@ -329,6 +344,25 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
             <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
               <h4 class="text-sm font-medium text-amber-800 mb-1">Latest Changes (v<%= @screenplay.version %>)</h4>
               <p class="text-sm text-amber-700"><%= @screenplay.version_notes %></p>
+            </div>
+          <% end %>
+
+          <!-- Story Stats (for block-based stories) -->
+          <%= if @story_stats && map_size(@story_stats.characters) > 0 do %>
+            <div class="flex flex-wrap gap-3 mt-4 pt-4 border-t border-gray-100 text-sm text-gray-500">
+              <span><%= @story_stats.scene_count %> scenes</span>
+              <span>·</span>
+              <span><%= map_size(@story_stats.characters) %> characters</span>
+              <%= if @story_stats.sfx_count > 0 do %>
+                <span>·</span>
+                <span><%= @story_stats.sfx_count %> SFX cues</span>
+              <% end %>
+              <%= if @story_stats.music_count > 0 do %>
+                <span>·</span>
+                <span><%= @story_stats.music_count %> music cues</span>
+              <% end %>
+              <span>·</span>
+              <span><%= round(@story_stats.dialogue_ratio * 100) %>% dialogue</span>
             </div>
           <% end %>
 
@@ -381,7 +415,7 @@ defmodule ScriptVoiceWeb.ScreenplayLive do
                 Commission Voice Artist
               </.link>
             <% else %>
-              <p class="text-gray-600 mb-4">Be the first to bring this screenplay to life!</p>
+              <p class="text-gray-600 mb-4">Be the first to bring this story to life!</p>
               <%= if @current_user && @current_user.user_type == "voice_artist" do %>
                 <.button phx-click="show_submit_modal">
                   Submit Audio

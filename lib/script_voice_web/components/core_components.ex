@@ -417,6 +417,29 @@ defmodule ScriptVoiceWeb.CoreComponents do
   attr :rest, :global
 
   def screenplay_card(assigns) do
+    alias ScriptVoice.Screenplays
+    alias ScriptVoice.Screenplays.Screenplay
+
+    # Compute block-aware stats if the screenplay has blocks
+    has_blocks = Screenplay.has_blocks?(assigns.screenplay)
+    stats = if has_blocks, do: Screenplays.compute_story_stats(assigns.screenplay.blocks), else: nil
+
+    # Extract character names from blocks (dialogue blocks)
+    block_characters = if has_blocks && stats do
+      stats.characters
+      |> Map.keys()
+      |> Enum.reject(&is_nil/1)
+      |> Enum.take(5)
+    else
+      []
+    end
+
+    assigns =
+      assigns
+      |> assign(:has_blocks, has_blocks)
+      |> assign(:stats, stats)
+      |> assign(:block_characters, block_characters)
+
     ~H"""
     <div
       class="bg-white border rounded-xl p-4 sm:p-5 hover:shadow-md transition cursor-pointer active:bg-gray-50"
@@ -432,7 +455,12 @@ defmodule ScriptVoiceWeb.CoreComponents do
             <% end %>
           </div>
           <p class="text-sm text-gray-500 mb-2">
-            by <.link navigate={"/profile/#{@screenplay.writer_id}"} class="text-emerald-600 hover:underline" onclick="event.stopPropagation();"><%= @screenplay.writer_name %></.link> · <%= @screenplay.page_count %> pages
+            by <.link navigate={"/profile/#{@screenplay.writer_id}"} class="text-emerald-600 hover:underline" onclick="event.stopPropagation();"><%= @screenplay.writer_name %></.link>
+            · <%= if @has_blocks && @stats do %>
+              ~<%= @stats.estimated_duration_minutes %> min · <%= @stats.total_words %> words
+            <% else %>
+              <%= @screenplay.page_count || 0 %> pages
+            <% end %>
           </p>
           <p class="text-gray-600 text-sm line-clamp-2"><%= @screenplay.logline %></p>
         </div>
@@ -445,18 +473,31 @@ defmodule ScriptVoiceWeb.CoreComponents do
         </div>
       </div>
 
-      <!-- Character preview -->
+      <!-- Character preview from blocks or legacy characters -->
       <div class="flex flex-wrap gap-1 mt-3">
-        <%= for char <- Enum.take(@screenplay.characters, 4) do %>
-          <span class="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded">
-            <%= char.name %>
-            <.gender_badge gender={char.gender} />
-          </span>
-        <% end %>
-        <%= if length(@screenplay.characters) > 4 do %>
-          <span class="text-xs text-gray-500 px-2 py-1">
-            +<%= length(@screenplay.characters) - 4 %> more
-          </span>
+        <%= if @has_blocks && length(@block_characters) > 0 do %>
+          <%= for name <- @block_characters do %>
+            <span class="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded">
+              <%= name %>
+            </span>
+          <% end %>
+          <%= if @stats && map_size(@stats.characters) > 5 do %>
+            <span class="text-xs text-gray-500 px-2 py-1">
+              +<%= map_size(@stats.characters) - 5 %> more
+            </span>
+          <% end %>
+        <% else %>
+          <%= for char <- Enum.take(@screenplay.characters, 4) do %>
+            <span class="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded">
+              <%= char.name %>
+              <.gender_badge gender={char.gender} />
+            </span>
+          <% end %>
+          <%= if length(@screenplay.characters) > 4 do %>
+            <span class="text-xs text-gray-500 px-2 py-1">
+              +<%= length(@screenplay.characters) - 4 %> more
+            </span>
+          <% end %>
         <% end %>
       </div>
     </div>

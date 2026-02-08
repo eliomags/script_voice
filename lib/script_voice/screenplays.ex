@@ -5,7 +5,7 @@ defmodule ScriptVoice.Screenplays do
 
   import Ecto.Query, warn: false
   alias ScriptVoice.Repo
-  alias ScriptVoice.Screenplays.Screenplay
+  alias ScriptVoice.Screenplays.{Screenplay, StoryBlock}
   alias ScriptVoice.Accounts.User
 
   # ============================================================================
@@ -248,4 +248,114 @@ defmodule ScriptVoice.Screenplays do
     pattern = ~r/^#{Regex.escape(character_name)}\s*(?:\(.*?\))?\s*$/m
     length(Regex.scan(pattern, text))
   end
+
+  # ============================================================================
+  # BLOCK UTILITIES
+  # ============================================================================
+
+  @doc """
+  Generates plain text from story blocks for backwards compatibility,
+  search indexing, and legacy display.
+  """
+  def blocks_to_script_content(blocks) when is_list(blocks) do
+    blocks
+    |> Enum.sort_by(& &1.position)
+    |> Enum.map(&block_to_text/1)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join("\n\n")
+  end
+
+  def blocks_to_script_content(_), do: ""
+
+  defp block_to_text(%{type: "chapter", title: title}) when is_binary(title) do
+    String.upcase(title)
+  end
+
+  defp block_to_text(%{type: "scene_break", title: title, description: desc}) do
+    parts = [title, desc] |> Enum.reject(&is_nil/1) |> Enum.reject(&(&1 == ""))
+    if Enum.empty?(parts), do: "---", else: Enum.join(parts, " — ")
+  end
+
+  defp block_to_text(%{type: "narration", text: text}) when is_binary(text), do: text
+
+  defp block_to_text(%{type: "dialogue", character_name: name, text: text, parenthetical: paren}) do
+    header = if paren && String.trim(paren) != "", do: "#{name} (#{paren})", else: name
+    "#{header}\n#{text}"
+  end
+
+  defp block_to_text(%{type: "sfx", description: desc}) when is_binary(desc) do
+    "SFX: #{String.upcase(desc)}"
+  end
+
+  defp block_to_text(%{type: "music", description: desc}) when is_binary(desc) do
+    "MUSIC: #{String.upcase(desc)}"
+  end
+
+  defp block_to_text(%{type: "pause", description: desc}) do
+    if desc && String.trim(desc) != "", do: "(#{desc})", else: "(BEAT)"
+  end
+
+  defp block_to_text(_), do: nil
+
+  @doc """
+  Computes story statistics from blocks.
+
+  Returns a map with:
+  - :total_words - total word count
+  - :estimated_duration_minutes - estimated recording time at 150 WPM
+  - :scene_count - number of scenes
+  - :sfx_count - number of SFX cues
+  - :music_count - number of music cues
+  - :dialogue_words - word count from dialogue blocks
+  - :narration_words - word count from narration blocks
+  - :dialogue_ratio - ratio of dialogue words to total words
+  - :characters - map of character_name => %{line_count, word_count}
+  """
+  def compute_story_stats(blocks) when is_list(blocks) do
+    sorted = Enum.sort_by(blocks, & &1.position)
+
+    characters =
+      sorted
+      |> Enum.filter(&(&1.type == "dialogue"))
+      |> Enum.group_by(& &1.character_name)
+      |> Enum.map(fn {name, dialogue_blocks} ->
+        word_count = dialogue_blocks |> Enum.map(&StoryBlock.word_count/1) |> Enum.sum()
+        {name, %{line_count: length(dialogue_blocks), word_count: word_count}}
+      end)
+      |> Enum.sort_by(fn {_, %{line_count: lc}} -> lc end, :desc)
+      |> Map.new()
+
+    dialogue_words = sorted |> Enum.filter(&(&1.type == "dialogue")) |> Enum.map(&StoryBlock.word_count/1) |> Enum.sum()
+    narration_words = sorted |> Enum.filter(&(&1.type == "narration")) |> Enum.map(&StoryBlock.word_count/1) |> Enum.sum()
+    total_words = dialogue_words + narration_words
+    sfx_count = sorted |> Enum.count(&(&1.type == "sfx"))
+    music_count = sorted |> Enum.count(&(&1.type == "music"))
+    scene_count = max(1, sorted |> Enum.count(&(&1.type == "scene_break")) |> Kernel.+(1))
+
+    dialogue_ratio = if total_words > 0, do: Float.round(dialogue_words / total_words, 2), else: 0.0
+
+    %{
+      total_words: total_words,
+      estimated_duration_minutes: Float.round(total_words / 150, 1),
+      scene_count: scene_count,
+      sfx_count: sfx_count,
+      music_count: music_count,
+      dialogue_words: dialogue_words,
+      narration_words: narration_words,
+      dialogue_ratio: dialogue_ratio,
+      characters: characters
+    }
+  end
+
+  def compute_story_stats(_), do: %{total_words: 0, estimated_duration_minutes: 0.0, scene_count: 0, sfx_count: 0, music_count: 0, dialogue_words: 0, narration_words: 0, dialogue_ratio: 0.0, characters: %{}}
+
+  @doc """
+  Estimates page count from blocks based on word count (~250 words per page).
+  """
+  def estimate_page_count_from_blocks(blocks) when is_list(blocks) do
+    total_words = blocks |> Enum.map(&StoryBlock.word_count/1) |> Enum.sum()
+    max(1, div(total_words, 250))
+  end
+
+  def estimate_page_count_from_blocks(_), do: nil
 end

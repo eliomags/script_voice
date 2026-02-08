@@ -566,6 +566,19 @@ IO.puts("Creating episodes for projects...")
 # Episodes for Across All Time (Sarah's Series)
 # --------------------------------------------------
 
+aat_pilot_blocks = [
+  %{id: Ecto.UUID.generate(), type: "scene_break", title: "MAYA'S UNIVERSITY OFFICE - DAY", position: 0},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Stacks of history books and faded photographs cover every surface. DR. MAYA REYES-CHEN (30s, intense, restless energy) sits at her desk, staring at a centuries-old family photograph.", position: 1},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MAYA", text: "There's something wrong with this photo. The dates don't match the clothing.", position: 2},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Her phone buzzes. She ignores it, pulling out a magnifying glass.", position: 3},
+  %{id: Ecto.UUID.generate(), type: "scene_break", title: "ABUELA ELENA'S KITCHEN - EVENING", position: 4},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "A warm, cluttered kitchen filled with the smell of tamales. ABUELA ELENA (70s, elegant even in an apron, hands that tell stories) stirs a pot on the stove.", position: 5},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ABUELA ELENA", text: "Mija, you look like you've seen a ghost.", position: 6},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MAYA", text: "Abuela, I need to ask you about Great-Grandmother Esperanza. About what really happened when she came to America.", position: 7},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Elena's stirring hand stops. The kitchen suddenly feels very quiet.", position: 8},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ABUELA ELENA", text: "Some stories are not ready to be told, Maya. And some listeners are not ready to hear them.", position: 9}
+]
+
 aat_pilot = Repo.insert!(%Screenplay{
   title: "Pilot: The Inheritance",
   writer_id: sarah.id,
@@ -579,7 +592,8 @@ aat_pilot = Repo.insert!(%Screenplay{
   episode_number: 1,
   episode_code: "S01E01",
   screenplay_type: "episode",
-  is_public: true  # Visible - pilot episode
+  is_public: true,  # Visible - pilot episode
+  blocks: aat_pilot_blocks
 })
 
 aat_ep2 = Repo.insert!(%Screenplay{
@@ -731,6 +745,19 @@ lic_ep2 = Repo.insert!(%Screenplay{
 # Episodes for The Hollow Men (Aisha's Thriller)
 # --------------------------------------------------
 
+hm_pilot_blocks = [
+  %{id: Ecto.UUID.generate(), type: "scene_break", title: "POLICE PRECINCT - DETECTIVE'S BULLPEN - NIGHT", position: 0},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Fluorescent lights buzz overhead. Most desks are empty. DET. REYES (40s, sharp features, hasn't slept in days) pins a photograph to a corkboard already covered in photos and string.", position: 1},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DET. REYES", text: "Three victims. Three crime scenes. One witness description that makes no sense.", parenthetical: "to herself", position: 2},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "CAPTAIN MORRIS (50s, graying, world-weary) appears behind her with two cups of coffee.", position: 3},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "CAPTAIN MORRIS", text: "Reyes. You've been here since yesterday. Go home.", position: 4},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DET. REYES", text: "Look at these witness statements, Captain. Sarah Mitchell, Thomas Wright, Maria Santos. Three different people at three different scenes.", position: 5},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "CAPTAIN MORRIS", text: "Three different witnesses. That's how crimes work, Reyes.", position: 6},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DET. REYES", text: "They all used the exact same phrase: \"The darkness moved.\" Word for word. What are the odds of that?", position: 7},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Morris leans in, studying the board. His skepticism falters, just for a moment.", position: 8},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "CAPTAIN MORRIS", text: "Trauma makes people say strange things. Don't chase ghosts, Detective.", position: 9}
+]
+
 hm_pilot = Repo.insert!(%Screenplay{
   title: "Pilot: Witness",
   writer_id: aisha.id,
@@ -743,7 +770,8 @@ hm_pilot = Repo.insert!(%Screenplay{
   season_id: hollow_season_1.id,
   episode_number: 1,
   episode_code: "S01E01",
-  screenplay_type: "episode"
+  screenplay_type: "episode",
+  blocks: hm_pilot_blocks
 })
 
 hm_ep2 = Repo.insert!(%Screenplay{
@@ -1541,6 +1569,52 @@ FADE OUT.
 THE END
 """
 
+last_light_blocks = [
+  # EXT. ROCKY COASTLINE - NIGHT
+  %{id: Ecto.UUID.generate(), type: "scene_break", title: "ROCKY COASTLINE - NIGHT", position: 0},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "A lighthouse beam sweeps across churning waters. The structure is old, weathered, but the light burns fierce.", position: 1},
+  # INT. LIGHTHOUSE - CONTROL ROOM - CONTINUOUS
+  %{id: Ecto.UUID.generate(), type: "scene_break", title: "LIGHTHOUSE - CONTROL ROOM - CONTINUOUS", position: 2},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "MAYA (40s, weathered hands, determined eyes) adjusts dials on an ancient control panel. The light mechanism hums above her.", position: 3},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MAYA", text: "Sixty-three years. Every night for sixty-three years.", parenthetical: "to herself", position: 4},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "A PHONE RINGS. Maya answers, annoyed.", position: 5},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MAYA", text: "Hartwell Lighthouse. ... No, Commander, the light stays on. ... I don't care what your satellites show.", position: 6},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "She hangs up. Looks out the window at the dark horizon.", position: 7},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MAYA", text: "They don't understand. They never understood.", position: 8},
+  # EXT. LIGHTHOUSE - BASE - LATER
+  %{id: Ecto.UUID.generate(), type: "scene_break", title: "LIGHTHOUSE - BASE - LATER", position: 9},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "A military helicopter lands. COMMANDER VOSS (50s, decorated uniform, skeptical expression) steps out, shielding his eyes from the rotating beam.", position: 10},
+  # INT. LIGHTHOUSE - CONTROL ROOM - CONTINUOUS
+  %{id: Ecto.UUID.generate(), type: "scene_break", title: "LIGHTHOUSE - CONTROL ROOM - CONTINUOUS", position: 11},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Voss climbs the spiral stairs, slightly out of breath.", position: 12},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "COMMANDER VOSS", text: "Mrs. Hartwell. I'm Commander—", position: 13},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MAYA", text: "I know who you are. The answer is still no.", position: 14},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "COMMANDER VOSS", text: "The government needs this land. National security.", position: 15},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MAYA", text: "This light IS national security. You just don't know it yet.", position: 16},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Suddenly, the light FLICKERS. Maya rushes to the controls.", position: 17},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MAYA", text: "No, no, no...", position: 18},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "A STRANGE HUM fills the air. The light steadies. Outside, the sky shifts—colors that shouldn't exist.", position: 19},
+  %{id: Ecto.UUID.generate(), type: "sfx", description: "A strange hum fills the air. The sky shifts with impossible colors.", position: 20},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "THE VOICE", text: "The keeper remains. We honor the agreement.", parenthetical: "V.O., ethereal, everywhere", position: 21},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Voss draws his sidearm, spinning wildly.", position: 22},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "COMMANDER VOSS", text: "What the hell was that?", position: 23},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MAYA", text: "That was them. They've been waiting out there since 1963. This light is the only thing keeping them at bay.", parenthetical: "calm, almost relieved", position: 24},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "She gestures to faded photographs on the wall—previous keepers, strange lights in the sky.", position: 25},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MAYA", text: "My grandmother made a deal. As long as the light burns, they stay in the darkness between stars.", position: 26},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "The door BURSTS open. TOMMY (10, wide-eyed, in pajamas) stands there.", position: 27},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "TOMMY", text: "Aunt Maya? I saw lights in the sky. Pretty lights.", position: 28},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Maya kneels down to his level.", position: 29},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MAYA", text: "Tommy, remember what I told you about the lighthouse?", position: 30},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "TOMMY", text: "That it keeps the monsters away?", position: 31},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MAYA", text: "Exactly right.", parenthetical: "looking at Voss", position: 32},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "THE VOICE", text: "The child sees clearly. Unlike your soldiers.", parenthetical: "V.O.", position: 33},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "COMMANDER VOSS", text: "That voice... it's in my head.", parenthetical: "terrified now", position: 34},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MAYA", text: "They're not monsters, Commander. They're just... different. And very, very patient.", position: 35},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "She turns back to her controls.", position: 36},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MAYA", text: "Now, are you going to help me keep this light burning, or are you going to doom us all?", position: 37},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "The light sweeps across the water. In the beam's path, for just a moment, we see SHAPES. Vast. Waiting.", position: 38}
+]
+
 last_light = Repo.insert!(%Screenplay{
   title: "The Last Light",
   writer_id: sarah.id,
@@ -1551,13 +1625,65 @@ last_light = Repo.insert!(%Screenplay{
   likes: 24,
   audio_version_count: 2,
   script_content: last_light_script,
-  characters: [
-    %{id: Ecto.UUID.generate(), name: "MAYA", gender: "Female", estimated_lines: 45, description: "Lighthouse keeper, 40s, weathered but determined"},
-    %{id: Ecto.UUID.generate(), name: "COMMANDER VOSS", gender: "Male", estimated_lines: 28, description: "Military officer, 50s, skeptical"},
-    %{id: Ecto.UUID.generate(), name: "THE VOICE", gender: "Unknown", estimated_lines: 15, description: "Alien entity, ethereal"},
-    %{id: Ecto.UUID.generate(), name: "TOMMY", gender: "Male", estimated_lines: 12, description: "Maya's nephew, 10, curious"}
-  ]
+  blocks: last_light_blocks
 })
+
+coffee_blocks = [
+  # INT. CROWDED CAFE - DAY
+  %{id: Ecto.UUID.generate(), type: "scene_break", title: "CROWDED CAFE - DAY", position: 0},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "The lunch rush. Every table packed. Steam, chatter, the hiss of espresso machines.", position: 1},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "ELENA (30s, sharp eyes behind glasses, laptop bag over shoulder) scans for a seat. Nothing. She spots one empty chair at a small table. The other seat is occupied by JAMES (30s, disheveled artist type, nursing a cold coffee).", position: 2},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ELENA", text: "Excuse me. Is this seat—", position: 3},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "JAMES", text: "Taken? No. But I'm not good company.", parenthetical: "not looking up from his phone", position: 4},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ELENA", text: "Perfect. Neither am I.", parenthetical: "sitting down", position: 5},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "She opens her laptop. Types furiously. James glances at her screen—blocks of text.", position: 6},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "JAMES", text: "Journalist?", position: 7},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ELENA", text: "That obvious?", parenthetical: "covering her screen", position: 8},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "JAMES", text: "You type like you're angry at the keyboard.", position: 9},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ELENA", text: "Maybe I am.", position: 10},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "The BARISTA (20s, perpetually cheerful) appears.", position: 11},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "BARISTA", text: "What can I get you?", position: 12},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ELENA", text: "Largest coffee you have. Black.", position: 13},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "BARISTA", text: "Rough day?", position: 14},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ELENA", text: "Rough decade.", position: 15},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "The Barista leaves. Silence. Then:", position: 16},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "JAMES", text: "I used to be a musician.", position: 17},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ELENA", text: "I didn't ask.", position: 18},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "JAMES", text: "I know. I'm telling you because I recognize that look. You're not writing a story. You're hiding from one.", position: 19},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Elena's fingers freeze on the keyboard.", position: 20},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ELENA", text: "What would you know about it?", parenthetical: "quiet", position: 21},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "JAMES", text: "I know that running only works until you stop. Then it all catches up.", position: 22},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "He pushes a worn photograph across the table. A band on stage. James at the microphone.", position: 23},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "JAMES", text: "Three years ago, I was on top of the world. Then the label went under, the band split, and I found out I was really, really good at disappearing.", position: 24},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Elena stares at the photo. Her jaw tightens.", position: 25},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ELENA", text: "The Reynolds scandal. Last month.", position: 26},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "JAMES", text: "I saw the byline. Saw what it cost you.", parenthetical: "nodding slowly", position: 27},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ELENA", text: "You read my article?", position: 28},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "JAMES", text: "Everyone read your article. Then everyone forgot. That's what happens, right? We burn ourselves down for a story, and the world just... moves on.", position: 29},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "The Barista returns with Elena's coffee.", position: 30},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "BARISTA", text: "One very large, very black coffee.", position: 31},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Neither of them acknowledges the cup.", position: 32},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ELENA", text: "I testified against my own editor. Sources I protected for years—compromised. People lost jobs. Lost more than jobs.", parenthetical: "finally", position: 33},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "JAMES", text: "But you told the truth.", position: 34},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ELENA", text: "Truth doesn't pay rent.", position: 35},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "James laughs—genuine, surprised.", position: 36},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "JAMES", text: "No. No, it doesn't.", position: 37},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "He finishes his cold coffee.", position: 38},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "JAMES", text: "I've been sitting in this cafe for six weeks. Different table every day. Watching people. Trying to figure out how to start over.", position: 39},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ELENA", text: "Any luck?", position: 40},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "JAMES", text: "I'm talking to a stranger about the worst moment of my life.", position: 41},
+  %{id: Ecto.UUID.generate(), type: "pause", description: "A beat of silence between them.", position: 42},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "JAMES", text: "So... progress?", position: 43},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Elena smiles for the first time. It transforms her face.", position: 44},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ELENA", text: "Elena.", position: 45},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "JAMES", text: "James.", position: 46},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "They shake hands. Hold on a moment too long.", position: 47},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ELENA", text: "Do you want to get out of here? Find somewhere less crowded?", position: 48},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "JAMES", text: "I thought you needed to hide.", position: 49},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "ELENA", text: "Maybe I'm tired of hiding.", parenthetical: "closing her laptop", position: 50},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "They stand. The Barista watches them go, smiling.", position: 51},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "BARISTA", text: "About time.", parenthetical: "to herself", position: 52}
+]
 
 coffee = Repo.insert!(%Screenplay{
   title: "Coffee for Two",
@@ -1569,12 +1695,56 @@ coffee = Repo.insert!(%Screenplay{
   likes: 18,
   audio_version_count: 1,
   script_content: coffee_script,
-  characters: [
-    %{id: Ecto.UUID.generate(), name: "ELENA", gender: "Female", estimated_lines: 52, description: "Journalist, 30s, guarded"},
-    %{id: Ecto.UUID.generate(), name: "JAMES", gender: "Male", estimated_lines: 48, description: "Former musician, 30s, melancholic"},
-    %{id: Ecto.UUID.generate(), name: "BARISTA", gender: "Any", estimated_lines: 6, description: "Friendly cafe worker"}
-  ]
+  blocks: coffee_blocks
 })
+
+hollow_men_blocks = [
+  # INT. POLICE PRECINCT - DETECTIVE'S BULLPEN - NIGHT
+  %{id: Ecto.UUID.generate(), type: "scene_break", title: "POLICE PRECINCT - DETECTIVE'S BULLPEN - NIGHT", position: 0},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Rain streaks the windows. DET. REYES (40s, sharp features, hasn't slept in days) spreads CRIME SCENE PHOTOS across her desk. Three victims. Three different locations. One connecting thread.", position: 1},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DET. REYES", text: "Same witness at every scene. Different name. Different face.", parenthetical: "to herself", position: 2},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "CAPTAIN MORRIS (50s, graying, world-weary) approaches with a coffee.", position: 3},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "CAPTAIN MORRIS", text: "Reyes. You've been at this for eighteen hours.", position: 4},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DET. REYES", text: "Look at these statements.", position: 5},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "She shows him three witness interview photos.", position: 6},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DET. REYES", text: "Sarah Mitchell saw the first victim fall. Thomas Wright found the second body. Maria Santos heard the third gunshot.", position: 7},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "CAPTAIN MORRIS", text: "Three different witnesses. What's your point?", position: 8},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DET. REYES", text: "They're all using the same phrases. \"The darkness moved.\" \"I couldn't see their face.\" \"Like looking in a broken mirror.\"", position: 9},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "CAPTAIN MORRIS", text: "Trauma does that. People grasp for words.", position: 10},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DET. REYES", text: "I need to talk to Dr. Webb.", parenthetical: "standing", position: 11},
+  # INT. FORENSIC PSYCHOLOGY OFFICE - LATER
+  %{id: Ecto.UUID.generate(), type: "scene_break", title: "FORENSIC PSYCHOLOGY OFFICE - LATER", position: 12},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "DR. WEBB (50s, clinical but kind) reviews the interview transcripts.", position: 13},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DR. WEBB", text: "Linguistic mirroring. It's rare to see it this precise across unrelated subjects.", position: 14},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DET. REYES", text: "Unless they're not unrelated.", position: 15},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DR. WEBB", text: "You're suggesting... what? These three witnesses are the same person?", position: 16},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DET. REYES", text: "I'm suggesting I don't know what I'm suggesting anymore.", position: 17},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Her phone BUZZES. She checks it. Her face goes pale.", position: 18},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DET. REYES", text: "Fourth victim. And there's a witness.", position: 19},
+  # EXT. CRIME SCENE - ALLEY - NIGHT
+  %{id: Ecto.UUID.generate(), type: "scene_break", title: "CRIME SCENE - ALLEY - NIGHT", position: 20},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Reyes approaches a uniformed officer and a WITNESS. The witness is wrapped in a shock blanket. When they look up—Reyes FREEZES.", position: 21},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DET. REYES", text: "You.", parenthetical: "whispered", position: 22},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "THE SHAPESHIFTER", text: "Detective. We meet again. Or is it for the first time?", parenthetical: "different face now, same eyes", position: 23},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "The uniform looks confused.", position: 24},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "UNIFORM OFFICER", text: "Detective? You know this witness?", position: 25},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DET. REYES", text: "Everyone back away from this person.", parenthetical: "hand on holster", position: 26},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "THE SHAPESHIFTER", text: "Now, now. No need for that. I'm just a witness. I'm always just a witness.", parenthetical: "standing, blanket falling", position: 27},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DET. REYES", text: "Who are you?", position: 28},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "THE SHAPESHIFTER", text: "I'm everyone, Detective. Every face you trust. Every stranger you pass. The neighbor who waves. The barista who knows your order.", position: 29},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "They step closer. Reyes draws her weapon.", position: 30},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "THE SHAPESHIFTER", text: "I've been watching you. You're different. You see patterns others miss. Connections they ignore.", position: 31},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DET. REYES", text: "Are you confessing to these murders?", position: 32},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "THE SHAPESHIFTER", text: "Murders? I don't kill, Detective. I observe. I become. And sometimes, people die around me.", parenthetical: "laughing", position: 33},
+  %{id: Ecto.UUID.generate(), type: "pause", description: "A beat of tension.", position: 34},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "THE SHAPESHIFTER", text: "But that's not murder. That's... evolution.", position: 35},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "CAPTAIN MORRIS", text: "Reyes! Report!", parenthetical: "V.O., over radio", position: 36},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "THE SHAPESHIFTER", text: "You should answer that. Tell him you found me.", position: 37},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "THE SHAPESHIFTER", text: "Tell him I'm everywhere. In your precinct. In your home. In your mirror.", parenthetical: "leaning close", position: 38},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Reyes blinks—the Shapeshifter is GONE. Just an empty blanket on wet pavement.", position: 39},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "DET. REYES", text: "Captain... we have a serious problem.", parenthetical: "into radio", position: 40},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "She looks at her own reflection in a puddle. For just a moment, the reflection SMILES when she doesn't.", position: 41}
+]
 
 hollow_men = Repo.insert!(%Screenplay{
   title: "Hollow Men",
@@ -1586,13 +1756,71 @@ hollow_men = Repo.insert!(%Screenplay{
   likes: 31,
   audio_version_count: 0,
   script_content: hollow_men_script,
-  characters: [
-    %{id: Ecto.UUID.generate(), name: "DET. REYES", gender: "Female", estimated_lines: 67, description: "Homicide detective, 40s, sharp"},
-    %{id: Ecto.UUID.generate(), name: "THE SHAPESHIFTER", gender: "Any", estimated_lines: 34, description: "Multiple identities"},
-    %{id: Ecto.UUID.generate(), name: "CAPTAIN MORRIS", gender: "Male", estimated_lines: 18, description: "Precinct captain, 50s"},
-    %{id: Ecto.UUID.generate(), name: "DR. WEBB", gender: "Female", estimated_lines: 14, description: "Forensic psychologist"}
-  ]
+  blocks: hollow_men_blocks
 })
+
+sunday_dinner_blocks = [
+  # INT. GRANDMOTHER'S DINING ROOM - EVENING
+  %{id: Ecto.UUID.generate(), type: "scene_break", title: "GRANDMOTHER'S DINING ROOM - EVENING", position: 0},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "A formal table set for four. China from another era. Heavy silver. Fresh flowers.", position: 1},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "GRANDMA ROSE (80s, elegant even in age, hands trembling slightly as she arranges napkins) surveys her kingdom.", position: 2},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "GRANDMA ROSE", text: "Lily! The roast needs to rest. Don't let it sit too long.", parenthetical: "calling out", position: 3},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "LILY (20s, nervous, clearly uncomfortable in this space) emerges from the kitchen, wiping her hands.", position: 4},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "LILY", text: "Grandma, maybe you should sit down. I can handle—", position: 5},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "GRANDMA ROSE", text: "I've been handling Sunday dinner for sixty years. I think I can manage one more.", position: 6},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "A car pulls up outside. Rose's expression shifts—hope and dread.", position: 7},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "LILY", text: "Mom's here.", position: 8},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "SARAH (45, exhausted, carrying wine like an offering) enters through the front door.", position: 9},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "SARAH", text: "Mama. You look beautiful.", position: 10},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "GRANDMA ROSE", text: "You look tired.", parenthetical: "stiff", position: 11},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "SARAH", text: "Nice to see you too.", position: 12},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "They embrace briefly. Lily watches—studying the tension.", position: 13},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "SARAH", text: "Is Michael—", position: 14},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "GRANDMA ROSE", text: "He'll come. He always comes.", position: 15},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "SARAH", text: "That's what I'm afraid of.", parenthetical: "muttering", position: 16},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "They move into the dining room. Rose begins pouring wine.", position: 17},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "GRANDMA ROSE", text: "Your father loved this wine.", position: 18},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "SARAH", text: "Dad loved a lot of things. Didn't mean they loved him back.", position: 19},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "GRANDMA ROSE", text: "Sarah.", parenthetical: "warning", position: 20},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "The front door OPENS. MICHAEL (50s, carrying decades of resentment like a worn coat) enters. He doesn't remove his jacket.", position: 21},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MICHAEL", text: "Mother. Sarah. And Lily—I didn't know you'd be here.", position: 22},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "LILY", text: "Uncle Michael. It's good to see—", position: 23},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MICHAEL", text: "Let's skip the pleasantries. I have somewhere to be at seven.", position: 24},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "GRANDMA ROSE", text: "You always have somewhere to be.", parenthetical: "quietly", position: 25},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Everyone sits. Rose says grace—short, perfunctory. They begin eating in suffocating silence.", position: 26},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MICHAEL", text: "So. When are you going to tell them?", parenthetical: "finally", position: 27},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "GRANDMA ROSE", text: "Michael—", position: 28},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MICHAEL", text: "No. Sixty years of Sunday dinners. Sixty years of pretending this family isn't built on lies. When does it end?", position: 29},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "SARAH", text: "What is he talking about?", position: 30},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MICHAEL", text: "Tell her. Tell your perfect daughter what Dad really did. Who he really was.", parenthetical: "to Rose", position: 31},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "LILY", text: "Maybe we shouldn't—", position: 32},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MICHAEL", text: "Stay out of this, Lily. You weren't even born yet.", position: 33},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "GRANDMA ROSE", text: "Enough.", parenthetical: "standing, surprising strength", position: 34},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "The room goes still.", position: 35},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "GRANDMA ROSE", text: "Your father was not a saint. But he was not a monster either. He was a man. A flawed, complicated man who did his best.", position: 36},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MICHAEL", text: "His best? He abandoned us for six months! You told everyone he was traveling for work!", position: 37},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "SARAH", text: "What?", parenthetical: "shocked", position: 38},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "GRANDMA ROSE", text: "He came back. That's what matters. He came back, and he tried.", parenthetical: "sitting heavily", position: 39},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MICHAEL", text: "He came back because his other family didn't want him either.", position: 40},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "SARAH", text: "Other family?", position: 41},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "LILY", text: "Oh my god.", parenthetical: "quietly", position: 42},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "GRANDMA ROSE", text: "I forgave him. Why can't you?", parenthetical: "to Michael", position: 43},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MICHAEL", text: "Because you made me lie! Every Sunday dinner—pass the salt, how was work, lovely roast—while I knew! And Sarah got to be the good daughter, the one who didn't know!", position: 44},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "SARAH", text: "You should have told me.", position: 45},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MICHAEL", text: "Mother wouldn't let me. Protect the family. Preserve the illusion.", position: 46},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Long silence. The roast cools. The wine sits untouched.", position: 47},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "LILY", text: "My father did something similar. Left when I was seven. Mom never told me why until last year.", parenthetical: "standing", position: 48},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "Everyone looks at her.", position: 49},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "LILY", text: "You know what I learned? Secrets are heavier than the truth. They crush the people carrying them.", position: 50},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "LILY", text: "You've been carrying this for sixty years. And Michael's been carrying it with you. Maybe... maybe it's time to put it down.", parenthetical: "to Grandma Rose", position: 51},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "GRANDMA ROSE", text: "I was so ashamed.", parenthetical: "tears forming", position: 52},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "SARAH", text: "Mama...", parenthetical: "moving to her mother", position: 53},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "MICHAEL", text: "I didn't want to hurt you, Sarah. I just... I couldn't carry it alone anymore.", parenthetical: "softer now", position: 54},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "The family sits together. Not healed—that takes longer. But something has shifted. A first step.", position: 55},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "GRANDMA ROSE", text: "The roast is getting cold.", parenthetical: "wiping her eyes", position: 56},
+  %{id: Ecto.UUID.generate(), type: "dialogue", character_name: "LILY", text: "Then we should eat.", parenthetical: "small smile", position: 57},
+  %{id: Ecto.UUID.generate(), type: "narration", text: "They pick up their forks. The silence is different now. Lighter.", position: 58}
+]
 
 sunday_dinner = Repo.insert!(%Screenplay{
   title: "Sunday Dinner",
@@ -1604,12 +1832,7 @@ sunday_dinner = Repo.insert!(%Screenplay{
   likes: 12,
   audio_version_count: 2,
   script_content: sunday_dinner_script,
-  characters: [
-    %{id: Ecto.UUID.generate(), name: "GRANDMA ROSE", gender: "Female", estimated_lines: 28, description: "Family matriarch, 80s"},
-    %{id: Ecto.UUID.generate(), name: "MICHAEL", gender: "Male", estimated_lines: 32, description: "Son, 50s, resentful"},
-    %{id: Ecto.UUID.generate(), name: "SARAH", gender: "Female", estimated_lines: 26, description: "Daughter, 45, peacemaker"},
-    %{id: Ecto.UUID.generate(), name: "LILY", gender: "Female", estimated_lines: 18, description: "Granddaughter, 20s, outsider perspective"}
-  ]
+  blocks: sunday_dinner_blocks
 })
 
 # ============================================================================

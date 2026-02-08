@@ -8,7 +8,7 @@ defmodule ScriptVoice.Screenplays.Screenplay do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias ScriptVoice.Screenplays.{Character, ScreenplayProject, ScreenplaySeason}
+  alias ScriptVoice.Screenplays.{Character, StoryBlock, ScreenplayProject, ScreenplaySeason}
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -50,6 +50,9 @@ defmodule ScriptVoice.Screenplays.Screenplay do
     # Characters as embedded schema (for standalone screenplays)
     embeds_many :characters, Character, on_replace: :delete
 
+    # Story blocks for block-based editor
+    embeds_many :blocks, StoryBlock, on_replace: :delete
+
     belongs_to :writer, ScriptVoice.Accounts.User
     belongs_to :project, ScreenplayProject
     belongs_to :season, ScreenplaySeason
@@ -71,6 +74,7 @@ defmodule ScriptVoice.Screenplays.Screenplay do
       :character_ids
     ])
     |> cast_embed(:characters)
+    |> cast_embed(:blocks)
     |> validate_required([:title, :genre, :logline, :writer_id])
     |> validate_inclusion(:genre, @genres)
     |> validate_inclusion(:screenplay_type, @screenplay_types)
@@ -107,7 +111,7 @@ defmodule ScriptVoice.Screenplays.Screenplay do
   """
   def update_changeset(screenplay, attrs) do
     # Check if content is actually changing
-    content_fields = [:title, :logline, :script_content, :pdf_url, :page_count]
+    content_fields = [:title, :logline, :script_content, :pdf_url, :page_count, :blocks]
     content_changing = Enum.any?(content_fields, fn field ->
       new_val = Map.get(attrs, to_string(field)) || Map.get(attrs, field)
       old_val = Map.get(screenplay, field)
@@ -167,4 +171,10 @@ defmodule ScriptVoice.Screenplays.Screenplay do
   end
 
   def generate_episode_code(_, _), do: nil
+
+  @doc """
+  Returns true if the screenplay has block-based content.
+  """
+  def has_blocks?(%__MODULE__{blocks: blocks}) when is_list(blocks) and length(blocks) > 0, do: true
+  def has_blocks?(_), do: false
 end

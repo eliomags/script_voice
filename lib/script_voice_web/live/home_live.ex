@@ -82,7 +82,7 @@ defmodule ScriptVoiceWeb.HomeLive do
         <div class="max-w-4xl mx-auto text-center">
           <h1 class="text-3xl sm:text-4xl font-bold mb-4">Where Scripts Come Alive</h1>
           <p class="text-lg sm:text-xl text-emerald-100 mb-8 px-4">
-            ScriptVivo your screenplay. Writers publish, voice artists perform, and together you build portfolios that get noticed.
+            Writers publish stories, voice artists bring them to life, and together you build portfolios that get noticed.
           </p>
 
           <%= if @current_user do %>
@@ -90,11 +90,10 @@ defmodule ScriptVoiceWeb.HomeLive do
               <%= if @current_user.user_type == "writer" do %>
                 <.link
                   navigate={~p"/browse"}
-                  phx-click={show_modal("upload-screenplay-modal")}
                   class="bg-white text-emerald-700 px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-emerald-50 flex items-center justify-center gap-2 touch-manipulation"
                 >
-                  <.icon name="hero-plus" class="w-5 h-5" />
-                  Upload Screenplay
+                  <.icon name="hero-pencil-square" class="w-5 h-5" />
+                  Create Story
                 </.link>
               <% end %>
               <.link
@@ -102,7 +101,7 @@ defmodule ScriptVoiceWeb.HomeLive do
                 class="bg-emerald-500 text-white px-6 sm:px-8 py-3 rounded-lg font-semibold hover:bg-emerald-400 flex items-center justify-center gap-2 touch-manipulation"
               >
                 <.icon name="hero-book-open" class="w-5 h-5" />
-                Browse Scripts
+                Browse Stories
               </.link>
             </div>
           <% else %>

@@ -11,7 +11,7 @@
 
       <div class="flex items-center gap-2 sm:gap-4">
         <.link navigate={~p"/browse"} data-path="/browse" class="top-nav-link text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base px-2 py-1">
-          Scripts
+          Stories
         </.link>
         <.link navigate={~p"/collectives"} data-path="/collectives" class="top-nav-link text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base px-2 py-1">
           Collectives
@@ -134,7 +134,7 @@
         <%= if @current_user.user_type == "writer" do %>
           <.link navigate={~p"/dashboard?tab=screenplays"} data-tab="screenplays" class="bottom-nav-link flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500">
             <.icon name="hero-document-text" class="w-6 h-6" />
-            <span class="text-xs">Scripts</span>
+            <span class="text-xs">Stories</span>
           </.link>
         <% else %>
           <.link navigate={~p"/dashboard?tab=audio"} data-tab="audio" class="bottom-nav-link flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500">

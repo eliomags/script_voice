@@ -604,6 +604,78 @@ Hooks.BibleFileReader = {
   }
 }
 
+// Import text hook - sends actual textarea content on blur
+Hooks.ImportTextHook = {
+  mounted() {
+    this.el.addEventListener('blur', () => {
+      this.pushEvent('update_import_text', {value: this.el.value})
+    })
+  }
+}
+
+// Auto-submit upload form when upload completes
+Hooks.AutoSubmitUpload = {
+  mounted() {
+    this.pending = false
+
+    // Listen for server-pushed "upload-complete" event
+    this.handleEvent("upload-complete", ({name}) => {
+      console.log("Upload complete event received for:", name)
+      if (!this.pending) {
+        this.pending = true
+        // Small delay to ensure LiveView state is settled
+        setTimeout(() => {
+          console.log("Firing process_upload event")
+          this.pushEvent("process_upload", {})
+        }, 300)
+      }
+    })
+  },
+  updated() {
+    // Fallback: check data attribute in case the event was missed
+    const done = this.el.dataset.uploadDone === "true"
+    if (done && !this.pending) {
+      this.pending = true
+      setTimeout(() => {
+        console.log("Firing process_upload via updated() fallback")
+        this.pushEvent("process_upload", {})
+      }, 300)
+    }
+  }
+}
+
+// Text selection hook - detects text selection in segment textareas
+Hooks.TextSelectionHook = {
+  mounted() {
+    const textarea = this.el.querySelector('textarea')
+    if (!textarea) return
+
+    const segmentId = this.el.dataset.segmentId
+
+    const checkSelection = () => {
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      if (start === end) return // no selection
+
+      const selectedText = textarea.value.substring(start, end).trim()
+      if (selectedText.length === 0) return
+
+      this.pushEvent('text_selected', {
+        segment_id: segmentId,
+        start_offset: start,
+        end_offset: end,
+        selected_text: selectedText
+      })
+    }
+
+    textarea.addEventListener('mouseup', () => checkSelection())
+    textarea.addEventListener('touchend', () => {
+      // Small delay for mobile selection to finalize
+      setTimeout(() => checkSelection(), 150)
+    })
+  }
+}
+
 // LiveSocket configuration
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {

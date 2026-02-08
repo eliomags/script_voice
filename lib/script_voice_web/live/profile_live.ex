@@ -163,7 +163,7 @@ defmodule ScriptVoiceWeb.ProfileLive do
                 <%= if @profile_user.user_type == "writer" do %>
                   <div>
                     <span class="font-semibold"><%= length(@screenplays) %></span>
-                    <span class="text-gray-500">scripts</span>
+                    <span class="text-gray-500">stories</span>
                   </div>
                 <% end %>
                 <%= if @profile_user.user_type == "voice_artist" do %>
@@ -273,12 +273,12 @@ defmodule ScriptVoiceWeb.ProfileLive do
 
         <!-- Content -->
         <%= if @profile_user.user_type == "writer" do %>
-          <h2 class="text-lg font-bold mb-4">Screenplays</h2>
+          <h2 class="text-lg font-bold mb-4">Stories</h2>
 
           <%= if Enum.empty?(@screenplays) do %>
             <div class="bg-white border rounded-xl p-8 text-center">
               <.icon name="hero-document-text" class="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <p class="text-gray-500">No screenplays uploaded yet</p>
+              <p class="text-gray-500">No stories published yet</p>
             </div>
           <% else %>
             <div class="grid gap-4">
@@ -323,7 +323,7 @@ defmodule ScriptVoiceWeb.ProfileLive do
                     <% end %>
                   </div>
                   <.link navigate={~p"/screenplay/#{av.screenplay_id}"} class="text-sm text-emerald-600 font-medium hover:underline mb-2 block">
-                    <%= if av.screenplay, do: av.screenplay.title, else: "Unknown Screenplay" %>
+                    <%= if av.screenplay, do: av.screenplay.title, else: "Unknown Story" %>
                   </.link>
                   <.audio_version_card
                     audio_version={av}

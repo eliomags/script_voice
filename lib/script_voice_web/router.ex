@@ -25,6 +25,7 @@ defmodule ScriptVoiceWeb.Router do
     pipe_through :browser
 
     live "/", HomeLive, :index
+    live "/htw", HowItWorksLive, :index
     live "/dashboard", DashboardLive, :index
     live "/browse", BrowseLive, :index
     live "/screenplay/:id", ScreenplayLive, :show
