@@ -84,13 +84,18 @@ defmodule ScriptVoiceWeb.BrowseLive do
   defp list_all_projects_with_episodes(genre) do
     import Ecto.Query
     alias ScriptVoice.Repo
-    alias ScriptVoice.Screenplays.ScreenplayProject
+    alias ScriptVoice.Screenplays.{ScreenplayProject, Screenplay}
+
+    # Lightweight episode query — only load fields needed for listing, not blocks/characters/script_content
+    episode_query = from e in Screenplay,
+      select: struct(e, [:id, :title, :episode_number, :episode_code, :screenplay_type,
+                         :genre, :logline, :page_count, :likes, :audio_version_count,
+                         :writer_name, :is_published, :is_public, :project_id, :season_id,
+                         :inserted_at, :updated_at])
 
     query = from p in ScreenplayProject,
       where: p.is_public == true,
-      left_join: e in assoc(p, :episodes),
-      left_join: w in assoc(p, :owner),
-      preload: [episodes: e, owner: w],
+      preload: [episodes: ^episode_query, owner: []],
       order_by: [desc: p.updated_at]
 
     query = if genre != "All" do

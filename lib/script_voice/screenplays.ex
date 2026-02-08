@@ -26,13 +26,20 @@ defmodule ScriptVoice.Screenplays do
     genre = Keyword.get(opts, :genre)
     writer_id = Keyword.get(opts, :writer_id)
     limit = Keyword.get(opts, :limit)
+    lightweight = Keyword.get(opts, :lightweight, true)
 
-    Screenplay
-    |> apply_genre_filter(genre)
-    |> apply_writer_filter(writer_id)
-    |> apply_sort(sort)
-    |> apply_limit(limit)
-    |> Repo.all()
+    query =
+      Screenplay
+      |> apply_genre_filter(genre)
+      |> apply_writer_filter(writer_id)
+      |> apply_sort(sort)
+      |> apply_limit(limit)
+
+    if lightweight do
+      query |> exclude_heavy_fields() |> Repo.all()
+    else
+      query |> Repo.all()
+    end
   end
 
   defp apply_genre_filter(query, nil), do: query
@@ -50,6 +57,19 @@ defmodule ScriptVoice.Screenplays do
   defp apply_limit(query, nil), do: query
   defp apply_limit(query, limit), do: limit(query, ^limit)
 
+  # Fields to load for listing views (excludes heavy embedded data: blocks, characters, script_content)
+  @listing_fields [
+    :id, :title, :genre, :logline, :page_count, :pdf_url, :likes,
+    :audio_version_count, :version, :writer_name, :screenplay_type,
+    :is_published, :is_public, :episode_number, :episode_code,
+    :character_ids, :writer_id, :project_id, :season_id,
+    :inserted_at, :updated_at
+  ]
+
+  defp exclude_heavy_fields(query) do
+    from s in query, select: struct(s, ^@listing_fields)
+  end
+
   @doc """
   Returns the list of standalone screenplays (not part of any project).
   These are screenplays where project_id is nil.
@@ -63,13 +83,20 @@ defmodule ScriptVoice.Screenplays do
     sort = Keyword.get(opts, :sort, :recent)
     genre = Keyword.get(opts, :genre)
     limit = Keyword.get(opts, :limit)
+    lightweight = Keyword.get(opts, :lightweight, true)
 
-    Screenplay
-    |> where([s], is_nil(s.project_id))
-    |> apply_genre_filter(genre)
-    |> apply_sort(sort)
-    |> apply_limit(limit)
-    |> Repo.all()
+    query =
+      Screenplay
+      |> where([s], is_nil(s.project_id))
+      |> apply_genre_filter(genre)
+      |> apply_sort(sort)
+      |> apply_limit(limit)
+
+    if lightweight do
+      query |> exclude_heavy_fields() |> Repo.all()
+    else
+      query |> Repo.all()
+    end
   end
 
   @doc """

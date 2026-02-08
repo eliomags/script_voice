@@ -11,6 +11,15 @@ defmodule ScriptVoice.Projects do
   alias ScriptVoice.Screenplays.{ScreenplayProject, ScreenplaySeason, SeriesBible, ProjectCharacter, Screenplay}
   alias ScriptVoice.Accounts.User
 
+  # Fields to load for listing views (excludes heavy embedded data: blocks, characters, script_content)
+  @listing_fields [
+    :id, :title, :genre, :logline, :page_count, :pdf_url, :likes,
+    :audio_version_count, :version, :writer_name, :screenplay_type,
+    :is_published, :is_public, :episode_number, :episode_code,
+    :character_ids, :writer_id, :project_id, :season_id,
+    :inserted_at, :updated_at
+  ]
+
   # ===========================================================================
   # PROJECT CRUD
   # ===========================================================================
@@ -46,13 +55,19 @@ defmodule ScriptVoice.Projects do
   Gets a project with all preloads (seasons, episodes, bible, characters).
   """
   def get_project_with_preloads(id) do
+    # Lightweight episode query — exclude heavy blocks/characters/script_content
+    episode_query = from(e in Screenplay,
+      select: struct(e, ^@listing_fields),
+      order_by: [asc: e.episode_number]
+    )
+
     ScreenplayProject
     |> Repo.get(id)
     |> Repo.preload([
       :series_bible,
       :characters,
-      seasons: [episodes: :writer],
-      episodes: :writer
+      seasons: [episodes: episode_query],
+      episodes: episode_query
     ])
   end
 
@@ -101,11 +116,17 @@ defmodule ScriptVoice.Projects do
   Lists all seasons for a project, ordered by season number.
   """
   def list_seasons_for_project(project_id) do
+    # Lightweight episode query — exclude heavy blocks/characters/script_content
+    episode_query = from(e in Screenplay,
+      select: struct(e, ^@listing_fields),
+      order_by: [asc: e.episode_number]
+    )
+
     ScreenplaySeason
     |> where([s], s.project_id == ^project_id)
     |> order_by([s], s.season_number)
-    |> preload([episodes: :writer])
     |> Repo.all()
+    |> Repo.preload([episodes: episode_query])
   end
 
   @doc """
@@ -225,10 +246,11 @@ defmodule ScriptVoice.Projects do
   Lists all episodes for a project, ordered by season and episode number.
   """
   def list_episodes_for_project(project_id) do
-    Screenplay
-    |> where([s], s.project_id == ^project_id)
-    |> order_by([s], [asc: s.season_id, asc: s.episode_number])
-    |> preload(:writer)
+    from(s in Screenplay,
+      where: s.project_id == ^project_id,
+      order_by: [asc: s.season_id, asc: s.episode_number],
+      select: struct(s, ^@listing_fields)
+    )
     |> Repo.all()
   end
 
@@ -236,10 +258,11 @@ defmodule ScriptVoice.Projects do
   Lists episodes for a specific season.
   """
   def list_episodes_for_season(season_id) do
-    Screenplay
-    |> where([s], s.season_id == ^season_id)
-    |> order_by([s], asc: s.episode_number)
-    |> preload(:writer)
+    from(s in Screenplay,
+      where: s.season_id == ^season_id,
+      order_by: [asc: s.episode_number],
+      select: struct(s, ^@listing_fields)
+    )
     |> Repo.all()
   end
 
@@ -506,10 +529,11 @@ defmodule ScriptVoice.Projects do
   Gets standalone screenplays for a writer (not linked to any project).
   """
   def get_standalone_screenplays_for_writer(writer_id) do
-    Screenplay
-    |> where([s], s.writer_id == ^writer_id)
-    |> where([s], is_nil(s.project_id))
-    |> order_by([s], desc: s.inserted_at)
+    from(s in Screenplay,
+      where: s.writer_id == ^writer_id and is_nil(s.project_id),
+      order_by: [desc: s.inserted_at],
+      select: struct(s, ^@listing_fields)
+    )
     |> Repo.all()
   end
 end

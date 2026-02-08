@@ -115,14 +115,14 @@
   </script>
 
   <!-- Main Content -->
-  <main class={["flex-1", assigns[:current_user] && "pb-16 sm:pb-0"]}>
+  <main class={["flex-1", assigns[:current_user] && "pb-16"]}>
     <.flash_group flash={@flash} />
     <%= @inner_content %>
   </main>
 
-  <!-- Bottom Navigation - Mobile only, dashboard tabs for logged in users -->
+  <!-- Bottom Navigation - All screens, dashboard tabs for logged in users -->
   <%= if assigns[:current_user] do %>
-    <nav id="bottom-nav" class="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-40 safe-area-inset-bottom">
+    <nav id="bottom-nav" class="fixed bottom-0 left-0 right-0 bg-white border-t z-40 safe-area-inset-bottom">
       <div class="flex justify-around items-center py-2 max-w-lg mx-auto">
         <!-- Overview/Home -->
         <.link navigate={~p"/dashboard"} data-tab="overview" class="bottom-nav-link flex flex-col items-center gap-0.5 px-3 py-1 text-gray-500">
